@@ -25,6 +25,10 @@
   <link rel="stylesheet" href="css/chat.css?v=2">
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Report Generation Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body>
@@ -55,6 +59,22 @@
 
     <div class="chat-fab" onclick="toggleChat()">
       <i class="fas fa-robot"></i>
+    </div>
+  </div>
+
+  <!-- ================== DOWNLOAD MODAL ================== -->
+  <div id="download-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <h3>Download Report</h3>
+        <i class="fas fa-times" onclick="closeDownloadModal()" style="cursor:pointer"></i>
+      </div>
+      <div class="modal-body">
+        <p id="modal-desc">Select a format for your report:</p>
+        <div class="modal-actions" id="modal-actions">
+          <!-- Buttons injected via JS -->
+        </div>
+      </div>
     </div>
   </div>
 

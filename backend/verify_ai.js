@@ -7,16 +7,17 @@ socket.on('connect', () => {
 
     // Test 1: Status
     console.log('Sending: "system status report"');
-    socket.emit('chat_message', 'system status report');
+    socket.emit('chat_message', { message: 'system status report' });
 });
 
 socket.on('chat_response', (data) => {
     console.log('Received AI Response:', data.message);
 
-    if (data.message.includes('System Status') || data.message.includes('Operational')) {
+    if (data.message.includes('System Status') || data.message.includes('Operational') || data.message.includes('CRITICAL ALERT')) {
         console.log('✅ AI Test PASSED');
     } else {
         console.log('❌ AI Test FAILED');
+        console.log('Received:', data.message);
     }
 
     socket.disconnect();

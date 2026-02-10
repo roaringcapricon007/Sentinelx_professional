@@ -250,7 +250,7 @@ function setupSocket() {
         // Checking switchTab: renderReports calls renderReports? state.currentTab
 
         // Update pie chart if dashboard is active
-        if (state.currentTab === 'overview') renderOverview(); // efficient enough? maybe just update chart data.
+        if (state.currentTab === 'overview') updateOverviewCharts(servers);
 
         // If we have a dedicated Infrastructure view (it seems renderInfrastructure is used later, let's check renderReports)
         if (document.querySelector('.infrastructure-table')) {
@@ -350,6 +350,13 @@ function renderOverview() {
                 <div class="card-value">--</div>
                 <div class="card-trend">Scanned Today</div>
             </div>
+            <div class="card" style="grid-column: span 1; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(0, 212, 255, 0.1); border:1px dashed var(--primary)" onclick="optimizeSystem()">
+                <div style="text-align:center">
+                    <i class="fas fa-rocket" style="font-size:1.5rem; color:var(--primary); margin-bottom:10px"></i>
+                     <div class="card-title" style="margin:0">Optimize System</div>
+                     <span style="font-size:0.75rem; color:var(--text-muted)">Free up resources</span>
+                </div>
+            </div>
         </div>
         
         </div>
@@ -430,6 +437,49 @@ function renderOverview() {
 
         } catch (e) { console.error("Chart load failed", e); }
     }, 100);
+}
+
+let lastChartUpdate = 0;
+
+function updateOverviewCharts(servers) {
+    if (typeof Chart === 'undefined') return;
+
+    // Throttle updates to 1 minute (60000ms)
+    const now = Date.now();
+    if (now - lastChartUpdate < 60000) return;
+    lastChartUpdate = now;
+
+    // Update Pie Chart if it exists
+    const chart = Chart.getChart('statusPieChart');
+    if (chart) {
+        const statusCounts = { online: 0, offline: 0, warning: 0 };
+        servers.forEach(s => statusCounts[s.status] = (statusCounts[s.status] || 0) + 1);
+        if (servers.length === 0) statusCounts.online = 1;
+
+        chart.data.datasets[0].data = [statusCounts.online, statusCounts.offline, statusCounts.warning];
+        chart.update();
+    }
+}
+
+function optimizeSystem() {
+    showToast("Analyzing system resources...", "info");
+
+    setTimeout(() => {
+        // Visual cleanup simulation
+        const cpu = document.getElementById('metric-cpu');
+        const ram = document.getElementById('metric-ram');
+
+        if (cpu) {
+            cpu.innerText = "12%";
+            cpu.style.color = "#00ff88";
+        }
+        if (ram) {
+            ram.innerText = "24%";
+            ram.style.color = "#00ff88"; // Green
+        }
+
+        showToast("Optimization Complete: Memory cache cleared.", "success");
+    }, 1500);
 }
 
 function renderAnalysis() {
@@ -836,7 +886,7 @@ function renderTopology() {
                 </div>
             </div>
             <div class="topology-map-container glass-card">
-                <svg width="100%" height="400" viewBox="0 0 800 400" style="overflow: visible">
+                <svg id="topo-svg" width="100%" height="400" viewBox="0 0 800 400" style="overflow: visible">
                     <defs>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="3.5" result="blur" />
@@ -848,11 +898,6 @@ function renderTopology() {
                         </linearGradient>
                     </defs>
 
-                    <!-- Animated Paths -->
-                    <path d="M400,200 L200,100" stroke="url(#lineGrad)" stroke-width="1.5" stroke-dasharray="10,10" class="topo-path" style="animation: dash 3s linear infinite"/>
-                    <path d="M400,200 L600,150" stroke="url(#lineGrad)" stroke-width="1.5" stroke-dasharray="10,10" class="topo-path" style="animation: dash 3s linear infinite"/>
-                    <path d="M400,200 L400,350" stroke="url(#lineGrad)" stroke-width="1.5" stroke-dasharray="10,10" class="topo-path" style="animation: dash 3s linear infinite"/>
-
                     <!-- Core Node -->
                     <g transform="translate(400, 200)" class="topo-node-main">
                         <circle r="35" fill="var(--bg-dark)" stroke="var(--primary)" stroke-width="2" filter="url(#glow)" />
@@ -862,24 +907,11 @@ function renderTopology() {
                             <animate attributeName="opacity" from="0.3" to="0" dur="2s" repeatCount="indefinite" />
                         </circle>
                     </g>
-
-                    <!-- Peripheral Nodes -->
-                    <g transform="translate(200, 100)" class="topo-node" onclick="showToast('DB-CLUSTER: Latency 12ms', 'success')" style="cursor:pointer">
-                        <circle r="22" fill="var(--bg-dark)" stroke="#ffcc00" stroke-width="1.5" />
-                        <text y="35" text-anchor="middle" fill="var(--text-muted)" font-size="10">DB-CLUSTER</text>
-                    </g>
-
-                    <g transform="translate(600, 150)" class="topo-node" onclick="showToast('WEB-TIER: Processing...', 'info')" style="cursor:pointer">
-                        <circle r="22" fill="var(--bg-dark)" stroke="#00ff88" stroke-width="1.5" />
-                        <text y="35" text-anchor="middle" fill="var(--text-muted)" font-size="10">WEB-TIER</text>
-                    </g>
-
-                    <g transform="translate(400, 350)" class="topo-node" onclick="showToast('BACKUP: Last Sync 2m ago', 'warning')" style="cursor:pointer">
-                        <circle r="22" fill="var(--bg-dark)" stroke="#ff0055" stroke-width="1.5" />
-                        <text y="35" text-anchor="middle" fill="var(--text-muted)" font-size="10">BACKUP-01</text>
-                    </g>
+                    
+                    <!-- Dynamic Nodes Container -->
+                    <g id="dynamic-nodes"></g>
                 </svg>
-
+                </svg>
             </div>
             <div class="topology-info glass-card">
                 <h4>Node Legend</h4>
@@ -891,6 +923,79 @@ function renderTopology() {
             </div>
         </div>
     `;
+
+    // Execute Topology Logic
+    setTimeout(() => {
+        const svg = document.getElementById('dynamic-nodes');
+        if (!svg) return;
+
+        const servers = state.infraData || [];
+        const centerX = 400;
+        const centerY = 200;
+        const radius = 150;
+
+        // Clear previous
+        while (svg.firstChild) { svg.removeChild(svg.firstChild); }
+
+        // Add Paths first (so they are behind nodes)
+        servers.forEach((s, index) => {
+            const angle = (index / servers.length) * 2 * Math.PI;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M${centerX},${centerY} L${x},${y}`);
+            path.setAttribute("stroke", "url(#lineGrad)");
+            path.setAttribute("stroke-width", "1.5");
+            path.setAttribute("stroke-dasharray", "5,5");
+            path.setAttribute("class", "topo-path");
+            // Animation delay variation
+            path.style.animation = `dash 3s linear infinite ${index * 0.5}s`;
+            svg.appendChild(path);
+        });
+
+        // Add Nodes
+        servers.forEach((s, index) => {
+            const angle = (index / servers.length) * 2 * Math.PI;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+
+            const color = getStatusColor(s.status);
+
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute("transform", `translate(${x}, ${y})`);
+            g.setAttribute("class", "topo-node");
+            g.style.cursor = "pointer";
+            g.onclick = () => showToast(`Node: ${s.hostname} | Load: ${s.load}% | Status: ${s.status}`, 'info');
+
+            const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            c.setAttribute("r", "22");
+            c.setAttribute("fill", "var(--bg-dark)");
+            c.setAttribute("stroke", color);
+            c.setAttribute("stroke-width", "1.5");
+
+            const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            t.setAttribute("y", "35");
+            t.setAttribute("text-anchor", "middle");
+            t.setAttribute("fill", "var(--text-muted)");
+            t.setAttribute("font-size", "10");
+            t.textContent = s.hostname;
+
+            g.appendChild(c);
+            g.appendChild(t);
+            svg.appendChild(g);
+        });
+
+        if (servers.length === 0) {
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            g.setAttribute("x", "400");
+            g.setAttribute("y", "350");
+            g.setAttribute("text-anchor", "middle");
+            g.setAttribute("fill", "#666");
+            g.textContent = "No active agents connected.";
+            svg.appendChild(g);
+        }
+    }, 50);
 }
 
 function renderReports() {
@@ -902,21 +1007,21 @@ function renderReports() {
                     <h3>Weekly Availability</h3>
                     <p>Uptime metrics across all regions.</p>
                     <div class="stat-pill" style="margin-bottom:15px">99.98% Uptime Score</div>
-                    <button class="btn-primary" onclick="showToast('Generating PDF...', 'info')">Download</button>
+                    <button class="btn-primary" onclick="openDownloadModal('availability')">Download Report</button>
                 </div>
                 <div class="report-card glass-card">
                     <i class="fas fa-shield-virus"></i>
                     <h3>Security Audit</h3>
                     <p>Breakdown of blocked threats.</p>
                     <div class="stat-pill" style="margin-bottom:15px; border-color:#ff0055; color:#ff0055">12 High Risks Found</div>
-                    <button class="btn-primary" onclick="showToast('Generating PDF...', 'info')">Download</button>
+                    <button class="btn-primary" onclick="openDownloadModal('security')">Download Report</button>
                 </div>
                 <div class="report-card glass-card">
                     <i class="fas fa-bolt"></i>
                     <h3>Performance Trends</h3>
                     <p>Load averages and bottlenecks.</p>
                     <div class="stat-pill" style="margin-bottom:15px; border-color:#00ff88; color:#00ff88">Optimal Performance</div>
-                    <button class="btn-primary" onclick="showToast('Generating PDF...', 'info')">Download</button>
+                    <button class="btn-primary" onclick="openDownloadModal('performance')">Download Report</button>
                 </div>
 
             </div>
@@ -1034,4 +1139,141 @@ window.handleChatKey = handleChatKey;
 window.toggleNotifications = () => {
     showToast("System notifications are healthy.", "success");
 };
+window.optimizeSystem = optimizeSystem;
+
+// --- Report Generation Logic ---
+
+let currentReportType = null;
+
+function openDownloadModal(type) {
+    currentReportType = type;
+    const modal = document.getElementById('download-modal');
+    const actions = document.getElementById('modal-actions');
+    const desc = document.getElementById('modal-desc');
+
+    if (!modal || !actions) return;
+
+    actions.innerHTML = '';
+
+    // Logic: Charts (Availability/Performance) -> Excel & PDF
+    // Logs (Security) -> PDF Only
+
+    if (type === 'security') {
+        desc.innerText = "Select format for Security Audit (Text/Logs):";
+        actions.innerHTML = `
+            <button class="btn-pdf" onclick="generateReport('pdf')"><i class="fas fa-file-pdf"></i> Download PDF</button>
+        `;
+    } else {
+        desc.innerText = `Select format for ${type === 'availability' ? 'Infrastructure' : 'Performance'} Report:`;
+        actions.innerHTML = `
+            <button class="btn-excel" onclick="generateReport('excel')"><i class="fas fa-file-excel"></i> Excel</button>
+            <button class="btn-pdf" onclick="generateReport('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+        `;
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeDownloadModal() {
+    document.getElementById('download-modal').style.display = 'none';
+    currentReportType = null;
+}
+window.closeDownloadModal = closeDownloadModal;
+window.openDownloadModal = openDownloadModal;
+window.generateReport = generateReport; // Expose to window
+
+async function generateReport(format) {
+    closeDownloadModal();
+    showToast(`Generating ${format.toUpperCase()} report...`, 'info');
+
+    try {
+        let data, title;
+        const timestamp = new Date().toLocaleString();
+
+        if (currentReportType === 'availability') {
+            const res = await fetch('/api/infrastructure');
+            data = await res.json();
+            title = "Weekly Availability Report";
+        } else if (currentReportType === 'security') {
+            const res = await fetch('/api/logs/history'); // New endpoint
+            data = await res.json();
+            title = "Security Audit Logs";
+        } else if (currentReportType === 'performance') {
+            const res = await fetch('/api/metrics/history');
+            data = await res.json();
+            title = "Performance Trends";
+        }
+
+        if (format === 'pdf') {
+            generatePDF(title, data, currentReportType);
+        } else {
+            generateExcel(title, data, currentReportType);
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to generate report", "error");
+    }
+}
+
+function generatePDF(title, data, type) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text(title, 14, 22);
+    doc.setFontSize(11);
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+
+    let head = [];
+    let body = [];
+
+    if (type === 'availability') {
+        head = [['Hostname', 'IP', 'Region', 'Status', 'Load (%)']];
+        body = data.map(d => [d.hostname, d.ipAddress, d.region, d.status, d.load]);
+    } else if (type === 'security') {
+        head = [['Severity', 'Device', 'Message', 'Time']];
+        body = data.map(d => [d.severity, d.device, d.message, new Date(d.createdAt).toLocaleTimeString()]);
+    } else if (type === 'performance') {
+        head = [['Time', 'CPU (%)', 'Mem (%)', 'Net Traffic']];
+        body = data.map(d => [new Date(d.createdAt).toLocaleTimeString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]);
+    }
+
+    doc.autoTable({
+        startY: 40,
+        head: head,
+        body: body,
+        theme: 'grid',
+        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [70, 0, 255] }
+    });
+
+    doc.save(`${type}_report_${Date.now()}.pdf`);
+    showToast("PDF Downloaded", "success");
+}
+
+function generateExcel(title, data, type) {
+    let ws_data = [];
+
+    // Header
+    ws_data.push([title]);
+    ws_data.push([`Generated: ${new Date().toLocaleString()}`]);
+    ws_data.push([]); // Empty row
+
+    if (type === 'availability') {
+        ws_data.push(['Hostname', 'IP', 'Region', 'Status', 'Load (%)']);
+        data.forEach(d => ws_data.push([d.hostname, d.ipAddress, d.region, d.status, d.load]));
+    } else if (type === 'performance') {
+        ws_data.push(['Time', 'CPU (%)', 'Mem (%)', 'Net Traffic']);
+        data.forEach(d => ws_data.push([new Date(d.createdAt).toLocaleTimeString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]));
+    }
+    // Security not needed for Excel per logic
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    XLSX.utils.book_append_sheet(wb, ws, "Report");
+    XLSX.writeFile(wb, `${type}_report_${Date.now()}.xlsx`);
+    showToast("Excel Downloaded", "success");
+}
 

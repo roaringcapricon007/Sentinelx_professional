@@ -2,6 +2,12 @@
   "name": "sentinelx-professional",
   "version": "2.0.0",
   "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node verify-db.js && echo \"DB Verified\" || exit 1",
+    "verify-ai": "node verify_ai.js",
+    "verify-db": "node verify-db.js"
+  },
   "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -16,6 +22,7 @@
     "passport-linkedin-oauth2": "^2.0.0",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "sqlite3": "^5.1.7",
     "systeminformation": "^5.30.7"
   }

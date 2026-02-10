@@ -2,6 +2,19 @@ const router = require('express').Router();
 const { LogEntry } = require('../models');
 
 module.exports = function (io) {
+    // GET /api/logs/history
+    router.get('/history', async (req, res) => {
+        try {
+            const logs = await LogEntry.findAll({
+                limit: 50,
+                order: [['createdAt', 'DESC']]
+            });
+            res.json(logs);
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to fetch logs' });
+        }
+    });
+
     // POST /api/logs/ingest
     router.post('/ingest', async (req, res) => {
         try {
