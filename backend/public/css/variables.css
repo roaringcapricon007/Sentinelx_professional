@@ -1,0 +1,107 @@
+:root {
+    /* --- Shared Tokens --- */
+    --primary: #00d4ff;
+    --primary-rgb: 0, 212, 255;
+    --secondary: #7000ff;
+    --accent: #ff0055;
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+    --font-main: 'Outfit', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --glass-blur: 16px;
+    --primary-glow: rgba(0, 212, 255, 0.4);
+}
+
+/* --- Dark Mode (Default) --- */
+[data-theme="dark"] {
+    --bg-dark: #0a0e17;
+    --bg-panel: rgba(17, 22, 37, 0.7);
+    --text-main: #ffffff;
+    --text-muted: #8b9bb4;
+    --glass-bg: rgba(255, 255, 255, 0.03);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --aura-opacity: 0.15;
+}
+
+/* --- Light Mode --- */
+[data-theme="light"] {
+    --bg-dark: #f0f4f8;
+    --bg-panel: rgba(255, 255, 255, 0.7);
+    --text-main: #1a1f2e;
+    --text-muted: #5e6d82;
+    --glass-bg: rgba(255, 255, 255, 0.5);
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --aura-opacity: 0.10;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: var(--font-main);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+
+/* --- Creative Lighting Animation (The Aura) --- */
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(100px);
+    z-index: -1;
+    opacity: var(--aura-opacity);
+    animation: auraFloat 20s infinite alternate;
+}
+
+body::before {
+    background: var(--primary);
+    top: -100px;
+    left: -100px;
+}
+
+body::after {
+    background: var(--secondary);
+    bottom: -100px;
+    right: -100px;
+    animation-delay: -10s;
+}
+
+@keyframes auraFloat {
+    0% {
+        transform: translate(0, 0) scale(1.0);
+    }
+
+    100% {
+        transform: translate(100px, 50px) scale(1.2);
+    }
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(var(--primary-rgb), 0.2);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}

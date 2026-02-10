@@ -1,0 +1,32 @@
+const router = require('express').Router();
+const { LogEntry } = require('../models');
+
+module.exports = function (io) {
+    // POST /api/logs/ingest
+    router.post('/ingest', async (req, res) => {
+        try {
+            const { severity, device, message, suggestion } = req.body;
+
+            // Save to DB
+            const newLog = await LogEntry.create({
+                severity,
+                device,
+                message,
+                suggestion,
+                timestamp: new Date()
+            });
+
+            // Real-time Emit
+            if (io) {
+                io.emit('new_log', newLog);
+            }
+
+            res.status(201).json(newLog);
+        } catch (err) {
+            console.error('Log Ingest Error:', err);
+            res.status(500).json({ error: 'Failed to ingest log' });
+        }
+    });
+
+    return router;
+};

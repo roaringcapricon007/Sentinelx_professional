@@ -1,0 +1,5 @@
+[CRITICAL] 2024-02-14 02:15:33 - Security: Unauthorized access attempt detected on port 22 from 10.0.0.55.
+[CRITICAL] 2024-02-14 02:15:35 - Security: Multiple failed login attempts for user 'root'.
+[ERROR] 2024-02-14 02:16:00 - Firewall: IPS dropped packet from suspicious source.
+[CRITICAL] 2024-02-14 02:20:00 - System: Kernel panic on main node. Reboot required immediately.
+[CRITICAL] 2024-02-14 02:25:00 - Database: Data corruption detected in sector 455.

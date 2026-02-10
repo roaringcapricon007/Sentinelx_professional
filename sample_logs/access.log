@@ -1,0 +1,8 @@
+[INFO] 2024-02-14 10:00:01 - Server-01: System boot sequence initiated.
+[INFO] 2024-02-14 10:05:23 - Server-01: Network interface eth0 up.
+[WARNING] 2024-02-14 10:45:12 - Server-02: High memory usage detected (85%).
+[INFO] 2024-02-14 11:00:00 - Database: Daily backup completed successfully.
+[ERROR] 2024-02-14 11:15:45 - Server-03: Connection to primary gateway timed out.
+[INFO] 2024-02-14 11:16:00 - Server-03: Retrying connection... Success.
+[WARNING] 2024-02-14 12:30:00 - Disk: Volume /data is 90% full.
+[INFO] 2024-02-14 13:00:00 - User: admin logged in from 192.168.1.50.

@@ -1,0 +1,59 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0b1220;
+  color: #e5e7eb;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 220px;
+  background: #020617;
+  padding: 20px;
+}
+
+.sidebar h2 {
+  margin-bottom: 20px;
+}
+
+.sidebar button {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+}
+
+.card {
+  background: #020617;
+  padding: 20px;
+  border-radius: 6px;
+}
+
+pre {
+  white-space: pre-wrap;
+  background: #020617;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.issue {
+  margin: 10px 0;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.issue.ERROR { background: #7f1d1d; }
+.issue.WARN  { background: #78350f; }
+.issue.INFO  { background: #1e3a8a; }
