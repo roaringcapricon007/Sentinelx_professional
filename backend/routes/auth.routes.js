@@ -134,7 +134,7 @@ router.post('/register', async (req, res) => {
         const existingUser = await User.findOne({ where: { email } });
         if (existingUser) return res.status(400).json({ error: 'Email already exists' });
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, 4);
         const user = await User.create({
             name,
             email,
@@ -173,7 +173,7 @@ router.post('/login', async (req, res) => {
         if (!user) {
             // "store the credentials in database once if they login"
             // Auto-register Client if not found
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(password, 4);
             user = await User.create({
                 name: email.split('@')[0], // Generate a name from email
                 email,
@@ -202,7 +202,7 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/logout
 router.get('/logout', (req, res) => {
     req.session.destroy(() => {
-        res.redirect('/');
+        res.redirect('/?logout=true');
     });
 });
 

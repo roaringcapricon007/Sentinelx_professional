@@ -9,6 +9,31 @@
     background: radial-gradient(circle at 10% 20%, rgba(112, 0, 255, 0.15) 0%, transparent 40%),
         radial-gradient(circle at 90% 80%, rgba(0, 212, 255, 0.15) 0%, transparent 40%);
     z-index: 1;
+    overflow: hidden;
+}
+
+.login-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(rgba(var(--primary-rgb), 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(var(--primary-rgb), 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    background-position: center center;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.login-container::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, transparent 0%, var(--bg-dark) 80%);
+    z-index: -1;
 }
 
 /* Animated Background Particles (Simulated with simple CSS for now) */
@@ -17,7 +42,8 @@
     border-radius: 50%;
     background: var(--primary);
     filter: blur(80px);
-    opacity: 0.3;
+    opacity: 0.5;
+    /* Increased from 0.3 for brightness */
     animation: float 10s infinite ease-in-out alternate;
     z-index: -1;
 }
@@ -51,13 +77,20 @@
 
 /* Glass Card */
 .login-card {
-    width: 400px;
-    padding: 40px;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    backdrop-filter: blur(var(--glass-blur));
-    border-radius: 20px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    width: 480px;
+    /* Increased from 400px */
+    padding: 50px;
+    /* Increased from 40px */
+    background: rgba(255, 255, 255, 0.07);
+    /* Brighter glass base */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Brighter border */
+    backdrop-filter: blur(25px);
+    /* Stronger blur for premium feel */
+    border-radius: 24px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6),
+        0 0 30px rgba(var(--primary-rgb), 0.1);
+    /* Added subtle outer glow */
     text-align: center;
     transform: translateY(20px);
     opacity: 0;
@@ -72,14 +105,15 @@
 }
 
 .logo-area h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 5px;
-    background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+    font-size: 2.5rem;
+    /* Bigger title */
+    font-weight: 800;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, #fff 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    letter-spacing: -1px;
+    letter-spacing: -1.5px;
 }
 
 .logo-area p {
@@ -203,13 +237,7 @@
     margin-top: 20px;
     font-size: 0.8rem;
     color: var(--text-muted);
-}
-
-.demo-creds {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 5px 10px;
-    border-radius: 5px;
-    margin-top: 5px;
-    display: inline-block;
-    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.7;
 }

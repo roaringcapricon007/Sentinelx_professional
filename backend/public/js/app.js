@@ -88,7 +88,150 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize Socket Listeners
     setupSocket();
+
+    // Start Cinematic Intro (Skip if logging out)
+    if (urlParams.get('logout') === 'true') {
+        const intro = document.getElementById('intro-view');
+        if (intro) intro.style.display = 'none';
+        window.history.replaceState({}, document.title, "/");
+    } else {
+        runIntro();
+    }
 });
+
+// --- Cinematic Intro Logic ---
+function runIntro() {
+    const intro = document.getElementById('intro-view');
+    const sx = document.getElementById("sx");
+    const fullPackage = document.getElementById("full-package");
+    const fullText = document.getElementById("full");
+    const threatLeft = document.getElementById("threat-left");
+    const threatRight = document.getElementById("threat-right");
+    const container = document.getElementById("container");
+    const scan = document.getElementById("scan");
+    const canvas = document.getElementById("matrix");
+    if (!intro || !canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    // --- MATRIX RAIN LOGIC ---
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:,.<>?";
+    const fontSize = 16;
+    const columns = canvas.width / fontSize;
+    const drops = Array(Math.floor(columns)).fill(1);
+
+    function drawMatrix() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#0F0";
+        ctx.font = fontSize + "px Courier New";
+        for (let i = 0; i < drops.length; i++) {
+            const text = characters.charAt(Math.floor(Math.random() * characters.length));
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        }
+    }
+    const matrixInterval = setInterval(drawMatrix, 35);
+
+    // --- ANIMATION LOGIC ---
+    const applyGlitch = (element, duration = 500) => {
+        element.classList.add("glitch-effect");
+        setTimeout(() => element.classList.remove("glitch-effect"), duration);
+    };
+
+    const tl = gsap.timeline({
+        onComplete: () => {
+            // IMMEDIATE SLIDE UP AFTER ALL ANIMATIONS FINISH
+            clearInterval(matrixInterval);
+            intro.classList.add('slide-up');
+            // Remove display none after transition ends
+            setTimeout(() => {
+                intro.style.display = 'none';
+            }, 800);
+        }
+    });
+
+    // 1. Initial State
+    tl.set(sx, { scale: 1, opacity: 0 })
+        .set(fullPackage, { opacity: 0, scale: 0.8 })
+        .set([threatLeft, threatRight], { opacity: 0 })
+        .set(scan, { top: "-10%" });
+
+    // 2. SX Appears and PULSES
+    tl.to(sx, {
+        duration: 1,
+        opacity: 1,
+        onStart: () => sx.classList.add("pulse-neon"),
+        ease: "power2.out"
+    });
+
+    // 3. PULSE for 1.5 seconds (Reduced from 3s for snappier feel)
+    tl.to({}, { duration: 1.5 });
+
+    // 4. ZOOM Phase
+    tl.to(sx, {
+        duration: 0.8,
+        scale: 10,
+        opacity: 0,
+        ease: "power4.in",
+        onStart: () => {
+            sx.classList.remove("pulse-neon");
+            applyGlitch(container, 800);
+        }
+    }, "-=0.2");
+
+    // 5. Reveal BLUE "SENTINELX"
+    tl.to(fullPackage, {
+        duration: 1.2,
+        opacity: 1,
+        scale: 1,
+        ease: "expo.out"
+    }, "-=0.1");
+
+    // 6. RADIUM SCAN
+    tl.to(scan, {
+        duration: 2.0,
+        top: "110%",
+        ease: "none",
+        onUpdate: function () {
+            const progress = this.progress();
+            if (progress >= 0.65 && !fullText.classList.contains("glow-red")) {
+                fullText.classList.remove("glow-blue");
+                fullText.classList.add("glow-red");
+                threatLeft.innerText = "";
+                fullText.innerText = "";
+                threatRight.innerText = "";
+
+                const scramble = (el, word) => {
+                    const chars = "¢£¥§¶∆∏∑√∞∫≈≠≤≥@#$%^&*()_+-=[]{}|;:,.<>?0123456789";
+                    let iter = 0;
+                    const interval = setInterval(() => {
+                        el.innerText = word.split("").map((c, i) => {
+                            if (i < iter) return word[i];
+                            return chars[Math.floor(Math.random() * chars.length)];
+                        }).join("");
+                        if (iter >= word.length) { clearInterval(interval); el.innerText = word; }
+                        iter += 0.5; // Slightly faster decoding
+                    }, 25);
+                }
+
+                scramble(threatLeft, "THREAT");
+                scramble(fullText, "SENTINELX");
+                scramble(threatRight, "DETECTED");
+                gsap.to([threatLeft, threatRight], { duration: 0.1, opacity: 1 });
+            }
+        }
+    }, "+=0.2");
+
+    window.addEventListener("resize", () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+}
 
 // --- Authentication ---
 async function handleLogin(formRef, email, password) {
@@ -163,7 +306,11 @@ function login(user) {
     const nameSpan = document.querySelector('.user-profile span');
     if (nameSpan) nameSpan.innerText = user.name || 'User';
 
-    switchTab('overview');
+    // Show Chatbot after login
+    const chatbot = document.getElementById('main-chat-widget');
+    if (chatbot) chatbot.style.display = 'flex';
+
+    switchTab('home');
 }
 
 async function checkSession() {
@@ -196,22 +343,33 @@ function fillDemo() {
 function switchTab(tab) {
     state.currentTab = tab;
 
-    // Stop polling if leaving overview
-    if (tab !== 'overview' && window.metricsInterval) clearInterval(window.metricsInterval);
+    // Close profile dropdown if open
+    const dropdown = document.getElementById('profile-dropdown');
+    if (dropdown && dropdown.classList.contains('show')) {
+        dropdown.classList.remove('show');
+        const chevron = document.getElementById('profile-chevron');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+    }
 
+    // Update Nav Links
     document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-
-    // Find link by onclick attribute to set active
     const links = Array.from(document.querySelectorAll('.nav-link'));
     const activeLink = links.find(l => l.getAttribute('onclick')?.includes(tab));
     if (activeLink) activeLink.classList.add('active');
 
-    if (tab === 'overview') {
+    // Render View (View Manager handles visibility)
+    if (tab === 'home') {
+        if (pageTitle) pageTitle.innerText = 'Project Welcome';
+        renderHome();
+    } else if (tab === 'overview') {
         if (pageTitle) pageTitle.innerText = 'System Overview';
         renderOverview();
     } else if (tab === 'analysis') {
         if (pageTitle) pageTitle.innerText = 'Log Analysis';
         renderAnalysis();
+    } else if (tab === 'infrastructure') {
+        if (pageTitle) pageTitle.innerText = 'Infrastructure';
+        renderInfrastructure();
     } else if (tab === 'topology') {
         if (pageTitle) pageTitle.innerText = 'Network Topology';
         renderTopology();
@@ -225,6 +383,26 @@ function switchTab(tab) {
         if (pageTitle) pageTitle.innerText = 'My Profile';
         renderProfile();
     }
+}
+
+// --- View Manager (SPA Logic) ---
+function showView(viewId) {
+    // 1. Hide all existing view containers
+    document.querySelectorAll('.view-container').forEach(el => el.style.display = 'none');
+
+    // 2. Find or create the requested view container
+    let view = document.getElementById(viewId);
+    if (!view) {
+        view = document.createElement('div');
+        view.id = viewId;
+        view.className = 'view-container fade-in'; // Add fade-in animation class if available
+        contentArea.appendChild(view);
+    }
+
+    // 3. Show it
+    view.style.display = 'block';
+
+    return view;
 }
 
 
@@ -244,18 +422,18 @@ function setupSocket() {
 
     socket.on('infrastructure_update', (servers) => {
         state.infraData = servers;
-        // Only re-render if we are on the infrastructure tab (reports? no, maybe dashboard charts or settings?)
-        // Actually, let's update charts and if the user is in the 'reports' tab (which seems to show infra content in renderInfrastructure?)
-        // Wait, renderInfrastructure is likely called in 'reports' or 'topology' or just separate?
-        // Checking switchTab: renderReports calls renderReports? state.currentTab
 
-        // Update pie chart if dashboard is active
-        if (state.currentTab === 'overview') updateOverviewCharts(servers);
+        // 1. Update Overview Charts if they exist
+        updateOverviewCharts(servers);
 
-        // If we have a dedicated Infrastructure view (it seems renderInfrastructure is used later, let's check renderReports)
-        if (document.querySelector('.infrastructure-table')) {
-            renderInfraTable(servers);
+        // 2. Update Topology if it's currently rendered
+        const topoNodes = document.getElementById('dynamic-nodes');
+        if (topoNodes) {
+            updateTopologyNodes(servers);
         }
+
+        // 3. Update Infrastructure Table if it's currently rendered
+        renderInfraTable(servers);
     });
 
     socket.on('new_log', (log) => {
@@ -269,11 +447,13 @@ function setupSocket() {
             showToast(`Security Alert from ${log.device}: ${log.message}`, 'error');
         }
 
-        // Update Log View if active
-        if (state.currentTab === 'analysis') {
-            renderAnalysis();
+        // Update Log Table if it's currently rendered
+        const analysisView = document.getElementById('analysis-view');
+        if (analysisView) {
+            updateAnalysisTable(analysisView);
         }
     });
+
     socket.on('metrics_update', (data) => {
         state.overviewData = data;
         updateDashboardMetrics(data);
@@ -281,6 +461,69 @@ function setupSocket() {
 }
 
 // --- RENDER FUNCTIONS ---
+
+function renderHome() {
+    const view = showView('home-view');
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+        <div class="home-container fade-in">
+        <div class="hero-section glass-card" style="padding: 40px; margin-bottom: 30px; text-align: center; border-radius: 24px;">
+            <h1 style="font-size: 2.8rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to Sentinel<span style="color:var(--primary)">X</span> Professional</h1>
+            <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto;">The complete Enterprise IT Management solution for real-time infrastructure visibility, security intelligence, and AI-driven automation.</p>
+            <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center;">
+                <button class="btn-primary" onclick="switchTab('overview')" style="padding: 12px 24px;">View Live Metrics</button>
+                <button class="btn-secondary" onclick="switchTab('infrastructure')" style="padding: 12px 24px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 10px;">Managed Fleet</button>
+            </div>
+        </div>
+
+        <h2 style="margin-bottom: 20px; font-weight: 500;">Inside the Platform</h2>
+        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+            <div class="card glass-card">
+                <div style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-robot"></i></div>
+                <h3>SentinelAI Engine</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>ChatGPT (GPT-4o/o1)</strong> and neural local NLP. Provides predictive root-cause analysis, autonomous security patching, and multimodal system control.</p>
+            </div>
+            <div class="card glass-card">
+                <div style="font-size: 2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-bolt"></i></div>
+                <h3>Real-time WebSockets</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Zero-latency data streaming. Your metrics and logs update instantly across all connected dashboards without page refreshes.</p>
+            </div>
+            <div class="card glass-card">
+                <div style="font-size: 2rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-project-diagram"></i></div>
+                <h3>Dynamic Topology</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Visualizes your entire network infrastructure in a 2D/3D map. Tracks node health and connections in real-time.</p>
+            </div>
+            <div class="card glass-card">
+                <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-file-export"></i></div>
+                <h3>Automated Reports</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Generate professional PDF and Excel reports for stakeholders. Includes performance trends, security audits, and log summaries.</p>
+            </div>
+        </div>
+
+        <div class="card glass-card" style="margin-top: 30px; padding: 40px; text-align: center; border-radius: 24px; background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.05) 0%, transparent 100%);">
+            <h2 style="margin-bottom: 20px;">Automated Intelligence at Scale</h2>
+            <p style="color: var(--text-muted); line-height: 1.8; max-width: 900px; margin: 0 auto 30px;">SentinelX v6.0 leverages a next-gen hybrid neural architecture, combining local Bayesian classification for zero-latency triage with multi-model LLM integration for deep root-cause analysis. Our mission is to provide an autonomous monitoring layer that heals infrastructure before downtime occurs.</p>
+            <div style="display: flex; gap: 40px; justify-content: center; align-items: center;">
+                <div style="text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">99.99%</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Global Uptime SLA</div>
+                </div>
+                <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--secondary);">0.1ms</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Neural Ingest Latency</div>
+                </div>
+                <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; color: #00ff88;">24/7</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">AI Monitoring</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+}
 
 function updateDashboardMetrics(data) {
     // 1. Update Cards
@@ -295,6 +538,14 @@ function updateDashboardMetrics(data) {
     if (ramVal) ramVal.innerText = data.memoryUsage + '%';
     if (netVal) netVal.innerText = ((data.networkRx + data.networkTx) / 1024).toFixed(1) + ' KB/s';
 
+    // Update Footer Trend
+    const footerNet = document.getElementById('footer-net-speed');
+    if (footerNet) {
+        // Convert to MB/s
+        const mbps = (data.networkRx + data.networkTx) / 1024 / 1024;
+        footerNet.innerText = mbps.toFixed(2);
+    }
+
     // 2. Update Chart
     const chart = Chart.getChart('mainTrendChart');
     if (chart) {
@@ -304,8 +555,8 @@ function updateDashboardMetrics(data) {
         chart.data.labels.push(timeLabel);
         chart.data.datasets[0].data.push(data.cpuLoad);
 
-        // Keep last 20 points
-        if (chart.data.labels.length > 20) {
+        // Keep last 30 points (approx 1.5 mins of history with 3s interval)
+        if (chart.data.labels.length > 30) {
             chart.data.labels.shift();
             chart.data.datasets[0].data.shift();
         }
@@ -325,10 +576,13 @@ function updateMetricGlow(el, val) {
 
 
 function renderOverview() {
-    // startMetricsPolling(); // Removed in v5.0 for Socket Stream
+    const view = showView('overview-view');
 
-    contentArea.innerHTML = `
-        <div class="dashboard-grid">
+    // If already rendered, just return (Socket updates will handle data)
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+        <div class="dashboard-grid" >
             <div class="card">
                 <div class="card-title">CPU Load <i class="fas fa-microchip"></i></div>
                 <div class="card-value" id="metric-cpu">...</div>
@@ -358,9 +612,7 @@ function renderOverview() {
                 </div>
             </div>
         </div>
-        
-        </div>
-        
+
         <div class="charts-row" style="margin-top: 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; height: 350px;">
 
             <div class="chart-container" style="flex: 2; position: relative;">
@@ -372,6 +624,9 @@ function renderOverview() {
         </div>
     `;
 
+    view.setAttribute('data-rendered', 'true');
+
+    // Initialize Charts
     setTimeout(async () => {
         if (typeof Chart === 'undefined') return;
         try {
@@ -405,51 +660,33 @@ function renderOverview() {
                 }
             });
 
-            // Pie Chart (Server Status)
-            const infRes = await fetch('/api/infrastructure');
-            let servers = [];
-            if (infRes.ok) servers = await infRes.json();
+            // Pie Chart (Server Status) - Initial Load
+            updateOverviewCharts(state.infraData || []);
 
-            const statusCounts = { online: 0, offline: 0, warning: 0 };
-            servers.forEach(s => statusCounts[s.status] = (statusCounts[s.status] || 0) + 1);
-            // Fallback if empty to show something
-            if (servers.length === 0) statusCounts.online = 1;
-
-            new Chart(document.getElementById('statusPieChart').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Online', 'Offline', 'Warning'],
-                    datasets: [{
-                        data: [statusCounts.online, statusCounts.offline, statusCounts.warning],
-                        backgroundColor: ['#00ff88', '#ff0055', '#ffcc00'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right', labels: { color: '#8899a6' } },
-                        title: { display: true, text: 'Server Fleet Status', color: '#fff' }
-                    }
+            if (!state.infraData) {
+                const infRes = await fetch('/api/infrastructure');
+                if (infRes.ok) {
+                    state.infraData = await infRes.json();
+                    updateOverviewCharts(state.infraData);
                 }
-            });
+            }
 
         } catch (e) { console.error("Chart load failed", e); }
     }, 100);
 }
 
-let lastChartUpdate = 0;
+// let lastChartUpdate = 0; // Throttling removed for Real-time v6.0
 
 function updateOverviewCharts(servers) {
     if (typeof Chart === 'undefined') return;
+    if (!servers) return;
 
-    // Throttle updates to 1 minute (60000ms)
-    const now = Date.now();
-    if (now - lastChartUpdate < 60000) return;
-    lastChartUpdate = now;
+    // Direct update without throttle for instant feedback
+    // const now = Date.now();
+    // if (now - lastChartUpdate < 60000) return;
+    // lastChartUpdate = now;
 
-    // Update Pie Chart if it exists
+    // Check if chart exists (might not if view not rendered yet, but that's handled by view init)
     const chart = Chart.getChart('statusPieChart');
     if (chart) {
         const statusCounts = { online: 0, offline: 0, warning: 0 };
@@ -457,7 +694,14 @@ function updateOverviewCharts(servers) {
         if (servers.length === 0) statusCounts.online = 1;
 
         chart.data.datasets[0].data = [statusCounts.online, statusCounts.offline, statusCounts.warning];
+        chart.update('active'); // 'active' might be too aggressive, default is fine. Using default.
         chart.update();
+    } else {
+        // If chart doesn't exist, maybe create it? 
+        // No, renderOverview handles creation. 
+        // If we are here, it means we have data but no chart. 
+        // Attempting to create it here might conflict. safer to let renderOverview handle creation.
+        // CHECK: If view is hidden, chart still exists in memory if created via Chart.js
     }
 }
 
@@ -483,52 +727,73 @@ function optimizeSystem() {
 }
 
 function renderAnalysis() {
+    const view = showView('analysis-view');
     const logs = state.liveLogs || [];
     const analysisActive = !!state.analysisData;
 
-    contentArea.innerHTML = `
-        <div class="analysis-container">
-            <!-- Header & Upload -->
-            <div class="dashboard-grid" style="grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px;">
-                <div class="upload-zone" id="drop-zone" onclick="document.getElementById('fileInput').click()" style="height: auto; padding: 20px;">
+    // If analysis is active (report loaded), we might want to refresh to show it
+    // But for stream, we can just update.
+    // Simplify: ALWAYS re-render table rows if necessary, but keep structure.
+
+    // For now, let's keep the structure static if possible.
+    if (view.getAttribute('data-rendered') === 'true' && !analysisActive) {
+        // If just live logs, we rely on sockets to update the table.
+        // But if we switched tabs, we might want to ensure the table is current.
+        // The socket listener calls renderAnalysis() which would re-render everything under old logic.
+        // Under new logic, socket listener should just update table.
+        // Let's refactor socket listener too?
+        // OPTION 2: Re-render inner content for Analysis as it's data-heavy list?
+        // Or better: update the table content specifically.
+        updateAnalysisTable(view);
+        return;
+    }
+
+    view.innerHTML = `
+        <div class="analysis-container" >
+            <!--Header & Upload-->
+            <div class="dashboard-grid" style="grid-template-columns: 1.5fr 2fr; gap: 20px; margin-bottom: 30px;">
+                <div class="upload-zone" id="drop-zone" onclick="document.getElementById('fileInput').click()" style="height: auto; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                     <input type="file" id="fileInput" hidden onchange="handleFileUpload(this)">
-                    <div class="upload-icon-pulse" style="font-size: 1.5rem; margin-bottom: 10px;">
+                    <div class="upload-icon-pulse" style="font-size: 2.5rem; margin-bottom: 15px;">
                         <i class="fas fa-cloud-upload-alt"></i>
                     </div>
-                    <h3 style="font-size: 1rem;">Upload Logs</h3>
-                    <p style="font-size: 0.8rem;">Analyze historical files</p>
+                    <h3 style="font-size: 1.2rem; margin-bottom: 5px;">Upload Logs</h3>
+                    <p style="font-size: 0.9rem; color: var(--text-muted);">Deep analyze offline infrastructure logs</p>
                 </div>
 
-                <div class="card glass-card" style="display: flex; flex-direction: column; justify-content: center;">
+                <div class="card glass-card" style="display: flex; flex-direction: column; justify-content: center; padding: 30px;">
                     <div class="results-header">
-                        <div class="card-title">Live Security Intelligence</div>
-                        <div class="stat-pill pulse-dot"><i class="fas fa-satellite-dish"></i> Streaming</div>
+                        <div class="card-title" style="font-size: 1.1rem; color: var(--text-main);">Live Security Intelligence</div>
+                        <div class="stat-pill pulse-dot" style="background: rgba(var(--primary-rgb), 0.1);"><i class="fas fa-satellite-dish"></i> Streaming</div>
                     </div>
-                    <div style="margin-top: 10px; color: var(--text-muted); font-size: 0.9rem;">
-                        Monitoring ${state.infraData ? state.infraData.length : 0} active nodes. AI is analyzing events in real-time.
+                    <div style="margin-top: 15px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                        Monitoring <strong>${state.infraData ? state.infraData.length : 0} active nodes</strong> in real-time. 
+                        SentinelAI is actively screening for anomalies, brute-force attempts, and unauthorized region access.
                     </div>
                 </div>
             </div>
 
-            <!-- Analysis Results (Upload) -->
-            <div id="analysis-results" style="display: ${analysisActive ? 'block' : 'none'}; margin-bottom: 30px;">
-                 <div class="results-header">
-                    <div class="stat-pill" style="background: var(--primary); color:black">Analysis Report</div>
-                    <button class="btn-secondary" onclick="clearAnalysis()">Close Report</button>
+            <!--Analysis Results(Upload)-->
+            <div id="analysis-results" style="display: ${analysisActive ? 'block' : 'none'}; margin-bottom: 50px;">
+                 <div class="results-header" style="margin-bottom: 25px;">
+                    <div class="stat-pill" style="background: var(--primary); color:black; font-weight: bold; padding: 8px 16px;">AI Analysis Report</div>
+                    <button class="btn-secondary" onclick="clearAnalysis()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer;">Close Report</button>
                  </div>
-                 <!-- Reuse existing chart logic for upload -->
-                 <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; height: 200px;">
-                    <div class="chart-container glass-card"><canvas id="deviceChart"></canvas></div>
-                    <div class="chart-container glass-card"><canvas id="severityChart"></canvas></div>
+                 
+                 <!-- Enhanced Charts (Bigger & Clearer) -->
+                 <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 50px; height: 380px;">
+                    <div class="chart-container glass-card" style="padding: 25px;"><canvas id="deviceChart"></canvas></div>
+                    <div class="chart-container glass-card" style="padding: 25px;"><canvas id="severityChart"></canvas></div>
                 </div>
             </div>
 
-            <!-- Live / Mixed Table -->
-            <div class="table-container glass-card">
-                <div class="results-header" style="margin-bottom: 15px;">
-                    <div class="card-title"><i class="fas fa-list-alt"></i> ${analysisActive ? 'Analysis Results' : 'Live Event Stream'}</div>
-                    <div class="stat-pill">${analysisActive ? state.analysisData.issues.length : logs.length} Events</div>
-                </div>
+            <!--Live / Mixed Table-->
+        <div class="table-container glass-card" style="margin-top: 20px;">
+            <div class="results-header" style="padding: 20px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0;">
+                <div class="card-title" style="font-size: 1.1rem; color: var(--text-main);"><i class="fas fa-list-alt" style="margin-right: 10px; color: var(--primary);"></i> ${analysisActive ? 'Detailed Audit Logs' : 'Live Event Stream'}</div>
+                <div class="stat-pill" id="log-count-pill" style="background: rgba(255,255,255,0.05);">${analysisActive ? state.analysisData.issues.length : logs.length} Events Logged</div>
+            </div>
+            <div style="padding: 0 10px;">
                 <table class="log-table">
                     <thead>
                         <tr>
@@ -540,34 +805,83 @@ function renderAnalysis() {
                         </tr>
                     </thead>
                     <tbody id="logTableBody">
-                        ${(analysisActive ? state.analysisData.issues : logs).map(log => `
-                            <tr>
-                                <td><span class="badge-severity ${log.severity}">${log.severity}</span></td>
-                                <td>${log.device}</td>
-                                <td style="font-size:0.8rem; color:#888">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Just now'}</td>
-                                <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${log.message}</td>
-                                <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${log.suggestion || 'Analyzing...'}</td>
-                            </tr>
-                        `).join('')}
-                        ${(!analysisActive && logs.length === 0) ? '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #666;">Waiting for events...</td></tr>' : ''}
+                        <!-- Content filled by updateAnalysisTable -->
                     </tbody>
                 </table>
             </div>
         </div>
-    `;
+        </div>
+        `;
+
+    view.setAttribute('data-rendered', 'true');
+    updateAnalysisTable(view);
 
     if (analysisActive) {
         setTimeout(() => renderAnalysisCharts(state.analysisData.issues, state.analysisData.summary), 50);
     }
 }
 
+function updateAnalysisTable(viewContainer) {
+    const logs = state.liveLogs || [];
+    const analysisActive = !!state.analysisData;
+    const tbody = viewContainer.querySelector('#logTableBody');
+    if (!tbody) return;
+
+    // Update Pill
+    const pill = viewContainer.querySelector('#log-count-pill');
+    if (pill) pill.innerText = `${analysisActive ? state.analysisData.issues.length : logs.length} Events`;
+
+    const dataToRender = analysisActive ? state.analysisData.issues : logs;
+
+    if (!analysisActive && logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #666;">Waiting for events...</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = dataToRender.map(log => `
+        <tr >
+            <td><span class="badge-severity ${log.severity}">${log.severity}</span></td>
+            <td>${log.device}</td>
+            <td style="font-size:0.8rem; color:#888">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Just now'}</td>
+            <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${log.message}</td>
+            <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${log.suggestion || 'Analyzing...'}</td>
+        </tr>
+        `).join('');
+}
+
 
 async function renderInfrastructure() {
-    // Show cached if exists
+    const view = showView('infrastructure-view');
+
+    // Show currently cached data immediately if not rendered
+    if (view.getAttribute('data-rendered') !== 'true') {
+        view.innerHTML = `
+        <div class="card glass-card" >
+                <div class="results-header">
+                    <div class="card-title">Server Fleet Status</div>
+                    <div class="stat-pill" id="infra-count"><i class="fas fa-network-wired"></i> Scanning...</div>
+                </div>
+                <table class="log-table" style="margin-top: 20px;">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Hostname</th>
+                            <th>IP Address</th>
+                            <th>Region</th>
+                            <th>Load</th>
+                        </tr>
+                    </thead>
+                    <tbody id="infra-table-body">
+                         <tr><td colspan="5" style="text-align:center; padding: 20px;">Loading fleet data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        `;
+        view.setAttribute('data-rendered', 'true');
+    }
+
     if (state.infraData) {
-        renderInfraTable(state.infraData);
-    } else {
-        contentArea.innerHTML = '<div class="card"><div class="card-title">Scanning Fleet Status...</div></div>';
+        renderInfraTable(state.infraData, view);
     }
 
     try {
@@ -575,23 +889,38 @@ async function renderInfrastructure() {
         if (res.ok) {
             const servers = await res.json();
             state.infraData = servers;
-            renderInfraTable(servers);
+            renderInfraTable(servers, view);
         }
     } catch (e) {
         if (!state.infraData) {
-            contentArea.innerHTML = `<div class="card"><div class="card-title" style="color:red">Failed to load infrastructure data</div></div>`;
+            const tbody = view.querySelector('#infra-table-body');
+            if (tbody) tbody.innerHTML = `<tr > <td colspan="5" style="text-align:center; padding: 20px; color:red">Failed to load infrastructure data</td></tr> `;
         }
         console.error(e);
     }
 }
 
-function renderInfraTable(servers) {
+function renderInfraTable(servers, viewContainer) {
+    // If viewContainer not passed (called from socket), find it
+    if (!viewContainer) {
+        viewContainer = document.getElementById('infrastructure-view');
+        // If view doesn't exist yet, we can't update it. 
+        if (!viewContainer) return;
+    }
+
+    const tbody = viewContainer.querySelector('#infra-table-body');
+    const countPill = viewContainer.querySelector('#infra-count');
+
+    if (countPill) countPill.innerHTML = `< i class="fas fa-network-wired" ></i > ${servers.length} Nodes Active`;
+
+    if (!tbody) return;
+
     let rows = '';
     if (servers.length === 0) {
         rows = '<tr><td colspan="5" style="text-align:center; padding: 20px;">No servers registered. Send heartbeats to /api/ingest to see data here.</td></tr>';
     } else {
         rows = servers.map(s => `
-            <tr>
+        <tr >
                 <td><span style="color:${getStatusColor(s.status)}">●</span> ${capitalize(s.status)}</td>
                 <td>${s.hostname}</td>
                 <td>${s.ipAddress}</td>
@@ -601,28 +930,7 @@ function renderInfraTable(servers) {
         `).join('');
     }
 
-    contentArea.innerHTML = `
-        <div class="card glass-card">
-            <div class="results-header">
-                <div class="card-title">Server Fleet Status</div>
-                <div class="stat-pill"><i class="fas fa-network-wired"></i> ${servers.length} Nodes Active</div>
-            </div>
-            <table class="log-table" style="margin-top: 20px;">
-                <thead>
-                    <tr>
-                        <th>Status</th>
-                        <th>Hostname</th>
-                        <th>IP Address</th>
-                        <th>Region</th>
-                        <th>Load</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows}
-                </tbody>
-            </table>
-        </div>
-    `;
+    tbody.innerHTML = rows;
 }
 
 
@@ -638,8 +946,12 @@ function capitalize(s) {
 }
 
 function renderSettings() {
-    contentArea.innerHTML = `
-        <div class="settings-view">
+    const view = showView('settings-view');
+
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+        <div class="settings-view" >
             <div class="dashboard-grid">
                 <!-- Theme Section -->
                 <div class="card glass-card">
@@ -671,32 +983,50 @@ function renderSettings() {
                     </div>
                 </div>
 
-                <!-- System Configuration -->
-                <div class="card glass-card" style="grid-column: span 2;">
+                <!-- AI Model Section -->
+                <div class="card glass-card">
                     <div class="results-header">
-                        <div class="card-title">Connectivity & Network</div>
-                        <i class="fas fa-wifi" style="color:var(--secondary)"></i>
+                        <div class="card-title">AI Engine Configuration</div>
+                        <i class="fas fa-robot" style="color:var(--primary)"></i>
                     </div>
                     <div class="setting-item">
                         <div class="setting-text">
-                            <h4>External Monitor Access</h4>
-                            <p>Current Local IP: <code id="local-ip" style="background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:4px">Discovering...</code></p>
+                            <h4>Active Intelligence Model</h4>
+                            <p>Current: <span id="current-ai-model" style="color:var(--primary); font-weight:bold">Detecting...</span></p>
                         </div>
-                        <button class="btn-primary" onclick="showToast('IP broadcast is active on port 3000', 'success')">Verify Access</button>
+                        <button class="btn-primary" onclick="checkAIStatus()" style="min-width:100px">Refresh</button>
                     </div>
-                    <div style="margin-top:15px; padding:15px; background:rgba(0,212,255,0.05); border-left:3px solid var(--primary); font-size:0.85rem; color:var(--text-muted)">
-                        <i class="fas fa-info-circle"></i> To view this dashboard on another screen, ensure both devices are on the same WiFi and browse to your local IP address.
+                    <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted)">
+                        SentinelX prefers <strong>ChatGPT (GPT-3.5)</strong> for advanced insights when an API key is present.
                     </div>
                 </div>
             </div>
         </div>
-    `;
+        `;
+
+
+    view.setAttribute('data-rendered', 'true');
 
     // Attempt to find local IP (simulated for UI)
     setTimeout(() => {
-        const el = document.getElementById('local-ip');
+        const el = view.querySelector('#local-ip');
         if (el) el.innerText = "192.168.1.XX:3000";
-    }, 1000);
+        checkAIStatus();
+    }, 500);
+}
+
+async function checkAIStatus() {
+    const el = document.getElementById('current-ai-model');
+    if (!el) return;
+
+    try {
+        const res = await fetch('/api/ai/status');
+        const data = await res.json();
+        el.innerText = data.model;
+        if (data.gptEnabled) el.style.color = '#00ff88';
+    } catch (e) {
+        el.innerText = "Connection Error";
+    }
 }
 
 
@@ -760,11 +1090,11 @@ function showAnalysisResults(data) {
         data.issues.forEach(issue => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><span class="badge-severity ${issue.severity}">${issue.severity}</span></td>
+        < td > <span class="badge-severity ${issue.severity}">${issue.severity}</span></td >
                 <td>${issue.device}</td>
                 <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${issue.message}</td>
                 <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${issue.suggestion}</td>
-            `;
+    `;
             tbody.appendChild(row);
         });
     }
@@ -800,8 +1130,14 @@ function renderAnalysisCharts(issues, summary) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Issues by Node', color: '#8b9bb4' } },
-                scales: { y: { ticks: { color: '#8b9bb4' }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { ticks: { color: '#8b9bb4' } } }
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Issues by Node', color: '#8b9bb4', font: { size: 14 } }
+                },
+                scales: {
+                    y: { ticks: { color: '#8b9bb4' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#8b9bb4', font: { size: 10 } } }
+                }
             }
         });
         window.analyticsCharts.push(c1);
@@ -821,12 +1157,41 @@ function renderAnalysisCharts(issues, summary) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'right', labels: { color: '#8b9bb4' } }, title: { display: true, text: 'Severity Distribution', color: '#8b9bb4' } }
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#8b9bb4', padding: 20 } },
+                    title: { display: true, text: 'Severity Distribution', color: '#8b9bb4', font: { size: 14 } }
+                }
             }
         });
         window.analyticsCharts.push(c2);
     }
 }
+
+// --- Profile Dropdown Logic ---
+function toggleProfileMenu() {
+    const dropdown = document.getElementById('profile-dropdown');
+    const chevron = document.getElementById('profile-chevron');
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+        if (chevron) {
+            chevron.style.transform = dropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    }
+}
+
+// Close Dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('profile-dropdown');
+    const profileBtn = document.querySelector('.user-profile');
+
+    if (dropdown && dropdown.classList.contains('show')) {
+        if (!dropdown.contains(e.target) && !profileBtn.contains(e.target)) {
+            dropdown.classList.remove('show');
+            const chevron = document.getElementById('profile-chevron');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+});
 
 
 // --- Chat Functions ---
@@ -860,147 +1225,162 @@ async function sendChat() {
     typing.id = 'typing-indicator';
     typing.className = 'message msg-ai';
     typing.innerHTML = `
-        <div class="typing-dots">
+        <div class="typing-dots" >
             <div class="dot"></div>
             <div class="dot"></div>
             <div class="dot"></div>
         </div>
-    `;
+        `;
     body.appendChild(typing);
     body.scrollTop = body.scrollHeight;
 
     // Emit to Socket
-
     socket.emit('chat_message', { message: msg });
 }
 
 // --- v4 NEW FEATURES ---
 
 function renderTopology() {
-    contentArea.innerHTML = `
-        <div class="topology-view">
-            <div class="topology-header">
-                <div class="stat-pill">Network Map: Active Node Discovery</div>
-                <div class="topology-controls">
-                    <button class="btn-primary" onclick="showToast('Scanning network...', 'info')"><i class="fas fa-sync"></i> Re-scan</button>
+    const view = showView('topology-view');
+
+    if (view.getAttribute('data-rendered') !== 'true') {
+        view.innerHTML = `
+        <div class="topology-view" >
+                <div class="topology-header">
+                    <div class="stat-pill"><i class="fas fa-project-diagram"></i> Network Topology v6.0 (Live)</div>
+                    <div class="topology-controls">
+                        <div class="pulse-dot" style="display:inline-block; margin-right:10px"></div>
+                        <span style="color:var(--text-muted); font-size:0.8rem; margin-right:15px">Monitoring</span>
+                        <button class="btn-primary" onclick="showToast('Scanning network...', 'info')"><i class="fas fa-sync"></i> Re-scan</button>
+                    </div>
+                </div>
+                <div class="topology-map-container glass-card">
+                    <svg id="topo-svg" width="100%" height="400" viewBox="0 0 800 400" style="overflow: visible">
+                        <defs>
+                            <filter id="glow">
+                                <feGaussianBlur stdDeviation="3.5" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                            <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="var(--primary)" />
+                                <stop offset="100%" stop-color="var(--secondary)" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Core Node -->
+                        <g transform="translate(400, 200)" class="topo-node-main">
+                            <circle r="35" fill="var(--bg-dark)" stroke="var(--primary)" stroke-width="2" filter="url(#glow)" />
+                            <text text-anchor="middle" dy=".3em" fill="white" font-weight="bold">CORE</text>
+                            <circle r="45" fill="none" stroke="var(--primary)" stroke-width="1" opacity="0.2">
+                                <animate attributeName="r" from="35" to="60" dur="2s" repeatCount="indefinite" />
+                                <animate attributeName="opacity" from="0.3" to="0" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                        </g>
+                        
+                        <!-- Dynamic Nodes Container -->
+                        <g id="dynamic-nodes"></g>
+                    </svg>
+                </div>
+                <div class="topology-info glass-card">
+                    <h4>Node Legend</h4>
+                    <div style="display:flex; gap:15px; margin-top:10px;">
+                        <div style="font-size:0.8rem"><span style="color:#00ff88">●</span> Online</div>
+                        <div style="font-size:0.8rem"><span style="color:#ffcc00">●</span> Warning</div>
+                        <div style="font-size:0.8rem"><span style="color:#ff0055">●</span> Critical</div>
+                    </div>
                 </div>
             </div>
-            <div class="topology-map-container glass-card">
-                <svg id="topo-svg" width="100%" height="400" viewBox="0 0 800 400" style="overflow: visible">
-                    <defs>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="3.5" result="blur" />
-                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                        </filter>
-                        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="var(--primary)" />
-                            <stop offset="100%" stop-color="var(--secondary)" />
-                        </linearGradient>
-                    </defs>
+        `;
+        view.setAttribute('data-rendered', 'true');
+    }
 
-                    <!-- Core Node -->
-                    <g transform="translate(400, 200)" class="topo-node-main">
-                        <circle r="35" fill="var(--bg-dark)" stroke="var(--primary)" stroke-width="2" filter="url(#glow)" />
-                        <text text-anchor="middle" dy=".3em" fill="white" font-weight="bold">CORE</text>
-                        <circle r="45" fill="none" stroke="var(--primary)" stroke-width="1" opacity="0.2">
-                            <animate attributeName="r" from="35" to="60" dur="2s" repeatCount="indefinite" />
-                            <animate attributeName="opacity" from="0.3" to="0" dur="2s" repeatCount="indefinite" />
-                        </circle>
-                    </g>
-                    
-                    <!-- Dynamic Nodes Container -->
-                    <g id="dynamic-nodes"></g>
-                </svg>
-                </svg>
-            </div>
-            <div class="topology-info glass-card">
-                <h4>Node Legend</h4>
-                <div style="display:flex; gap:15px; margin-top:10px;">
-                    <div style="font-size:0.8rem"><span style="color:#00ff88">●</span> Online</div>
-                    <div style="font-size:0.8rem"><span style="color:#ffcc00">●</span> Warning</div>
-                    <div style="font-size:0.8rem"><span style="color:#ff0055">●</span> Critical</div>
-                </div>
-            </div>
-        </div>
-    `;
+    // Always update dynamic nodes content when rendered
+    setTimeout(() => updateTopologyNodes(state.infraData || []), 50);
+}
 
-    // Execute Topology Logic
-    setTimeout(() => {
-        const svg = document.getElementById('dynamic-nodes');
-        if (!svg) return;
+function updateTopologyNodes(servers) {
+    const svg = document.getElementById('dynamic-nodes');
+    if (!svg) return;
 
-        const servers = state.infraData || [];
-        const centerX = 400;
-        const centerY = 200;
-        const radius = 150;
+    const centerX = 400;
+    const centerY = 200;
+    const radius = 150;
 
-        // Clear previous
-        while (svg.firstChild) { svg.removeChild(svg.firstChild); }
+    // Clear previous
+    while (svg.firstChild) { svg.removeChild(svg.firstChild); }
 
-        // Add Paths first (so they are behind nodes)
-        servers.forEach((s, index) => {
-            const angle = (index / servers.length) * 2 * Math.PI;
-            const x = centerX + radius * Math.cos(angle);
-            const y = centerY + radius * Math.sin(angle);
+    // Add Paths first (so they are behind nodes)
+    servers.forEach((s, index) => {
+        const angle = (index / servers.length) * 2 * Math.PI;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
 
-            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-            path.setAttribute("d", `M${centerX},${centerY} L${x},${y}`);
-            path.setAttribute("stroke", "url(#lineGrad)");
-            path.setAttribute("stroke-width", "1.5");
-            path.setAttribute("stroke-dasharray", "5,5");
-            path.setAttribute("class", "topo-path");
-            // Animation delay variation
-            path.style.animation = `dash 3s linear infinite ${index * 0.5}s`;
-            svg.appendChild(path);
-        });
+        // Calculate starting point on the outer edge of the core circle (radius 35)
+        const coreRadius = 35;
+        const startX = centerX + coreRadius * Math.cos(angle);
+        const startY = centerY + coreRadius * Math.sin(angle);
 
-        // Add Nodes
-        servers.forEach((s, index) => {
-            const angle = (index / servers.length) * 2 * Math.PI;
-            const x = centerX + radius * Math.cos(angle);
-            const y = centerY + radius * Math.sin(angle);
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M${startX},${startY} L${x},${y}`);
+        path.setAttribute("stroke", "url(#lineGrad)");
+        path.setAttribute("stroke-width", "1.5");
+        path.setAttribute("stroke-dasharray", "5,5");
+        path.setAttribute("class", "topo-path");
+        // Animation delay variation
+        path.style.animation = `dash 3s linear infinite ${index * 0.5}s`;
+        svg.appendChild(path);
+    });
 
-            const color = getStatusColor(s.status);
+    // Add Nodes
+    servers.forEach((s, index) => {
+        const angle = (index / servers.length) * 2 * Math.PI;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
 
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            g.setAttribute("transform", `translate(${x}, ${y})`);
-            g.setAttribute("class", "topo-node");
-            g.style.cursor = "pointer";
-            g.onclick = () => showToast(`Node: ${s.hostname} | Load: ${s.load}% | Status: ${s.status}`, 'info');
+        const color = getStatusColor(s.status);
 
-            const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            c.setAttribute("r", "22");
-            c.setAttribute("fill", "var(--bg-dark)");
-            c.setAttribute("stroke", color);
-            c.setAttribute("stroke-width", "1.5");
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("transform", `translate(${x}, ${y})`);
+        g.setAttribute("class", "topo-node");
+        g.style.cursor = "pointer";
+        g.onclick = () => showToast(`Node: ${s.hostname} | Load: ${s.load}% | Status: ${s.status} `, 'info');
 
-            const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            t.setAttribute("y", "35");
-            t.setAttribute("text-anchor", "middle");
-            t.setAttribute("fill", "var(--text-muted)");
-            t.setAttribute("font-size", "10");
-            t.textContent = s.hostname;
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("r", "22");
+        c.setAttribute("fill", "var(--bg-dark)");
+        c.setAttribute("stroke", color);
+        c.setAttribute("stroke-width", "1.5");
 
-            g.appendChild(c);
-            g.appendChild(t);
-            svg.appendChild(g);
-        });
+        const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("y", "35");
+        t.setAttribute("text-anchor", "middle");
+        t.setAttribute("fill", "var(--text-muted)");
+        t.setAttribute("font-size", "10");
+        t.textContent = s.hostname;
 
-        if (servers.length === 0) {
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            g.setAttribute("x", "400");
-            g.setAttribute("y", "350");
-            g.setAttribute("text-anchor", "middle");
-            g.setAttribute("fill", "#666");
-            g.textContent = "No active agents connected.";
-            svg.appendChild(g);
-        }
-    }, 50);
+        g.appendChild(c);
+        g.appendChild(t);
+        svg.appendChild(g);
+    });
+
+    if (servers.length === 0) {
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        g.setAttribute("x", "400");
+        g.setAttribute("y", "350");
+        g.setAttribute("text-anchor", "middle");
+        g.setAttribute("fill", "#666");
+        g.textContent = "No active agents connected.";
+        svg.appendChild(g);
+    }
 }
 
 function renderReports() {
-    contentArea.innerHTML = `
-        <div class="reports-view">
+    const view = showView('reports-view');
+
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+        <div class="reports-view" >
             <div class="reports-grid">
                 <div class="report-card glass-card">
                     <i class="fas fa-file-pdf"></i>
@@ -1026,7 +1406,8 @@ function renderReports() {
 
             </div>
         </div>
-    `;
+        `;
+    view.setAttribute('data-rendered', 'true');
 }
 
 // --- Global Toast System ---
@@ -1065,9 +1446,13 @@ function showToast(message, type = 'info') {
 
 
 function renderProfile() {
+    const view = showView('profile-view');
     const u = state.user || {};
-    contentArea.innerHTML = `
-        <div class="dashboard-grid">
+
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+        <div class="dashboard-grid" >
             <div class="card" style="grid-column: span 2;">
                 <div class="card-title">My Profile</div>
                 <div style="display: flex; gap: 30px; margin-top: 20px; align-items: start;">
@@ -1106,19 +1491,21 @@ function renderProfile() {
                 </div>
             </div>
         </div>
-    `;
+        `;
+    view.setAttribute('data-rendered', 'true');
 }
 
 function addMessage(text, type) {
     const body = document.getElementById('chat-body');
     const div = document.createElement('div');
-    div.className = `message msg-${type}`;
+    div.className = `message msg - ${type} `;
     div.innerText = text;
     body.appendChild(div);
     body.scrollTop = body.scrollHeight;
 }
 
 // Global exposure
+window.toggleProfileMenu = toggleProfileMenu;
 window.fillDemo = fillDemo;
 window.logout = logout;
 window.switchTab = switchTab;
@@ -1159,15 +1546,22 @@ function openDownloadModal(type) {
     // Logs (Security) -> PDF Only
 
     if (type === 'security') {
-        desc.innerText = "Select format for Security Audit (Text/Logs):";
+        desc.innerText = "Select format for Security Audit (PDF Optimized):";
         actions.innerHTML = `
-            <button class="btn-pdf" onclick="generateReport('pdf')"><i class="fas fa-file-pdf"></i> Download PDF</button>
+            <button class="btn-pdf" onclick="generateReport('pdf')">
+                <i class="fas fa-file-pdf"></i> PDF Document
+            </button>
         `;
     } else {
-        desc.innerText = `Select format for ${type === 'availability' ? 'Infrastructure' : 'Performance'} Report:`;
+        const reportName = type === 'availability' ? 'Weekly Availability' : 'Performance Trends';
+        desc.innerText = `Select export format for ${reportName}:`;
         actions.innerHTML = `
-            <button class="btn-excel" onclick="generateReport('excel')"><i class="fas fa-file-excel"></i> Excel</button>
-            <button class="btn-pdf" onclick="generateReport('pdf')"><i class="fas fa-file-pdf"></i> PDF</button>
+            <button class="btn-excel" onclick="generateReport('excel')">
+                <i class="fas fa-file-excel"></i> Excel Spreadsheet
+            </button>
+            <button class="btn-pdf" onclick="generateReport('pdf')">
+                <i class="fas fa-file-pdf"></i> PDF Document
+            </button>
         `;
     }
 
@@ -1217,6 +1611,13 @@ async function generateReport(format) {
 }
 
 function generatePDF(title, data, type) {
+    if (!window.jspdf) {
+        showToast("PDF Library not loaded. Check internet.", "error");
+        return;
+    }
+
+    // Compatibility Fix: CDN jspdf.umd.min.js puts jsPDF under window.jspdf.jsPDF
+    // AutoTable expects jsPDF to be available.
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
@@ -1224,41 +1625,54 @@ function generatePDF(title, data, type) {
     doc.text(title, 14, 22);
     doc.setFontSize(11);
     doc.setTextColor(100);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Generated: ${new Date().toLocaleString()} `, 14, 30);
 
     let head = [];
     let body = [];
 
+    // Data Mapping
     if (type === 'availability') {
         head = [['Hostname', 'IP', 'Region', 'Status', 'Load (%)']];
         body = data.map(d => [d.hostname, d.ipAddress, d.region, d.status, d.load]);
     } else if (type === 'security') {
         head = [['Severity', 'Device', 'Message', 'Time']];
-        body = data.map(d => [d.severity, d.device, d.message, new Date(d.createdAt).toLocaleTimeString()]);
+        body = data.map(d => [d.severity, d.device, d.message, new Date(d.createdAt || d.timestamp).toLocaleTimeString()]);
     } else if (type === 'performance') {
         head = [['Time', 'CPU (%)', 'Mem (%)', 'Net Traffic']];
-        body = data.map(d => [new Date(d.createdAt).toLocaleTimeString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]);
+        body = data.map(d => [new Date(d.createdAt || d.timestamp).toLocaleTimeString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]);
     }
 
-    doc.autoTable({
-        startY: 40,
-        head: head,
-        body: body,
-        theme: 'grid',
-        styles: { fontSize: 10, cellPadding: 3 },
-        headStyles: { fillColor: [70, 0, 255] }
-    });
-
-    doc.save(`${type}_report_${Date.now()}.pdf`);
-    showToast("PDF Downloaded", "success");
+    // Check for AutoTable
+    if (doc.autoTable) {
+        doc.autoTable({
+            startY: 40,
+            head: head,
+            body: body,
+            theme: 'grid',
+            styles: { fontSize: 10, cellPadding: 3 },
+            headStyles: { fillColor: [70, 0, 255] }
+        });
+        doc.save(`${type}_report_${Date.now()}.pdf`);
+        showToast("PDF Downloaded", "success");
+    } else {
+        console.warn("AutoTable plugin missing. Trying workaround...");
+        // Fallback or explicit check
+        showToast("PDF Plugin missing (AutoTable).", "error");
+    }
 }
 
 function generateExcel(title, data, type) {
+    if (!window.XLSX) {
+        showToast("Excel Library not loaded. Check internet.", "error");
+        return;
+    }
+
+    const { utils, writeFile } = window.XLSX;
     let ws_data = [];
 
     // Header
     ws_data.push([title]);
-    ws_data.push([`Generated: ${new Date().toLocaleString()}`]);
+    ws_data.push([`Generated: ${new Date().toLocaleString()} `]);
     ws_data.push([]); // Empty row
 
     if (type === 'availability') {
@@ -1266,14 +1680,14 @@ function generateExcel(title, data, type) {
         data.forEach(d => ws_data.push([d.hostname, d.ipAddress, d.region, d.status, d.load]));
     } else if (type === 'performance') {
         ws_data.push(['Time', 'CPU (%)', 'Mem (%)', 'Net Traffic']);
-        data.forEach(d => ws_data.push([new Date(d.createdAt).toLocaleTimeString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]));
+        data.forEach(d => ws_data.push([new Date(d.createdAt || d.timestamp).toLocaleTimeString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]));
     }
     // Security not needed for Excel per logic
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(ws_data);
-    XLSX.utils.book_append_sheet(wb, ws, "Report");
-    XLSX.writeFile(wb, `${type}_report_${Date.now()}.xlsx`);
+    const wb = utils.book_new();
+    const ws = utils.aoa_to_sheet(ws_data);
+    utils.book_append_sheet(wb, ws, "Report");
+    writeFile(wb, `${type}_report_${Date.now()}.xlsx`);
     showToast("Excel Downloaded", "success");
 }
 

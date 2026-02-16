@@ -1,0 +1,228 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+
+@font-face {
+    font-family: 'Transformers';
+    src: url('fonts/transformers-movie.woff') format('woff');
+    font-display: swap;
+}
+
+#intro-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: black;
+    z-index: 9999;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.8s cubic-bezier(0.85, 0, 0.15, 1);
+}
+
+#intro-view.slide-up {
+    transform: translateY(-100%);
+}
+
+#matrix {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -4;
+    opacity: 0.15;
+}
+
+/* GRID BACKGROUND */
+.grid {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(#111 1px, transparent 1px),
+        linear-gradient(90deg, #111 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: moveGrid 20s linear infinite;
+    z-index: -3;
+}
+
+@keyframes moveGrid {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(40px);
+    }
+}
+
+/* LOG BACKGROUND */
+.logs {
+    position: absolute;
+    color: #0f0;
+    font-size: 12px;
+    opacity: 0.1;
+    white-space: pre;
+    z-index: -2;
+    animation: scrollLogs 10s linear infinite;
+    left: 10px;
+    top: 0;
+}
+
+@keyframes scrollLogs {
+    from {
+        transform: translateY(100vh);
+    }
+
+    to {
+        transform: translateY(-100vh);
+    }
+}
+
+/* MAIN TEXT */
+#container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 20;
+    filter: drop-shadow(0 0 20px rgba(0, 255, 0, 0.15));
+    font-family: 'Transformers', 'Orbitron', sans-serif;
+}
+
+#sx {
+    font-size: 200px;
+    /* Increased from 140px */
+    letter-spacing: 25px;
+    padding-left: 25px;
+    /* Matches letter-spacing for true horizontal center */
+    opacity: 0;
+    color: #00f0ff;
+    /* Updated to given blue */
+    font-family: 'Transformers', sans-serif;
+}
+
+.pulse-neon {
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        text-shadow: 0 0 1px #00f0ff;
+        opacity: 0.9;
+    }
+
+    50% {
+        text-shadow: 0 0 3px #00f0ff;
+        opacity: 1;
+    }
+}
+
+#full-package {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    width: 100vw;
+    /* Use viewport width for reliable centering */
+}
+
+#threat-left,
+#threat-right {
+    flex: 1;
+    /* These will take up equal space on both sides */
+    margin: 0;
+    white-space: nowrap;
+    opacity: 0;
+}
+
+#threat-left {
+    text-align: right;
+    padding-right: 30px;
+    /* Spacing from center */
+    padding-left: 5px;
+    /* Balances letter-spacing */
+}
+
+#threat-right {
+    text-align: left;
+    padding-left: 30px;
+    /* Spacing from center */
+}
+
+#full {
+    flex: 0 0 auto;
+    /* Middle word won't shrink or grow */
+    font-size: 130px;
+    /* Increased from 90px */
+    letter-spacing: 15px;
+    padding-left: 15px;
+    /* Matches letter-spacing for dead center */
+    white-space: nowrap;
+    font-family: 'Transformers', sans-serif;
+}
+
+.glow-blue {
+    color: #00f0ff;
+}
+
+.glow-red {
+    color: #ff1a1a;
+}
+
+/* SCANNING LINE */
+#scan {
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(to right, transparent, rgba(0, 255, 0, 0.2), rgba(255, 255, 255, 0.8), rgba(0, 255, 0, 0.2), transparent);
+    top: -10%;
+    opacity: 1;
+    z-index: 25;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+}
+
+.threat {
+    color: #ff1a1a;
+    font-size: 60px;
+    /* Increased from 40px */
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 5px;
+}
+
+/* Glitch Animation */
+.glitch-effect {
+    animation: glitch-anim 0.2s infinite;
+}
+
+@keyframes glitch-anim {
+    0% {
+        transform: translate(0);
+        text-shadow: 2px 0 #fff, -2px 0 #ff1a1a;
+    }
+
+    25% {
+        transform: translateY(-2px, 2px);
+    }
+
+    50% {
+        transform: translate(2px, -2px);
+        text-shadow: -2px 0 #fff, 2px 0 #ff1a1a;
+    }
+
+    75% {
+        transform: translate(-1px, -1px);
+    }
+
+    100% {
+        transform: translate(0);
+    }
+}

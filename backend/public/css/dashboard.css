@@ -8,6 +8,82 @@
     height: 100vh;
 }
 
+#dashboard-view::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2000;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+    opacity: 0.1;
+}
+
+#dashboard-view::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(18, 16, 16, 0.1);
+    opacity: 0;
+    z-index: 2000;
+    pointer-events: none;
+    animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+    0% {
+        opacity: 0.15;
+    }
+
+    10% {
+        opacity: 0.18;
+    }
+
+    20% {
+        opacity: 0.12;
+    }
+
+    30% {
+        opacity: 0.22;
+    }
+
+    40% {
+        opacity: 0.1;
+    }
+
+    50% {
+        opacity: 0.16;
+    }
+
+    60% {
+        opacity: 0.14;
+    }
+
+    70% {
+        opacity: 0.11;
+    }
+
+    80% {
+        opacity: 0.19;
+    }
+
+    90% {
+        opacity: 0.13;
+    }
+
+    100% {
+        opacity: 0.17;
+    }
+}
+
 /* Sidebar */
 .sidebar {
     width: 250px;
@@ -52,12 +128,14 @@
 
 .nav-link:hover,
 .nav-link.active {
-    background: rgba(0, 212, 255, 0.1);
-    color: var(--primary);
+    background: linear-gradient(90deg, rgba(var(--primary-rgb), 0.1) 0%, transparent 100%);
+    color: var(--text-main);
+    border-left: 3px solid var(--primary);
 }
 
 .nav-link.active {
-    box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+    color: var(--primary);
+    background: linear-gradient(90deg, rgba(var(--primary-rgb), 0.15) 0%, transparent 100%);
 }
 
 /* Main Content Area */
@@ -79,6 +157,8 @@
     padding: 0 30px;
     background: rgba(17, 22, 37, 0.5);
     backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 100;
 }
 
 .page-title {
@@ -139,6 +219,30 @@
     flex: 1;
     overflow-y: auto;
     padding: 30px;
+    position: relative;
+    scroll-behavior: smooth;
+}
+
+.view-container {
+    animation: fadeIn 0.4s var(--ease-smooth);
+    display: none;
+    width: 100%;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.4s var(--ease-smooth);
 }
 
 /* Widgets Grid */
@@ -160,9 +264,25 @@
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-8px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    border-color: var(--primary);
+}
+
+.card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at top right, rgba(var(--primary-rgb), 0.1), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.card:hover::after {
+    opacity: 1;
 }
 
 .card-title {
@@ -240,41 +360,54 @@
 }
 
 .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.btn-excel,
+.btn-pdf {
+    width: 100%;
+    padding: 16px 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
     display: flex;
-    gap: 15px;
+    align-items: center;
     justify-content: center;
-    margin-top: 20px;
+    gap: 15px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: white;
 }
 
 .btn-excel {
-    background: #1D6F42;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: transform 0.2s;
+    background: linear-gradient(135deg, #1D6F42 0%, #104e2e 100%);
+    box-shadow: 0 5px 15px rgba(29, 111, 66, 0.2);
 }
 
 .btn-pdf {
-    background: #F40F02;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: transform 0.2s;
+    background: linear-gradient(135deg, #F40F02 0%, #b30b02 100%);
+    box-shadow: 0 5px 15px rgba(244, 15, 2, 0.2);
 }
 
 .btn-excel:hover,
 .btn-pdf:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-excel:active,
+.btn-pdf:active {
+    transform: translateY(0) scale(1);
+}
+
+.btn-excel i,
+.btn-pdf i {
+    font-size: 1.4rem;
 }
 
 .charts-row {
@@ -522,4 +655,176 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+}
+
+/* --- NETWORK SPEED FOOTER --- */
+.network-speed-bar {
+    position: absolute;
+    bottom: 0px;
+    left: 250px;
+    /* Match sidebar width */
+    right: 0px;
+    height: 40px;
+    background: rgba(10, 14, 23, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+    transition: left 0.3s ease;
+}
+
+.speed-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--primary);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+
+.speed-indicator i {
+    font-size: 1rem;
+    animation: pulse-green 2s infinite;
+}
+
+.speed-indicator span span {
+    color: #fff;
+    font-weight: 700;
+}
+
+@keyframes pulse-green {
+    0% {
+        color: var(--primary);
+        text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+    }
+
+    50% {
+        color: #fff;
+        text-shadow: 0 0 15px var(--primary);
+    }
+
+    100% {
+        color: var(--primary);
+        text-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+    }
+}
+
+/* Adjust content body so it doesn't get covered */
+.content-body {
+    padding-bottom: 60px !important;
+}
+
+@media (max-width: 768px) {
+    .network-speed-bar {
+        left: 0;
+    }
+}
+
+/* --- PROFILE DROPDOWN --- */
+.profile-wrapper {
+    position: relative;
+    z-index: 1000;
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: 55px;
+    /* Adjusting for padding */
+    right: 0;
+    width: 250px;
+    background: var(--bg-panel);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(15px);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    padding: 15px;
+    display: none;
+    flex-direction: column;
+    z-index: 100;
+    transform-origin: top right;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.profile-dropdown.show {
+    display: flex;
+}
+
+.dropdown-header-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 15px;
+}
+
+.dropdown-header-info .avatar {
+    width: 45px;
+    height: 45px;
+    font-size: 1.1rem;
+}
+
+/* Fix for avatar duplication */
+.profile-dropdown .avatar {
+    display: flex;
+    /* Ensure it is visible */
+}
+
+.info-text h4 {
+    color: var(--text-main);
+    font-size: 0.95rem;
+    margin: 0;
+    font-weight: 600;
+}
+
+.info-text span {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    display: block;
+    margin-top: 2px;
+}
+
+.dropdown-items a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.dropdown-items a:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
+
+.dropdown-items .danger-item:hover {
+    background: rgba(255, 0, 85, 0.1);
+    color: #ff0055;
+}
+
+.dropdown-items .divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 5px 0;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }

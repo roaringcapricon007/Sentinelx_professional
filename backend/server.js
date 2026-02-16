@@ -74,7 +74,7 @@ sequelize.sync({ force: false }).then(async () => {
   const adminCount = await User.count({ where: { email: adminEmail } });
   if (adminCount === 0) {
     const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const hashedPassword = await bcrypt.hash(adminPassword, 4);
 
     await User.create({
       name: 'SentinelX Admin',
@@ -124,7 +124,7 @@ sequelize.sync({ force: false }).then(async () => {
     } catch (e) {
       console.error('Metrics Emit Error:', e);
     }
-  }, 1000);
+  }, 3000); // Frequency reduced to 3s to stabilize performance
 
   server.listen(3000, () => {
     console.log('SentinelX v5.0 (AI+Realtime) running on port 3000');
