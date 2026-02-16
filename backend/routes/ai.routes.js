@@ -4,11 +4,10 @@ const { generateResponse } = require('../controllers/ai.controller');
 
 // GET /api/ai/status
 router.get('/status', (req, res) => {
-    const hasOpenAI = !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY !== 'PLACEHOLDER_API_KEY' && process.env.OPENAI_API_KEY !== 'PLACEHOLDER';
     res.json({
-        model: hasOpenAI ? 'ChatGPT (GPT-4o)' : 'SentinelX Local NLP',
+        model: 'SentinelX Native Intelligence',
         status: 'Active',
-        gptEnabled: hasOpenAI
+        gptEnabled: false
     });
 });
 
