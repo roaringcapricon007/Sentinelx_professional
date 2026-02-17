@@ -59,11 +59,8 @@
       <div class="chat-header"
         style="display: flex; align-items: center; justify-content: space-between; background: #000; border-bottom: 2px solid #ff0000; padding: 10px 15px;">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <svg viewBox="0 0 400 400" style="width: 25px; height: 25px;">
-            <path fill="#ff0000"
-              d="M57.6,33L167,33l0,43.2l-43.2,32.4l43.2,32.4l0,43.2l-21.6,21.6l0,54l36.3,16l36.3-16l0-54l-21.6-21.6l0-43.2l43.2-32.4 l-43.2-32.4l0-43.2l109.4,0l14.4,46.1L323.8,144l0,126.3L203.4,367L83,270.3L83,144l0-64.8L57.6,33z" />
-          </svg>
-          <h3 style="margin: 0; font-size: 1rem; color: white; letter-spacing: 1px;">PRIME_AI v6.0</h3>
+          <img src="img/autobot_logo.png" style="width: 25px; height: 25px; filter: drop-shadow(0 0 5px #ff0000);">
+          <h3 style="margin: 0; font-size: 1rem; color: white; letter-spacing: 1px;">PRIME_AI v6.5</h3>
         </div>
         <i class="fas fa-times" style="cursor:pointer; color: #888;" onclick="toggleChat()"></i>
       </div>
@@ -83,17 +80,8 @@
     </div>
 
     <div class="chat-fab" onclick="toggleChat()" title="PRIME_AI">
-      <svg viewBox="0 0 400 400" style="width: 40px; height: 40px;">
-        <defs>
-          <linearGradient id="autobotGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:#ff0000" />
-            <stop offset="100%" style="stop-color:#000000" />
-          </linearGradient>
-        </defs>
-        <!-- Autobot Insignia Representation -->
-        <path fill="url(#autobotGrad)"
-          d="M57.6,33L167,33l0,43.2l-43.2,32.4l43.2,32.4l0,43.2l-21.6,21.6l0,54l36.3,16l36.3-16l0-54l-21.6-21.6l0-43.2l43.2-32.4 l-43.2-32.4l0-43.2l109.4,0l14.4,46.1L323.8,144l0,126.3L203.4,367L83,270.3L83,144l0-64.8L57.6,33z M123.8,76.2L123.8,76.2l0,0 z M283,76.2L283,76.2l0,0z" />
-      </svg>
+      <img src="img/autobot_logo.png"
+        style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #ff0000; padding: 5px; background: #000; box-shadow: 0 0 15px rgba(255,0,0,0.5);">
     </div>
   </div>
 
@@ -122,8 +110,15 @@
 
     <div class="login-card">
       <div class="logo-area">
+        <svg viewBox="0 0 100 100"
+          style="width: 60px; height: 60px; margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(255, 0, 0, 0.4));">
+          <path fill="#ff0000" d="M50 5 L85 20 L85 45 L75 55 L75 85 L50 98 L25 85 L25 55 L15 45 L15 20 Z" />
+          <path fill="#ffffff" opacity="0.9"
+            d="M30 25 L45 25 L45 35 L30 35 Z M55 25 L70 25 L70 35 L55 35 Z M35 50 L45 50 L45 75 L35 65 Z M55 50 L65 50 L65 65 L55 75 Z M45 80 L55 80 L50 90 Z" />
+        </svg>
         <h1>Sentinel<span style="color:var(--primary)">X</span></h1>
-        <p>Enterprise IT Infrastructure Monitoring</p>
+        <p style="letter-spacing: 2px; text-transform: uppercase; font-size: 0.75rem; color: #888;">Enterprise IT
+          Infrastructure Monitoring</p>
       </div>
 
       <form id="login-form" style="display: block;">
@@ -172,8 +167,14 @@
   <section id="dashboard-view" style="display: none;">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <h2>Sentinel<span style="color:var(--primary)">X</span></h2>
+      <div class="sidebar-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 40px;">
+        <svg viewBox="0 0 100 100"
+          style="width: 32px; height: 32px; filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.4));">
+          <path fill="#ff0000" d="M50 5 L85 20 L85 45 L75 55 L75 85 L50 98 L25 85 L25 55 L15 45 L15 20 Z" />
+          <path fill="#ffffff" opacity="0.9"
+            d="M30 25 L45 25 L45 35 L30 35 Z M55 25 L70 25 L70 35 L55 35 Z M35 50 L45 50 L45 75 L35 65 Z M55 50 L65 50 L65 65 L55 75 Z M45 80 L55 80 L50 90 Z" />
+        </svg>
+        <h2 style="margin:0; font-size: 1.4rem;">Sentinel<span style="color:var(--primary)">X</span></h2>
       </div>
       <nav>
         <a href="#" class="nav-link active" onclick="switchTab('home')">

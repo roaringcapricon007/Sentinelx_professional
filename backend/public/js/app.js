@@ -491,7 +491,8 @@ function renderHome() {
 
     view.innerHTML = `
         <div class="home-container fade-in">
-        <div class="hero-section glass-card" style="padding: 40px; margin-bottom: 30px; text-align: center; border-radius: 24px;">
+        <div class="hero-section glass-card" style="padding: 60px 40px; margin-bottom: 30px; text-align: center; border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
             <h1 style="font-size: 2.8rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to PRIME_AI Professional v6.5</h1>
             <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto;">The complete Enterprise IT Management solution for real-time infrastructure visibility, security intelligence, and autonomous testing.</p>
             <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center;">
