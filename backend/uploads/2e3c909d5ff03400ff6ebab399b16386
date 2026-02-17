@@ -1,5 +1,0 @@
-2026-01-09 09:10:21 INFO  User service started successfully
-2026-01-09 09:10:45 WARN  Cache miss for userId=1021
-2026-01-09 09:11:02 ERROR Failed to connect to database: timeout
-2026-01-09 09:11:05 INFO  Retrying database connection
-2026-01-09 09:11:09 INFO  Database connection restored

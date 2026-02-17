@@ -264,3 +264,20 @@
 .toast-info i {
     color: var(--primary);
 }
+.autobot-logo-animated {
+    display: inline-block;
+    background: linear-gradient(90deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);
+    background-size: 300% 100%;
+    -webkit-mask-image: url('../img/autobot_logo.png');
+    mask-image: url('../img/autobot_logo.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    animation: rainbow-shift 3s linear infinite;
+}
+
+@keyframes rainbow-shift {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 100% 0%; }
+}
