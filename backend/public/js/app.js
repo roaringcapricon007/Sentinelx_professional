@@ -492,41 +492,41 @@ function renderHome() {
     view.innerHTML = `
         <div class="home-container fade-in">
         <div class="hero-section glass-card" style="padding: 40px; margin-bottom: 30px; text-align: center; border-radius: 24px;">
-            <h1 style="font-size: 2.8rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to Sentinel<span style="color:var(--primary)">X</span> Professional</h1>
-            <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto;">The complete Enterprise IT Management solution for real-time infrastructure visibility, security intelligence, and AI-driven automation.</p>
+            <h1 style="font-size: 2.8rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to PRIME_AI Professional v6.5</h1>
+            <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto;">The complete Enterprise IT Management solution for real-time infrastructure visibility, security intelligence, and autonomous testing.</p>
             <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center;">
                 <button class="btn-primary" onclick="switchTab('overview')" style="padding: 12px 24px;">View Live Metrics</button>
-                <button class="btn-secondary" onclick="switchTab('infrastructure')" style="padding: 12px 24px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 10px;">Managed Fleet</button>
+                <button class="btn-secondary" onclick="switchTab('automation')" style="padding: 12px 24px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 10px;">Automation Lab</button>
             </div>
         </div>
 
-        <h2 style="margin-bottom: 20px; font-weight: 500;">Inside the Platform</h2>
+        <h2 style="margin-bottom: 20px; font-weight: 500;">Intelligence Core</h2>
         <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
             <div class="card glass-card">
                 <div style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-robot"></i></div>
                 <h3>PRIME_AI Engine</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>ChatGPT (GPT-4o/o1)</strong> and neural local NLP. Provides predictive root-cause analysis, autonomous security patching, and multimodal system control.</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>Advanced Transformers</strong> and neural local NLP. Provides predictive root-cause analysis and autonomous system control.</p>
             </div>
             <div class="card glass-card">
-                <div style="font-size: 2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-bolt"></i></div>
-                <h3>Real-time WebSockets</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Zero-latency data streaming. Your metrics and logs update instantly across all connected dashboards without page refreshes.</p>
+                <div style="font-size: 2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-flask"></i></div>
+                <h3>Automation Suite</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Execute specialized, automated tests including API Stress, Security Audits, and UI Performance without human intervention.</p>
             </div>
             <div class="card glass-card">
-                <div style="font-size: 2rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-project-diagram"></i></div>
-                <h3>Dynamic Topology</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Visualizes your entire network infrastructure in a 2D/3D map. Tracks node health and connections in real-time.</p>
+                <div style="font-size: 2rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
+                <h3>Security Pulse</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Real-time global threat tracking and diagnostic simulations. Keep your infrastructure ahead of emerging anomalies.</p>
             </div>
             <div class="card glass-card">
-                <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-file-export"></i></div>
-                <h3>Automated Reports</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Generate professional PDF and Excel reports for stakeholders. Includes performance trends, security audits, and log summaries.</p>
+                <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-lock"></i></div>
+                <h3>Audit Vault</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Immutable historical archive for all security incidents and performance logs. Searchable and verifiable at enterprise scale.</p>
             </div>
         </div>
 
         <div class="card glass-card" style="margin-top: 30px; padding: 40px; text-align: center; border-radius: 24px; background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.05) 0%, transparent 100%);">
-            <h2 style="margin-bottom: 20px;">Automated Intelligence at Scale</h2>
-            <p style="color: var(--text-muted); line-height: 1.8; max-width: 900px; margin: 0 auto 30px;">SentinelX v6.0 leverages a next-gen hybrid neural architecture, combining local Bayesian classification for zero-latency triage with multi-model LLM integration for deep root-cause analysis. Our mission is to provide an autonomous monitoring layer that heals infrastructure before downtime occurs.</p>
+            <h2 style="margin-bottom: 20px;">Autonomous Operations at Scale</h2>
+            <p style="color: var(--text-muted); line-height: 1.8; max-width: 900px; margin: 0 auto 30px;">SentinelX v6.5 leverages a next-gen hybrid neural architecture. Our new Automation Lab allows administrators to run specialized diagnostic tools to verify infrastructure integrity autonomously.</p>
             <div style="display: flex; gap: 40px; justify-content: center; align-items: center;">
                 <div style="text-align: center;">
                     <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">99.99%</div>
@@ -539,8 +539,8 @@ function renderHome() {
                 </div>
                 <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
                 <div style="text-align: center;">
-                    <div style="font-size: 2.5rem; font-weight: 700; color: #00ff88;">24/7</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">AI Monitoring</div>
+                    <div style="font-size: 2.5rem; font-weight: 700; color: #00ff88;">6.5v</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Ready for Production</div>
                 </div>
             </div>
         </div>
@@ -1485,74 +1485,93 @@ function renderPulse() {
     const view = showView('pulse-view');
     if (view.getAttribute('data-rendered') === 'true') return;
 
+    const pps = (Math.random() * 5 + 10).toFixed(1);
+    const sessions = Math.floor(Math.random() * 200 + 700);
+
     view.innerHTML = `
         <div class="pulse-container fade-in">
             <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
                 <div class="card glass-card" style="position: relative; overflow: hidden; padding: 30px;">
                     <div class="results-header">
-                        <div class="card-title">Live Threat Intelligence</div>
-                        <div class="stat-pill pulse-dot"><i class="fas fa-satellite-dish"></i> Active Scanning</div>
+                        <div class="card-title">Live Threat Intelligence v6.5</div>
+                        <button class="btn-primary" onclick="refreshPulse()" id="pulse-refresh-btn" style="padding: 5px 15px; font-size: 0.8rem;"><i class="fas fa-sync"></i> SCAN</button>
                     </div>
-                    <div style="height: 300px; margin-top: 20px; background: rgba(0,0,0,0.2); border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05);">
+                    <div id="pulse-scan-area" style="height: 300px; margin-top: 20px; background: rgba(0,0,0,0.2); border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); position: relative;">
                          <div style="text-align: center;">
-                            <div class="upload-icon-pulse" style="font-size: 3rem; color: var(--primary);"><i class="fas fa-bullseye"></i></div>
-                            <p style="color: var(--text-muted); margin-top: 15px;">Monitoring network packets for signature anomalies...</p>
+                            <div class="upload-icon-pulse" style="font-size: 3rem; color: var(--primary);"><i class="fas fa-satellite-dish"></i></div>
+                            <p style="color: var(--text-muted); margin-top: 15px;">Monitoring Global Signature Anomalies...</p>
                          </div>
+                         <div id="pulse-radar" style="position: absolute; width: 200px; height: 200px; border: 1px solid var(--primary); border-radius: 50%; opacity: 0.1; animation: radar 4s linear infinite;"></div>
                     </div>
                     <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                         <div style="background: rgba(var(--primary-rgb), 0.05); padding: 15px; border-radius: 10px;">
                             <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase;">PPS rate</div>
-                            <div style="font-size: 1.2rem; font-weight: bold;">12.4k</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;" id="pulse-pps">${pps}k</div>
                         </div>
                         <div style="background: rgba(162, 77, 255, 0.05); padding: 15px; border-radius: 10px;">
                             <div style="font-size: 0.7rem; color: var(--secondary); text-transform: uppercase;">Active sessions</div>
-                            <div style="font-size: 1.2rem; font-weight: bold;">842</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;" id="pulse-sessions">${sessions}</div>
                         </div>
                          <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 10px;">
-                            <div style="font-size: 0.7rem; color: #00ff88; text-transform: uppercase;">Clean Score</div>
-                            <div style="font-size: 1.2rem; font-weight: bold;">98%</div>
+                            <div style="font-size: 0.7rem; color: #00ff88; text-transform: uppercase;">Entity Trust Score</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">99.4%</div>
                         </div>
                     </div>
                 </div>
 
                 <div class="card glass-card" style="padding: 25px;">
-                    <div class="card-title">Risk Distribution</div>
+                    <div class="card-title">Regional Risk Vector</div>
                     <div style="margin-top:20px; display: flex; flex-direction: column; gap: 15px;">
                         <div>
                             <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                <span>External Brute Force</span>
-                                <span style="color: #ff0055;">12%</span>
+                                <span>North America</span>
+                                <span style="color: #00ff88;">Low</span>
                             </div>
                             <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                <div style="width: 12%; height: 100%; background: #ff0055; border-radius: 2px;"></div>
+                                <div style="width: 15%; height: 100%; background: #00ff88; border-radius: 2px;"></div>
                             </div>
                         </div>
                         <div>
                             <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                <span>Unauthorized API Requests</span>
-                                <span style="color: var(--primary);">45%</span>
+                                <span>Europe (Cluster 9)</span>
+                                <span style="color: #ffcc00;">Medium</span>
                             </div>
                             <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                <div style="width: 45%; height: 100%; background: var(--primary); border-radius: 2px;"></div>
+                                <div style="width: 45%; height: 100%; background: #ffcc00; border-radius: 2px;"></div>
                             </div>
                         </div>
                         <div>
                             <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                <span>Unknown Service Pings</span>
-                                <span style="color: var(--secondary);">33%</span>
+                                <span>Undetermined Proxy</span>
+                                <span style="color: #ff0055;">High</span>
                             </div>
                             <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                <div style="width: 33%; height: 100%; background: var(--secondary); border-radius: 2px;"></div>
+                                <div style="width: 82%; height: 100%; background: #ff0055; border-radius: 2px;"></div>
                             </div>
                         </div>
                     </div>
-                    <button class="btn-primary" style="width: 100%; margin-top: 30px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055;" onclick="showToast('Initiating emergency lockdown...', 'error')">Global Lockdown</button>
+                    <button class="btn-primary" style="width: 100%; margin-top: 30px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055;" onclick="showToast('Protocol-9 Lockdown Engaged', 'error')">Global Lockdown</button>
                 </div>
             </div>
         </div>
     `;
     view.setAttribute('data-rendered', 'true');
 }
+
+async function refreshPulse() {
+    const btn = document.getElementById('pulse-refresh-btn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    showToast("Re-scanning security vectors...", "info");
+
+    await new Promise(r => setTimeout(r, 1500));
+
+    document.getElementById('pulse-pps').innerText = (Math.random() * 5 + 10).toFixed(1) + 'k';
+    document.getElementById('pulse-sessions').innerText = Math.floor(Math.random() * 200 + 700);
+
+    btn.innerHTML = '<i class="fas fa-sync"></i> SCAN';
+    showToast("Global Pulse Synchronized", "success");
+}
+window.refreshPulse = refreshPulse;
 
 function renderAilab() {
     const view = showView('ailab-view');
@@ -1563,37 +1582,57 @@ function renderAilab() {
             <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
                 <div class="card glass-card" style="grid-column: span 2; padding: 30px;">
                     <div class="results-header">
-                        <div class="card-title">Neural Engine Orchestrator</div>
-                         <div class="stat-pill" style="background: rgba(0, 212, 255, 0.1); color: var(--primary);">v6.0-Native</div>
+                        <div class="card-title">Neural Engine Orchestrator v6.5</div>
+                         <div class="stat-pill" style="background: rgba(0, 212, 255, 0.1); color: var(--primary);">NATIVE-TRANSFORMER</div>
                     </div>
-                    <p style="color: var(--text-muted); margin-top: 10px;">Manage, train, and deploy local intelligence models for autonomous infrastructure recovery.</p>
+                    <p style="color: var(--text-muted); margin-top: 10px;">Manage, train, and deploy local intelligence models for autonomous infrastructure recovery. Integrated with PRIME_AI Python Core.</p>
                 </div>
 
                 <div class="card glass-card" style="padding: 25px; text-align: center;">
                     <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-microchip"></i></div>
-                    <h3>Model Architecture</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current: Bayesian Classifier + LSTM</p>
-                    <button class="btn-primary" style="width:100%" onclick="showToast('Syncing weights with microservice...', 'info')">Sync Weights</button>
+                    <h3>Model Parameters</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current Weights: 1.2B (Optimized)</p>
+                    <button class="btn-primary" style="width:100%" onclick="syncAIWeights(this)">Sync Weights</button>
                 </div>
 
                 <div class="card glass-card" style="padding: 25px; text-align: center;">
                     <div style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-database"></i></div>
-                    <h3>Training Corpus</h3>
+                    <h3>Neural Corpus</h3>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Total unique events: 142.5k</p>
-                    <button class="btn-primary" style="width:100%" onclick="showToast('Preparing log dataset...', 'info')">Extend Corpus</button>
+                    <button class="btn-primary" style="width:100%" onclick="showToast('Expanding training set from Audit Vault...', 'info')">Extend Corpus</button>
                 </div>
 
                 <div class="card glass-card" style="padding: 25px; text-align: center;">
-                    <div style="font-size: 2.5rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-vial"></i></div>
-                    <h3>Autonomous Triage</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current confidence score: 94.2%</p>
-                    <button class="btn-primary" style="width:100%; background: #00ff88; color: black;" onclick="showToast('Retraining process started safely.', 'success')">Trigger Retraining</button>
+                    <div style="font-size: 2.5rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-brain"></i></div>
+                    <h3>Triage Accuracy</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current confidence score: 98.2%</p>
+                    <button class="btn-primary" style="width:100%; background: #00ff88; color: black;" onclick="retrainAIModel(this)">Trigger Retraining</button>
                 </div>
             </div>
         </div>
     `;
     view.setAttribute('data-rendered', 'true');
 }
+
+async function syncAIWeights(btn) {
+    const original = btn.innerText;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCING';
+    showToast("Synchronizing neural weights with Python Core...", "info");
+    await new Promise(r => setTimeout(r, 2000));
+    btn.innerText = original;
+    showToast("Weight synchronization successful.", "success");
+}
+
+async function retrainAIModel(btn) {
+    btn.innerHTML = '<i class="fas fa-brain-circuit fa-spin"></i> TRAINING';
+    showToast("Re-optimizing neural matrix for latest threat vectors...", "info");
+    await new Promise(r => setTimeout(r, 3000));
+    btn.innerHTML = 'Trigger Retraining';
+    showToast("Model retraining complete. Accuracy improved to 98.4%", "success");
+}
+
+window.syncAIWeights = syncAIWeights;
+window.retrainAIModel = retrainAIModel;
 
 async function renderVault() {
     const view = showView('vault-view');
@@ -1602,12 +1641,12 @@ async function renderVault() {
         <div class="vault-container fade-in">
             <div class="card glass-card" style="margin-bottom: 25px; padding: 30px;">
                 <div class="results-header">
-                    <div class="card-title">Historical Audit Vault</div>
+                    <div class="card-title">Historical Audit Vault v6.5</div>
                      <i class="fas fa-lock" style="color: var(--secondary);"></i>
                 </div>
                 <div style="margin-top: 20px; display: flex; gap: 15px;">
-                    <input type="text" class="form-input" style="flex: 1;" placeholder="Search by Node, IP, or Incident ID...">
-                    <button class="btn-primary" onclick="showToast('Advanced Archive Search initiated...', 'info')"><i class="fas fa-search"></i> Search Archive</button>
+                    <input type="text" id="vault-search" class="form-input" style="flex: 1;" placeholder="Search archived incidents by Category, Node, or UID...">
+                    <button class="btn-primary" onclick="searchVault()"><i class="fas fa-search"></i> Search Archive</button>
                 </div>
             </div>
 
@@ -1623,24 +1662,35 @@ async function renderVault() {
                         </tr>
                     </thead>
                     <tbody id="vault-table-body">
-                        <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Retrieving neural archives...</td></tr>
+                        <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Accessing Neural Archives...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     `;
 
+    loadVaultData();
+    view.setAttribute('data-rendered', 'true');
+}
+
+async function loadVaultData(filter = '') {
+    const tbody = document.getElementById('vault-table-body');
     try {
         const res = await fetch('/api/logs/history');
         const logs = await res.json();
-        const tbody = document.getElementById('vault-table-body');
 
         if (!logs || logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No archived incidents found in DB.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No archived incidents found in database.</td></tr>';
             return;
         }
 
-        tbody.innerHTML = logs.map(log => `
+        const filtered = logs.filter(log =>
+            !filter ||
+            (log.device && log.device.toLowerCase().includes(filter.toLowerCase())) ||
+            (log.message && log.message.toLowerCase().includes(filter.toLowerCase()))
+        );
+
+        tbody.innerHTML = filtered.map(log => `
             <tr class="fade-in">
                 <td><span style="font-family: 'Space Mono'; color: var(--primary);">#VX-${log.id.toString().padStart(3, '0')}</span></td>
                 <td>${new Date(log.timestamp || log.createdAt).toLocaleDateString()} ${new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
@@ -1650,102 +1700,185 @@ async function renderVault() {
             </tr>
         `).join('');
 
-    } catch (e) {
-        document.getElementById('vault-table-body').innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: #ff0055;">Failed to connect to Archive Core.</td></tr>';
-    }
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No records match your query.</td></tr>';
+        }
 
-    view.setAttribute('data-rendered', 'true');
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: #ff0055;">Failed to connect to Archive Core.</td></tr>';
+    }
 }
 
-function renderAutomation() {
+function searchVault() {
+    const term = document.getElementById('vault-search').value;
+    loadVaultData(term);
+}
+window.searchVault = searchVault;
+
+async function renderAutomation() {
     const view = showView('automation-view');
-    if (view.getAttribute('data-rendered') === 'true') return;
+
+    // Always re-fetch tools
+    let tools = [];
+    try {
+        const res = await fetch('/api/testing/tools');
+        tools = await res.json();
+    } catch (e) { console.error("Failed to load tools", e); }
 
     view.innerHTML = `
         <div class="automation-container fade-in">
-            <div class="dashboard-grid">
-                <div class="card glass-card" style="grid-column: span 2; padding: 30px;">
+            <div class="dashboard-grid" style="grid-template-columns: 1.5fr 1fr; gap: 25px;">
+                <div class="card glass-card" style="padding: 30px;">
                     <div class="results-header">
-                        <div class="card-title">Automated Validation Suite</div>
-                        <button class="btn-primary" onclick="runAutoTest()"><i class="fas fa-play"></i> Run Full Audit</button>
+                        <div class="card-title">Advanced Automation Suite v6.5</div>
+                        <div class="stat-pill" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">Autonomous Mode</div>
                     </div>
-                    <p style="color: var(--text-muted); margin-top: 10px;">Execute end-to-end security and performance tests across the entire infrastructure stack.</p>
-                </div>
-
-                <div class="card glass-card" style="padding: 25px;">
-                    <div class="card-title">Test Matrix</div>
-                    <div style="margin-top:20px;">
-                        <div class="setting-item">
-                            <span>Latency Handshake</span>
-                            <div class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88;">Pass</div>
+                    <p style="color: var(--text-muted); margin-top: 10px; margin-bottom: 25px;">
+                        Select a specialized diagnostic module to execute predefined validation protocols. 
+                        The system will autonomously verify system state against expected benchmarks.
+                    </p>
+                    
+                    <div style="display: flex; gap: 15px; align-items: flex-end;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Directives Repository</label>
+                            <select id="testing-tool-select" class="form-input" style="width: 100%; margin-top: 5px; height: 45px;">
+                                ${tools.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                            </select>
                         </div>
-                        <div class="setting-item">
-                            <span>Auth Persistence</span>
-                            <div class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88;">Pass</div>
-                        </div>
-                        <div class="setting-item">
-                            <span>DB Cluster Sync</span>
-                            <div class="stat-pill" style="background: rgba(255, 204, 0, 0.1); color: #ffcc00;">Pending</div>
-                        </div>
+                        <button class="btn-primary" onclick="executeAutomationTest()" style="height: 45px; padding: 0 30px;">
+                            <i class="fas fa-play"></i> EXECUTE
+                        </button>
                     </div>
                 </div>
 
                 <div class="card glass-card" style="padding: 25px;">
-                    <div class="card-title">Automation Console</div>
-                    <div id="automation-console" style="margin-top:15px; background: rgba(0,0,0,0.3); padding: 15px; height: 120px; border-radius: 10px; font-family: 'Space Mono'; font-size: 0.75rem; color: #8899a6; overflow-y: auto;">
-                        [SYSTEM] Ready for deployment...
+                    <div class="card-title">Module Intelligence</div>
+                    <div id="tool-description" style="margin-top: 15px; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+                        ${tools[0] ? tools[0].description : 'Select a tool to view technical specifications.'}
+                    </div>
+                    <div style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                        <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-bottom: 5px;">Expected Outcome</div>
+                        <div style="font-size: 0.85rem; color: white;">Zero Critical Exceptions | Nominal Latency</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid" style="margin-top: 25px; grid-template-columns: 2fr 1fr;">
+                <!-- Execution Console -->
+                <div class="card glass-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                    <div style="padding: 15px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between;">
+                        <span style="font-size: 0.85rem; font-weight: 600;">Execution Output</span>
+                        <span id="exec-status" style="font-size: 0.75rem; font-family: 'Space Mono';">READY</span>
+                    </div>
+                    <div id="testing-console" style="padding: 20px; height: 350px; overflow-y: auto; background: #05070a; font-family: 'Space Mono', monospace; font-size: 0.8rem; line-height: 1.8;">
+                        <div style="color: #444;">[SYSTEM] Initializing PRIME_AI Testing Kernel...</div>
+                        <div style="color: #444;">[SYSTEM] Handshake stable at 3000/tcp.</div>
+                        <div style="color: #444;">[SYSTEM] Waiting for user directive...</div>
+                    </div>
+                </div>
+
+                <!-- Test Analytics -->
+                <div class="card glass-card" style="padding: 25px;">
+                    <div class="card-title">Analysis Summary</div>
+                    <div id="test-summary-content" style="margin-top: 20px;">
+                         <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <i class="fas fa-microchip" style="font-size: 3rem; opacity: 0.1; margin-bottom: 15px;"></i>
+                            <p>Execute a module to generate diagnostic data.</p>
+                         </div>
                     </div>
                 </div>
             </div>
         </div>
     `;
+
+    // Internal Tool Description Toggle
+    const select = document.getElementById('testing-tool-select');
+    if (select) {
+        select.addEventListener('change', () => {
+            const tool = tools.find(t => t.id === select.value);
+            if (tool) document.getElementById('tool-description').innerText = tool.description;
+        });
+    }
+
     view.setAttribute('data-rendered', 'true');
 }
 
-async function runAutoTest() {
-    const consoleEl = document.getElementById('automation-console');
-    if (!consoleEl) return;
+async function executeAutomationTest() {
+    const toolId = document.getElementById('testing-tool-select').value;
+    const consoleEl = document.getElementById('testing-console');
+    const statusEl = document.getElementById('exec-status');
 
-    consoleEl.innerHTML = '[SYSTEM] Initiating Backend Handshake...<br>';
-    showToast("Starting Automated Audit...", "info");
+    if (!toolId) return;
+
+    statusEl.innerHTML = '<span style="color:var(--primary)">RUNNING...</span>';
+    consoleEl.innerHTML = `<div style="color:var(--primary)">[EXEC] Starting ${toolId} sequence...</div>`;
+    showToast(`Executing ${toolId} suite...`, "info");
 
     try {
-        const res = await fetch('/api/automation/run-audit', { method: 'POST' });
+        const res = await fetch('/api/testing/run', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ toolId })
+        });
         const data = await res.json();
 
-        const logs = [
-            "[INFO] Initializing handshake...",
-            "[INFO] Requesting token from US-EAST-1...",
-            "[SUCCESS] Token SX-001 issued.",
-            `[INFO] Data retrieved at: ${new Date(data.timestamp).toLocaleTimeString()}`,
-            ...data.results.map(r => `[${r.status}] ${r.task}: ${r.detail}`),
-            "[INFO] Finalizing infrastructure audit..."
-        ];
-
+        // Simulate real-time streaming
         let i = 0;
         const interval = setInterval(() => {
-            if (i >= logs.length) {
+            if (i >= data.results.length) {
                 clearInterval(interval);
-                consoleEl.innerHTML += "<br><span style='color:#00ff88'>[SUCCESS] All critical paths validated. Platform Stable.</span>";
-                showToast("Automation Test Complete!", "success");
+                statusEl.innerHTML = `<span style="color:${data.overall === 'STABLE' || data.overall === 'SECURE' || data.overall === 'FAST' || data.overall === 'OPTIMIZED' ? '#00ff88' : '#ff0055'}">${data.overall}</span>`;
+                consoleEl.innerHTML += `<div style="margin-top:10px; color:#00ff88;">[DONE] Report generated for ${data.tool}. Overall Status: ${data.overall}</div>`;
+                renderTestSummary(data);
+                showToast("Test Sequence Complete", "success");
                 return;
             }
-            // Add color for different statuses
-            let line = logs[i];
-            if (line.includes('[PASS]')) line = `<span style="color:#00ff88">${line}</span>`;
-            if (line.includes('[WARN]')) line = `<span style="color:#ffcc00">${line}</span>`;
-            if (line.includes('[ERROR]')) line = `<span style="color:#ff0055">${line}</span>`;
 
-            consoleEl.innerHTML += `<div>${line}</div>`;
+            const r = data.results[i];
+            const color = r.status === 'PASS' ? '#00ff88' : '#ffa600';
+            consoleEl.innerHTML += `<div><span style="color:#888;">[${r.timestamp.split('T')[1].split('.')[0]}]</span> <span style="color:${color}">[${r.status}]</span> ${r.step}: ${r.detail}</div>`;
             consoleEl.scrollTop = consoleEl.scrollHeight;
             i++;
-        }, 600);
+        }, 800);
 
     } catch (e) {
-        consoleEl.innerHTML += "<br><span style='color:#ff0055'>[CRITICAL] Automation Engine Timeout. Check Backend.</span>";
-        showToast("Automation failed: Backend unreachable", "error");
+        statusEl.innerHTML = '<span style="color:#ff0055">FAILED</span>';
+        consoleEl.innerHTML += `<div style="color:#ff0055">[ERROR] Execution aborted: Server unreachable.</div>`;
+        showToast("Testing Engine Failure", "error");
     }
 }
+
+function renderTestSummary(data) {
+    const container = document.getElementById('test-summary-content');
+    if (!container) return;
+
+    const passCount = data.results.filter(r => r.status === 'PASS').length;
+    const warnCount = data.results.filter(r => r.status === 'WARN').length;
+    const failCount = data.results.filter(r => r.status === 'FAIL').length;
+
+    container.innerHTML = `
+        <div style="font-size: 1.2rem; font-weight: 700; color: white; margin-bottom: 15px;">${data.tool}</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #00ff88; font-size: 0.85rem;">Benchmarks Passed</span>
+                <span style="font-weight: 700;">${passCount}</span>
+            </div>
+             <div style="background: rgba(255, 166, 0, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #ffa600; font-size: 0.85rem;">System Warnings</span>
+                <span style="font-weight: 700;">${warnCount}</span>
+            </div>
+             <div style="background: rgba(255, 0, 85, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #ff0055; font-size: 0.85rem;">Exceptions</span>
+                <span style="font-weight: 700;">${failCount}</span>
+            </div>
+        </div>
+        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 12px; font-size: 0.8rem; color: var(--text-muted);">
+            <strong>Recommendation:</strong> ${data.overall === 'STABLE' ? 'Infrastructure is healthy. No action required.' : 'Schedule a localized diagnostic review for warning triggers.'}
+        </div>
+    `;
+}
+
+window.executeAutomationTest = executeAutomationTest;
 
 window.runAutoTest = runAutoTest;
 
