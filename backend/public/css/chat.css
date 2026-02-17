@@ -13,8 +13,8 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #ff1a1a, #004cff);
-    /* Autobot Colors */
+    background: #000;
+    /* Autobot Colors - Updated to Black for Neon Effect */
     box-shadow: 0 0 20px rgba(255, 26, 26, 0.4);
     display: flex;
     justify-content: center;
@@ -196,7 +196,33 @@
     min-height: 20px;
 }
 
+.autobot-logo-neon {
+    display: inline-block;
+    background: linear-gradient(90deg, #00f2ff, #004cff, #00f2ff);
+    background-size: 200% 100%;
+    -webkit-mask-image: url('../img/autobot_logo.png');
+    mask-image: url('../img/autobot_logo.png');
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    animation: neon-shift 2s linear infinite;
+    filter: drop-shadow(0 0 5px rgba(0, 242, 255, 0.6));
+}
+
 @keyframes rainbow-shift {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 100% 0%;
+    }
+}
+
+@keyframes neon-shift {
     0% {
         background-position: 0% 0%;
     }

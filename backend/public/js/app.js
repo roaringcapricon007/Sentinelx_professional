@@ -370,7 +370,7 @@ function switchTab(tab) {
 
     // Render View (View Manager handles visibility)
     if (tab === 'home') {
-        if (pageTitle) pageTitle.innerText = 'Project Welcome';
+        if (pageTitle) pageTitle.innerText = 'SentinelX_Professional';
         renderHome();
     } else if (tab === 'overview') {
         if (pageTitle) pageTitle.innerText = 'System Overview';
@@ -496,7 +496,7 @@ function renderHome() {
         <div class="home-container fade-in">
         <div class="hero-section glass-card" style="padding: 60px 40px; margin-bottom: 30px; text-align: center; border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
-            <h1 style="font-size: 2.8rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to PRIME_AI Professional v6.5</h1>
+            <h1 style="font-size: 2.8rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to <span class="font-transformers">PRIME_AI</span> Professional v6.5</h1>
             <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto;">The complete Enterprise IT Management solution for real-time infrastructure visibility, security intelligence, and autonomous testing.</p>
             <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center;">
                 <button class="btn-primary" onclick="switchTab('overview')" style="padding: 12px 24px;">View Live Metrics</button>
@@ -507,8 +507,8 @@ function renderHome() {
         <h2 style="margin-bottom: 20px; font-weight: 500;">Intelligence Core</h2>
         <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
             <div class="card glass-card">
-                <div style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-robot"></i></div>
-                <h3>PRIME_AI Engine</h3>
+                <div style="margin-bottom: 20px;"><div class="autobot-logo-neon" style="width: 40px; height: 40px;"></div></div>
+                <h3><span class="font-transformers">PRIME_AI</span> Engine</h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>Advanced Transformers</strong> and neural local NLP. Provides predictive root-cause analysis and autonomous system control.</p>
             </div>
             <div class="card glass-card">
@@ -2068,7 +2068,7 @@ function addMessage(text, type) {
 
     if (type === 'ai') {
         const icon = document.createElement('div');
-        icon.className = 'autobot-logo-animated';
+        icon.className = 'autobot-logo-neon';
         icon.style.width = '18px';
         icon.style.height = '18px';
         icon.style.marginRight = '8px';
@@ -2299,3 +2299,57 @@ function generateExcel(title, data, type) {
     showToast("Excel Downloaded", "success");
 }
 
+function renderBotProfile() {
+    const view = showView('botprofile-view');
+    if (view.getAttribute('data-rendered') === 'true' && view.innerHTML !== '') return;
+
+    view.innerHTML = `
+        <div class="bot-profile-container fade-in">
+            <div class="profile-header glass-card" style="padding: 60px 40px; text-align: center; margin-bottom: 30px; border-radius: 24px; position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
+                <div class="autobot-logo-neon" style="width: 120px; height: 120px; margin: 0 auto 20px auto;"></div>
+                <h1 style="font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><span class="font-transformers">PRIME_AI</span> v6.5</h1>
+                <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Tier-1 Sovereign Intelligence Core. Optimized for infrastructure integrity and autonomous threat elimination.</p>
+                <div style="margin-top: 25px;">
+                    <span class="stat-pill" style="background: rgba(0, 242, 255, 0.1); color: var(--primary);">NEURAL MATRIX: SYNCHRONIZED</span>
+                </div>
+            </div>
+
+            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
+                <div class="card glass-card" style="padding: 25px;">
+                    <h3 style="margin-bottom: 20px; color: var(--primary);"><i class="fas fa-microchip"></i> Physical Hardware</h3>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
+                            <span style="color: var(--text-muted);">Processing Power:</span>
+                            <span style="color: #fff;">1.2 PB/s (Cluster 9)</span>
+                        </div>
+                        <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
+                            <span style="color: var(--text-muted);">Neural Weights:</span>
+                            <span style="color: #fff;">180 Billion (Quantized)</span>
+                        </div>
+                        <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
+                            <span style="color: var(--text-muted);">Response Latency:</span>
+                            <span style="color: #00ff88;">< 0.4ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card glass-card" style="padding: 25px;">
+                    <h3 style="margin-bottom: 20px; color: var(--secondary);"><i class="fas fa-shield-alt"></i> Intelligence Guardrails</h3>
+                    <ul style="color: var(--text-muted); padding-left: 20px; font-size: 0.9rem; line-height: 1.8;">
+                        <li>Sovereign Infrastructure Protection</li>
+                        <li>Autonomous Protocol Lockdown</li>
+                        <li>Zero-Trust Identity Validation</li>
+                        <li>Sub-Surface Neural Filtering</li>
+                    </ul>
+                </div>
+
+                <div class="card glass-card" style="padding: 25px;">
+                    <h3 style="margin-bottom: 20px; color: #ffcc00;"><i class="fas fa-brain"></i> Active Directives</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Currently monitoring <strong>Global Node Signature 12-B</strong> and optimizing regional packet flow for Europe-A Cluster.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    view.setAttribute('data-rendered', 'true');
+}

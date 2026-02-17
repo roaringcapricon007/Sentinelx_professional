@@ -105,3 +105,4 @@ body::after {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary);
 }
+.font-transformers, .transformers-font { font-family: 'Orbitron', sans-serif; letter-spacing: 2px; text-transform: uppercase; }

@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap"
     rel="stylesheet">
 
   <!-- Icons -->
@@ -58,16 +58,18 @@
     <div class="chat-window" id="chat-window">
       <div class="chat-header">
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div class="autobot-logo-animated" style="width: 25px; height: 25px;"></div>
-          <h3 style="margin: 0; font-size: 1rem; color: white; letter-spacing: 1px;">PRIME_AI v6.5</h3>
+          <div class="autobot-logo-neon" style="width: 25px; height: 25px;"></div>
+          <h3 style="margin: 0; font-size: 1rem; color: white; letter-spacing: 1px;"><span
+              class="font-transformers">PRIME_AI</span> v6.5</h3>
         </div>
         <i class="fas fa-times" style="cursor:pointer; color: #888;" onclick="toggleChat()"></i>
       </div>
       <div class="chat-body" id="chat-body">
         <div class="message msg-ai">
-          <div class="autobot-logo-animated"
-            style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;"></div>
-          <span>Greetings. I am PRIME_AI v6.5. My neural matrix is optimized for infrastructure sovereignty. How can I
+          <div class="autobot-logo-neon" style="width: 18px; height: 18px; margin-right: 8px; vertical-align: middle;">
+          </div>
+          <span>Greetings. I am <span class="font-transformers">PRIME_AI</span> v6.5. My neural matrix is optimized for
+            infrastructure sovereignty. How can I
             assist, Prime?</span>
         </div>
 
@@ -81,7 +83,7 @@
     </div>
 
     <div class="chat-fab" onclick="toggleChat()" title="PRIME_AI">
-      <div class="autobot-logo-animated" style="width: 45px; height: 45px;"></div>
+      <div class="autobot-logo-neon" style="width: 45px; height: 45px;"></div>
     </div>
   </div>
 
@@ -110,7 +112,7 @@
 
     <div class="login-card">
       <div class="logo-area" style="display: flex; flex-direction: column; align-items: center;">
-        <div class="autobot-logo-animated" style="width: 80px; height: 80px; margin-bottom: 20px;"></div>
+        <div class="autobot-logo-neon" style="width: 80px; height: 80px; margin-bottom: 20px;"></div>
         <h1>Sentinel<span style="color:var(--primary)">X</span></h1>
         <p style="letter-spacing: 2px; text-transform: uppercase; font-size: 0.75rem; color: #888;">Enterprise IT
           Infrastructure Monitoring</p>
@@ -163,7 +165,7 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 40px;">
-        <div class="autobot-logo-animated" style="width: 32px; height: 32px;"></div>
+        <div class="autobot-logo-neon" style="width: 32px; height: 32px;"></div>
         <h2 style="margin:0; font-size: 1.4rem;">Sentinel<span style="color:var(--primary)">X</span></h2>
       </div>
       <nav>
@@ -229,7 +231,9 @@
           </button>
           <div class="profile-wrapper" style="position: relative;">
             <div class="user-profile" onclick="toggleProfileMenu()">
-              <div class="avatar">AD</div>
+              <div class="avatar" style="background: transparent; border: 1px solid rgba(var(--primary-rgb), 0.3);">
+                <div class="autobot-logo-neon" style="width: 22px; height: 22px;"></div>
+              </div>
               <span>Admin</span>
               <i class="fas fa-chevron-down" id="profile-chevron"
                 style="font-size: 0.8rem; margin-left: 5px; transition: transform 0.3s;"></i>
@@ -238,7 +242,10 @@
             <!-- Profile Dropdown (The "Column") -->
             <div class="profile-dropdown" id="profile-dropdown">
               <div class="dropdown-header-info">
-                <div class="avatar large">AD</div>
+                <div class="avatar large"
+                  style="background: transparent; border: 1px solid rgba(var(--primary-rgb), 0.3);">
+                  <div class="autobot-logo-neon" style="width: 40px; height: 40px;"></div>
+                </div>
                 <div class="info-text">
                   <h4>Sentinel Admin</h4>
                   <span>Admin@senitnelX.com</span>
