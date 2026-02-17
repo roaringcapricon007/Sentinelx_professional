@@ -405,6 +405,9 @@ function switchTab(tab) {
     } else if (tab === 'profile') {
         if (pageTitle) pageTitle.innerText = 'My Profile';
         renderProfile();
+    } else if (tab === 'botprofile') {
+        if (pageTitle) pageTitle.innerText = 'PRIME_AI Profile';
+        renderBotProfile();
     }
 }
 
@@ -2061,8 +2064,26 @@ window.editProfile = editProfile;
 function addMessage(text, type) {
     const body = document.getElementById('chat-body');
     const div = document.createElement('div');
-    div.className = `message msg - ${type} `;
-    div.innerText = text;
+    div.className = `message msg-${type}`;
+
+    if (type === 'ai') {
+        const icon = document.createElement('div');
+        icon.className = 'autobot-logo-animated';
+        icon.style.width = '18px';
+        icon.style.height = '18px';
+        icon.style.marginRight = '8px';
+        icon.style.verticalAlign = 'middle';
+
+        // Container for text to align with icon
+        const content = document.createElement('span');
+        content.innerText = text;
+
+        div.appendChild(icon);
+        div.appendChild(content);
+    } else {
+        div.innerText = text;
+    }
+
     body.appendChild(div);
     body.scrollTop = body.scrollHeight;
 }
