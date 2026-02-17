@@ -16,6 +16,7 @@ const metricsRoutes = require('./routes/metrics.routes');
 // const infrastructureRoutes = require('./routes/infrastructure.routes'); // Moved below
 const aiRoutes = require('./routes/ai.routes');
 const automationRoutes = require('./routes/automation.routes');
+const maintenanceRoutes = require('./routes/maintenance.routes');
 
 
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api/infrastructure', infrastructureRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/automation', automationRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 

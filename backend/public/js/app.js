@@ -504,7 +504,7 @@ function renderHome() {
         <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
             <div class="card glass-card">
                 <div style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-robot"></i></div>
-                <h3>SentinelAI Engine</h3>
+                <h3>PRIME_AI Engine</h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>ChatGPT (GPT-4o/o1)</strong> and neural local NLP. Provides predictive root-cause analysis, autonomous security patching, and multimodal system control.</p>
             </div>
             <div class="card glass-card">
@@ -795,7 +795,7 @@ function renderAnalysis() {
                     </div>
                     <div style="margin-top: 15px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
                         Monitoring <strong>${state.infraData ? state.infraData.length : 0} active nodes</strong> in real-time. 
-                        SentinelAI is actively screening for anomalies, brute-force attempts, and unauthorized region access.
+                        PRIME_AI is actively screening for anomalies, brute-force attempts, and unauthorized region access.
                     </div>
                 </div>
             </div>
@@ -1956,6 +1956,30 @@ window.toggleNotifications = () => {
     showToast("System notifications are healthy.", "success");
 };
 window.optimizeSystem = optimizeSystem;
+
+// --- Cache Cleaner Utility ---
+async function purgeCache() {
+    const btn = document.getElementById('purge-btn');
+    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    showToast("Purging system caches...", "info");
+
+    try {
+        const res = await fetch('/api/maintenance/clear-cache', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.status === 'Success') {
+            showToast(`Clear Complete: ${data.details.diskSpaceFreed} freed.`, "success");
+        } else {
+            showToast("Failed to clear some caches.", "error");
+        }
+    } catch (e) {
+        showToast("Server unreachable for maintenance.", "error");
+    } finally {
+        if (btn) btn.innerHTML = '<i class="fas fa-broom"></i>';
+    }
+}
+window.purgeCache = purgeCache;
 
 // --- Report Generation Logic ---
 

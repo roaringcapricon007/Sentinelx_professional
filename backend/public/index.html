@@ -56,15 +56,21 @@
   <!-- ================== AI CHAT WIDGET ================== -->
   <div class="chat-widget" id="main-chat-widget" style="display: none;">
     <div class="chat-window" id="chat-window">
-      <div class="chat-header">
-        <h3>
-          <div class="status-dot"></div> SentinelAI v6.0
-        </h3>
-        <i class="fas fa-times" style="cursor:pointer; opacity:0.7" onclick="toggleChat()"></i>
+      <div class="chat-header"
+        style="display: flex; align-items: center; justify-content: space-between; background: #000; border-bottom: 2px solid #ff0000; padding: 10px 15px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg viewBox="0 0 400 400" style="width: 25px; height: 25px;">
+            <path fill="#ff0000"
+              d="M57.6,33L167,33l0,43.2l-43.2,32.4l43.2,32.4l0,43.2l-21.6,21.6l0,54l36.3,16l36.3-16l0-54l-21.6-21.6l0-43.2l43.2-32.4 l-43.2-32.4l0-43.2l109.4,0l14.4,46.1L323.8,144l0,126.3L203.4,367L83,270.3L83,144l0-64.8L57.6,33z" />
+          </svg>
+          <h3 style="margin: 0; font-size: 1rem; color: white; letter-spacing: 1px;">PRIME_AI v6.0</h3>
+        </div>
+        <i class="fas fa-times" style="cursor:pointer; color: #888;" onclick="toggleChat()"></i>
       </div>
       <div class="chat-body" id="chat-body">
         <div class="message msg-ai">
-          Greetings. I am SentinelAI v6.0. My next-gen IT infrastructure analysis engine is online. How can I assist?
+          Greetings. I am PRIME_AI v6.0. My neural matrix is optimized for infrastructure sovereignty. How can I assist,
+          Prime?
         </div>
 
       </div>
@@ -76,8 +82,18 @@
       </div>
     </div>
 
-    <div class="chat-fab" onclick="toggleChat()">
-      <i class="fas fa-robot"></i>
+    <div class="chat-fab" onclick="toggleChat()" title="PRIME_AI">
+      <svg viewBox="0 0 400 400" style="width: 40px; height: 40px;">
+        <defs>
+          <linearGradient id="autobotGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:#ff0000" />
+            <stop offset="100%" style="stop-color:#000000" />
+          </linearGradient>
+        </defs>
+        <!-- Autobot Insignia Representation -->
+        <path fill="url(#autobotGrad)"
+          d="M57.6,33L167,33l0,43.2l-43.2,32.4l43.2,32.4l0,43.2l-21.6,21.6l0,54l36.3,16l36.3-16l0-54l-21.6-21.6l0-43.2l43.2-32.4 l-43.2-32.4l0-43.2l109.4,0l14.4,46.1L323.8,144l0,126.3L203.4,367L83,270.3L83,144l0-64.8L57.6,33z M123.8,76.2L123.8,76.2l0,0 z M283,76.2L283,76.2l0,0z" />
+      </svg>
     </div>
   </div>
 
@@ -208,6 +224,9 @@
         <div class="user-actions">
           <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
             <i class="fas fa-moon"></i>
+          </button>
+          <button class="icon-btn danger-btn" onclick="purgeCache()" title="Clear System Cache" id="purge-btn">
+            <i class="fas fa-broom"></i>
           </button>
           <button class="icon-btn" onclick="toggleNotifications()">
 

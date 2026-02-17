@@ -3,12 +3,31 @@ import pickle
 import os
 import sys
 
+# Import our custom Deep Learning modules
+try:
+    from prime_brain import PrimeBrain
+    DEEP_LEARNING_AVAILABLE = True
+except ImportError:
+    DEEP_LEARNING_AVAILABLE = False
+    print("Dependencies not yet ready. Falling back to Lite NLP.")
+
 app = Flask(__name__)
 
-# Load Model
+# --- Model Loading Strategy ---
+# 1. Advanced Brain (Transformer/Deep Learning)
+# 2. Lite Brain (TF-IDF/Naive Bayes)
+
+# Advanced Brain Initialization
+brain = None
+if DEEP_LEARNING_AVAILABLE:
+    try:
+        brain = PrimeBrain()
+    except Exception as e:
+        print(f"CUDA/GPU Error: {e}")
+
+# Lite Brain Initialization
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'chatbot_model.pkl')
 VECTORIZER_PATH = os.path.join(os.path.dirname(__file__), 'tfidf_vectorizer.pkl')
-
 model = None
 vectorizer = None
 
@@ -20,11 +39,9 @@ def load_ai_model():
                 model = pickle.load(f)
             with open(VECTORIZER_PATH, 'rb') as f:
                 vectorizer = pickle.load(f)
-            print("AI Model loaded successfully.", file=sys.stderr)
+            print("Lite AI Model loaded successfully.", file=sys.stderr)
         except Exception as e:
-            print(f"Error loading model: {e}", file=sys.stderr)
-    else:
-        print("Model files not found. Please run train_model.py first.", file=sys.stderr)
+            print(f"Error: {e}", file=sys.stderr)
 
 load_ai_model()
 
@@ -36,39 +53,49 @@ def chat():
     if not user_message:
         return jsonify({'error': 'No message provided'}), 400
 
-    if not model or not vectorizer:
-        return jsonify({'response': 'System: AI Model is initializing or missing. Please checking server logs.', 'intent': 'error'})
+    # CASE A: Advanced Generative Brain (ChatGPT Style)
+    if brain:
+        try:
+            response_text = brain.generate_response(user_message)
+            return jsonify({
+                'response': response_text,
+                'intent': 'generative',
+                'engine': 'PRIME_AI-Transformer-Local'
+            })
+        except Exception as e:
+            print(f"Brain Inference Error: {e}")
 
-    # Predict Intent
-    try:
-        features = vectorizer.transform([user_message])
-        intent = model.predict(features)[0]
-        
-        # Simple Rule-Based Responses based on Intent
-        # In a real app, you might query a DB or use a more complex generation method
-        response_map = {
-            'greeting': "Hello! SentinelX System is online. How can I assist you?",
-            'status': "System Status: All servers are currently operational.",
-            'security': "Security Alert: No active threats detected at this time.",
-            'logs': "Log Analysis: You can view the full detailed logs in the Dashboard tab.",
-            'help': "I can help you check system status, security alerts, and logs.",
-            'unknown': "I'm not sure I understand. Try asking about 'status' or 'security'."
-        }
-        
-        response_text = response_map.get(intent, response_map['unknown'])
-        
-        return jsonify({
-            'response': response_text,
-            'intent': intent
-        })
+    # CASE B: Lite Brain Fallback
+    if model and vectorizer:
+        try:
+            features = vectorizer.transform([user_message])
+            intent = model.predict(features)[0]
+            
+            response_map = {
+                'greeting': "Hello! SentinelX System is online. How can I assist you?",
+                'status': "System Status: All servers are currently operational.",
+                'security': "Security Alert: No active threats detected at this time.",
+                'logs': "Log Analysis: You can view the full detailed logs in the Dashboard tab.",
+                'help': "I can help you check system status, security alerts, and logs.",
+                'unknown': "I'm not sure I understand. Try asking about 'status' or 'security'."
+            }
+            return jsonify({
+                'response': response_map.get(intent, response_map['unknown']),
+                'intent': intent,
+                'engine': 'SentinelX-Lite-NLP'
+            })
+        except Exception as e:
+            print(f"Lite Inference Error: {e}")
 
-    except Exception as e:
-        print(f"Prediction Error: {e}", file=sys.stderr)
-        return jsonify({'error': 'Internal Processing Error'}), 500
+    return jsonify({'response': 'System: AI is currently updating its neural kernels.', 'intent': 'maintenance'})
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'online', 'model_loaded': model is not None})
+    return jsonify({
+        'status': 'online', 
+        'advanced_brain': brain is not None,
+        'gpu_accelerated': 'torch' in sys.modules and hasattr(sys.modules['torch'], 'cuda') and sys.modules['torch'].cuda.is_available()
+    })
 
 @app.route('/automation/audit', methods=['POST'])
 def run_automation_audit():

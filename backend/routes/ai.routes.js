@@ -5,7 +5,7 @@ const { generateResponse } = require('../controllers/ai.controller');
 // GET /api/ai/status
 router.get('/status', (req, res) => {
     res.json({
-        model: 'SentinelX Native Intelligence',
+        model: 'PRIME_AI Native Intelligence',
         status: 'Active',
         gptEnabled: false
     });

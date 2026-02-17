@@ -13,17 +13,17 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    box-shadow: none;
-    /* Removed glow */
-
+    background: linear-gradient(135deg, #ff1a1a, #004cff);
+    /* Autobot Colors */
+    box-shadow: 0 0 20px rgba(255, 26, 26, 0.4);
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .chat-fab:hover {

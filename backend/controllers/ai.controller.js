@@ -21,7 +21,22 @@ if (fs.existsSync(modelPath)) {
 async function generateResponse(msg) {
     const lower = msg.toLowerCase();
 
-    // --- Local Logic (Trained AI) ---
+    // 1. Try Python PrimeBrain first
+    try {
+        const pyResponse = await fetch('http://127.0.0.1:5001/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg })
+        });
+        if (pyResponse.ok) {
+            const data = await pyResponse.json();
+            return data.response;
+        }
+    } catch (err) {
+        console.warn('Python AI Engine Offline, using local fallback.');
+    }
+
+    // --- Local Logic Fallback ---
     let intent = 'unknown';
 
     // Predict Intent with NLP
@@ -47,7 +62,7 @@ async function generateResponse(msg) {
         case 'logs':
             return await checkLogs();
         case 'greeting':
-            return "Hello Administrator. SentinelX v5.0 AI is online and monitoring your infrastructure.";
+            return "Greetings Administrator. I am PRIME_AI. My neural network is monitoring the matrix of your infrastructure.";
         case 'agent':
             return "To add a new node, run the 'sentinelx_agent.js' script on the target machine pointing to this server.";
         case 'maintenance':
