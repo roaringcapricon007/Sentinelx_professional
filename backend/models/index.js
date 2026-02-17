@@ -39,6 +39,19 @@ const Server = sequelize.define('Server', {
     status: { type: DataTypes.ENUM('online', 'offline', 'warning'), defaultValue: 'online' },
     load: { type: DataTypes.FLOAT, defaultValue: 0.0 },
     lastSeen: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+}, {
+    indexes: [
+        { fields: ['hostname'] },
+        { fields: ['status'] }
+    ]
 });
+
+// Add indexing to SystemMetric and LogEntry for fast time-series queries
+SystemMetric.addHook('afterInit', () => { /* Handled by sync indexes */ });
+LogEntry.addHook('afterInit', () => { /* Handled by sync indexes */ });
+
+// Re-defining with explicit indexes for volume
+SystemMetric.options.indexes = [{ fields: ['timestamp'] }];
+LogEntry.options.indexes = [{ fields: ['timestamp'] }, { fields: ['severity'] }];
 
 module.exports = { User, SystemMetric, LogEntry, Server };

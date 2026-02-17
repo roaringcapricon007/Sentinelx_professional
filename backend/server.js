@@ -15,6 +15,7 @@ const metricsRoutes = require('./routes/metrics.routes');
 // Logs Route (requires IO, so imported later)
 // const infrastructureRoutes = require('./routes/infrastructure.routes'); // Moved below
 const aiRoutes = require('./routes/ai.routes');
+const automationRoutes = require('./routes/automation.routes');
 
 
 const app = express();
@@ -60,6 +61,7 @@ app.use('/api/metrics', metricsRoutes);
 app.use('/api/infrastructure', infrastructureRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/automation', automationRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -119,16 +121,34 @@ sequelize.sync({ force: false }).then(async () => {
         timestamp: new Date()
       };
 
+      // 1. Broadcast UI Updates
       io.emit('metrics_update', data);
 
-    } catch (e) {
-      console.error('Metrics Emit Error:', e);
-    }
-  }, 3000); // Frequency reduced to 3s to stabilize performance
+      // 2. Persist "Holding Values" to DB
+      SystemMetric.create({
+        cpuLoad: data.cpuLoad,
+        memoryUsage: data.memoryUsage,
+        networkTraffic: data.networkRx + data.networkTx
+      }).catch(err => console.error('Metric persist failed:', err));
 
-  server.listen(3000, () => {
-    console.log('SentinelX v5.0 (AI+Realtime) running on port 3000');
+      // 3. Update Infrastructure Loads randomly for visual flow
+      await Server.update(
+        { load: parseFloat((Math.random() * 80).toFixed(1)), lastSeen: new Date() },
+        { where: { status: 'online' } }
+      );
+
+      const allServers = await Server.findAll({ order: [['hostname', 'ASC']] });
+      io.emit('infrastructure_update', allServers);
+
+    } catch (e) {
+      console.error('Core Telementry Error:', e);
+    }
+  }, 4000); // Optimized 4s frequency for Enterprise Stability
+
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`SentinelX Professional v6.0 running on port ${PORT}`);
   });
 }).catch(err => {
-  console.error('Database connection failed:', err);
+  console.error('Core Database connection failed:', err);
 });

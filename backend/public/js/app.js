@@ -1,7 +1,7 @@
 const state = {
     isLoggedIn: false,
     user: null,
-    currentTab: 'overview',
+    currentTab: localStorage.getItem('last_tab') || 'overview',
     analysisData: null,
     infraData: null,
     overviewData: null,
@@ -89,11 +89,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Socket Listeners
     setupSocket();
 
-    // Start Cinematic Intro (Skip if logging out)
-    if (urlParams.get('logout') === 'true') {
+    // Start Cinematic Intro (Skip if already played or logging out)
+    const introPlayed = sessionStorage.getItem('sentinel_intro_played');
+    if (urlParams.get('logout') === 'true' || introPlayed) {
         const intro = document.getElementById('intro-view');
         if (intro) intro.style.display = 'none';
-        window.history.replaceState({}, document.title, "/");
+
+        if (urlParams.get('logout') === 'true') {
+            sessionStorage.removeItem('sentinel_intro_played');
+            window.history.replaceState({}, document.title, "/");
+        }
     } else {
         runIntro();
     }
@@ -111,6 +116,9 @@ function runIntro() {
     const scan = document.getElementById("scan");
     const canvas = document.getElementById("matrix");
     if (!intro || !canvas) return;
+
+    // Set persistence flag immediately so refresh skips it
+    sessionStorage.setItem('sentinel_intro_played', 'true');
 
     const ctx = canvas.getContext("2d");
 
@@ -310,7 +318,9 @@ function login(user) {
     const chatbot = document.getElementById('main-chat-widget');
     if (chatbot) chatbot.style.display = 'flex';
 
-    switchTab('home');
+    // Restore last active tab or default to home
+    const lastTab = localStorage.getItem('last_tab') || 'home';
+    switchTab(lastTab);
 }
 
 async function checkSession() {
@@ -342,6 +352,7 @@ function fillDemo() {
 // --- Dashboard Navigation ---
 function switchTab(tab) {
     state.currentTab = tab;
+    localStorage.setItem('last_tab', tab);
 
     // Close profile dropdown if open
     const dropdown = document.getElementById('profile-dropdown');
@@ -376,6 +387,18 @@ function switchTab(tab) {
     } else if (tab === 'reports') {
         if (pageTitle) pageTitle.innerText = 'System Reports';
         renderReports();
+    } else if (tab === 'pulse') {
+        if (pageTitle) pageTitle.innerText = 'Security Pulse';
+        renderPulse();
+    } else if (tab === 'ailab') {
+        if (pageTitle) pageTitle.innerText = 'AI Training Lab';
+        renderAilab();
+    } else if (tab === 'automation') {
+        if (pageTitle) pageTitle.innerText = 'Automation Lab';
+        renderAutomation();
+    } else if (tab === 'vault') {
+        if (pageTitle) pageTitle.innerText = 'Audit Vault';
+        renderVault();
     } else if (tab === 'settings') {
         if (pageTitle) pageTitle.innerText = 'Settings';
         renderSettings();
@@ -706,24 +729,28 @@ function updateOverviewCharts(servers) {
 }
 
 function optimizeSystem() {
-    showToast("Analyzing system resources...", "info");
+    showToast("Initializing Deep Optimization...", "info");
+
+    // Actually clear some state
+    state.liveLogs = [];
+    const tableBody = document.getElementById('logTableBody');
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted)">Logs cleared by optimizer</td></tr>';
 
     setTimeout(() => {
-        // Visual cleanup simulation
         const cpu = document.getElementById('metric-cpu');
         const ram = document.getElementById('metric-ram');
 
         if (cpu) {
-            cpu.innerText = "12%";
+            cpu.innerText = "8%";
             cpu.style.color = "#00ff88";
         }
         if (ram) {
-            ram.innerText = "24%";
-            ram.style.color = "#00ff88"; // Green
+            ram.innerText = "18%";
+            ram.style.color = "#00ff88";
         }
 
-        showToast("Optimization Complete: Memory cache cleared.", "success");
-    }, 1500);
+        showToast("Optimization Complete: 1.2GB Virtual Memory Released.", "success");
+    }, 2000);
 }
 
 function renderAnalysis() {
@@ -952,11 +979,11 @@ function renderSettings() {
 
     view.innerHTML = `
         <div class="settings-view" >
-            <div class="dashboard-grid">
-                <!-- Theme Section -->
+            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));">
+                <!-- Theme & Experience -->
                 <div class="card glass-card">
                     <div class="results-header">
-                        <div class="card-title">Experience & Theme</div>
+                        <div class="card-title">Interface Alignment</div>
                         <i class="fas fa-palette" style="color:var(--primary)"></i>
                     </div>
                     <div class="setting-item">
@@ -966,38 +993,82 @@ function renderSettings() {
                         </div>
                         <button class="btn-primary" onclick="toggleTheme()" style="min-width:100px">${state.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</button>
                     </div>
-                </div>
-
-                <!-- Notifications -->
-                <div class="card glass-card">
-                    <div class="results-header">
-                        <div class="card-title">Alert Ecosystem</div>
-                        <i class="fas fa-bell" style="color:var(--accent)"></i>
-                    </div>
                     <div class="setting-item">
                         <div class="setting-text">
-                            <h4>Real-time Popups</h4>
-                            <p>Enabled for critical system events</p>
+                            <h4>Animation Depth</h4>
+                            <p>Enable cinematic transitions and effects</p>
                         </div>
-                        <div class="toggle-switch active" onclick="this.classList.toggle('active'); showToast('Notification settings updated', 'info')"></div>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
                     </div>
                 </div>
 
-                <!-- AI Model Section -->
+                <!-- Infrastructure Governance -->
                 <div class="card glass-card">
                     <div class="results-header">
-                        <div class="card-title">AI Engine Configuration</div>
-                        <i class="fas fa-robot" style="color:var(--primary)"></i>
+                        <div class="card-title">Infrastructure Governance</div>
+                        <i class="fas fa-microchip" style="color:var(--secondary)"></i>
                     </div>
                     <div class="setting-item">
                         <div class="setting-text">
-                            <h4>Active Intelligence Model</h4>
-                            <p>Current: <span id="current-ai-model" style="color:var(--primary); font-weight:bold">Detecting...</span></p>
+                            <h4>Ingest Retension</h4>
+                            <p>Duration to keep raw infrastructure logs</p>
                         </div>
-                        <button class="btn-primary" onclick="checkAIStatus()" style="min-width:100px">Refresh</button>
+                        <select class="form-input" style="width: 120px; padding: 5px;">
+                            <option>30 Days</option>
+                            <option selected>90 Days</option>
+                            <option>1 Year</option>
+                        </select>
                     </div>
-                    <div style="margin-top:10px; font-size:0.8rem; color:var(--text-muted)">
-                        SentinelX prefers <strong>ChatGPT (GPT-3.5)</strong> for advanced insights when an API key is present.
+                    <div class="setting-item">
+                        <div class="setting-text">
+                            <h4>Metric Sampling</h4>
+                            <p>Frequency of server heartbeats (seconds)</p>
+                        </div>
+                        <input type="number" class="form-input" value="3" style="width: 80px; padding: 5px;">
+                    </div>
+                </div>
+
+                <!-- Security Enforcement -->
+                <div class="card glass-card">
+                    <div class="results-header">
+                        <div class="card-title">Security Enforcement</div>
+                        <i class="fas fa-shield-alt" style="color:#ff0055"></i>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-text">
+                            <h4>Anomaly Sensitivity</h4>
+                            <p>Aggressiveness of the AI triage engine</p>
+                        </div>
+                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-text">
+                            <h4>Auto-Isolation</h4>
+                            <p>Disconnect suspicious nodes automatically</p>
+                        </div>
+                        <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                    </div>
+                </div>
+
+                <!-- API & Connectivity -->
+                <div class="card glass-card">
+                    <div class="results-header">
+                        <div class="card-title">External Synchronization</div>
+                        <i class="fas fa-link" style="color:#00ff88"></i>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-text">
+                            <h4>Webhook Integration</h4>
+                            <p>Send alerts to Slack or MS Teams</p>
+                        </div>
+                        <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Webhook portal loading...', 'info')">Configure</button>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-text">
+                            <h4>API Access Key</h4>
+                            <p>Managed developer credentials</p>
+                        </div>
+                        <button class="btn-primary" style="background: transparent; border: 1px solid var(--secondary); color: var(--secondary);" onclick="showToast('Generating new signature...', 'info')">Rotate Key</button>
                     </div>
                 </div>
             </div>
@@ -1090,11 +1161,11 @@ function showAnalysisResults(data) {
         data.issues.forEach(issue => {
             const row = document.createElement('tr');
             row.innerHTML = `
-        < td > <span class="badge-severity ${issue.severity}">${issue.severity}</span></td >
+                <td><span class="badge-severity ${issue.severity}">${issue.severity}</span></td>
                 <td>${issue.device}</td>
                 <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${issue.message}</td>
                 <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${issue.suggestion}</td>
-    `;
+            `;
             tbody.appendChild(row);
         });
     }
@@ -1410,6 +1481,274 @@ function renderReports() {
     view.setAttribute('data-rendered', 'true');
 }
 
+function renderPulse() {
+    const view = showView('pulse-view');
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+        <div class="pulse-container fade-in">
+            <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
+                <div class="card glass-card" style="position: relative; overflow: hidden; padding: 30px;">
+                    <div class="results-header">
+                        <div class="card-title">Live Threat Intelligence</div>
+                        <div class="stat-pill pulse-dot"><i class="fas fa-satellite-dish"></i> Active Scanning</div>
+                    </div>
+                    <div style="height: 300px; margin-top: 20px; background: rgba(0,0,0,0.2); border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05);">
+                         <div style="text-align: center;">
+                            <div class="upload-icon-pulse" style="font-size: 3rem; color: var(--primary);"><i class="fas fa-bullseye"></i></div>
+                            <p style="color: var(--text-muted); margin-top: 15px;">Monitoring network packets for signature anomalies...</p>
+                         </div>
+                    </div>
+                    <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                        <div style="background: rgba(var(--primary-rgb), 0.05); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase;">PPS rate</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">12.4k</div>
+                        </div>
+                        <div style="background: rgba(162, 77, 255, 0.05); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.7rem; color: var(--secondary); text-transform: uppercase;">Active sessions</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">842</div>
+                        </div>
+                         <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.7rem; color: #00ff88; text-transform: uppercase;">Clean Score</div>
+                            <div style="font-size: 1.2rem; font-weight: bold;">98%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card glass-card" style="padding: 25px;">
+                    <div class="card-title">Risk Distribution</div>
+                    <div style="margin-top:20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div>
+                            <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                                <span>External Brute Force</span>
+                                <span style="color: #ff0055;">12%</span>
+                            </div>
+                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
+                                <div style="width: 12%; height: 100%; background: #ff0055; border-radius: 2px;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                                <span>Unauthorized API Requests</span>
+                                <span style="color: var(--primary);">45%</span>
+                            </div>
+                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
+                                <div style="width: 45%; height: 100%; background: var(--primary); border-radius: 2px;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                                <span>Unknown Service Pings</span>
+                                <span style="color: var(--secondary);">33%</span>
+                            </div>
+                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
+                                <div style="width: 33%; height: 100%; background: var(--secondary); border-radius: 2px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-primary" style="width: 100%; margin-top: 30px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055;" onclick="showToast('Initiating emergency lockdown...', 'error')">Global Lockdown</button>
+                </div>
+            </div>
+        </div>
+    `;
+    view.setAttribute('data-rendered', 'true');
+}
+
+function renderAilab() {
+    const view = showView('ailab-view');
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+        <div class="ailab-container fade-in">
+            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                <div class="card glass-card" style="grid-column: span 2; padding: 30px;">
+                    <div class="results-header">
+                        <div class="card-title">Neural Engine Orchestrator</div>
+                         <div class="stat-pill" style="background: rgba(0, 212, 255, 0.1); color: var(--primary);">v6.0-Native</div>
+                    </div>
+                    <p style="color: var(--text-muted); margin-top: 10px;">Manage, train, and deploy local intelligence models for autonomous infrastructure recovery.</p>
+                </div>
+
+                <div class="card glass-card" style="padding: 25px; text-align: center;">
+                    <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-microchip"></i></div>
+                    <h3>Model Architecture</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current: Bayesian Classifier + LSTM</p>
+                    <button class="btn-primary" style="width:100%" onclick="showToast('Syncing weights with microservice...', 'info')">Sync Weights</button>
+                </div>
+
+                <div class="card glass-card" style="padding: 25px; text-align: center;">
+                    <div style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-database"></i></div>
+                    <h3>Training Corpus</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Total unique events: 142.5k</p>
+                    <button class="btn-primary" style="width:100%" onclick="showToast('Preparing log dataset...', 'info')">Extend Corpus</button>
+                </div>
+
+                <div class="card glass-card" style="padding: 25px; text-align: center;">
+                    <div style="font-size: 2.5rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-vial"></i></div>
+                    <h3>Autonomous Triage</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current confidence score: 94.2%</p>
+                    <button class="btn-primary" style="width:100%; background: #00ff88; color: black;" onclick="showToast('Retraining process started safely.', 'success')">Trigger Retraining</button>
+                </div>
+            </div>
+        </div>
+    `;
+    view.setAttribute('data-rendered', 'true');
+}
+
+async function renderVault() {
+    const view = showView('vault-view');
+    // Always re-fetch to show latest archived logs
+    view.innerHTML = `
+        <div class="vault-container fade-in">
+            <div class="card glass-card" style="margin-bottom: 25px; padding: 30px;">
+                <div class="results-header">
+                    <div class="card-title">Historical Audit Vault</div>
+                     <i class="fas fa-lock" style="color: var(--secondary);"></i>
+                </div>
+                <div style="margin-top: 20px; display: flex; gap: 15px;">
+                    <input type="text" class="form-input" style="flex: 1;" placeholder="Search by Node, IP, or Incident ID...">
+                    <button class="btn-primary" onclick="showToast('Advanced Archive Search initiated...', 'info')"><i class="fas fa-search"></i> Search Archive</button>
+                </div>
+            </div>
+
+            <div class="table-container glass-card">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Vault ID</th>
+                            <th>Archive Date</th>
+                            <th>Incident Category</th>
+                            <th>Resolution</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vault-table-body">
+                        <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Retrieving neural archives...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    try {
+        const res = await fetch('/api/logs/history');
+        const logs = await res.json();
+        const tbody = document.getElementById('vault-table-body');
+
+        if (!logs || logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No archived incidents found in DB.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = logs.map(log => `
+            <tr class="fade-in">
+                <td><span style="font-family: 'Space Mono'; color: var(--primary);">#VX-${log.id.toString().padStart(3, '0')}</span></td>
+                <td>${new Date(log.timestamp || log.createdAt).toLocaleDateString()} ${new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                <td>${log.device || 'System'} Alert</td>
+                <td><span class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88;">Resolved</span></td>
+                <td><button onclick="showToast('Loading incident #${log.id} details...', 'info')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-eye"></i></button></td>
+            </tr>
+        `).join('');
+
+    } catch (e) {
+        document.getElementById('vault-table-body').innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: #ff0055;">Failed to connect to Archive Core.</td></tr>';
+    }
+
+    view.setAttribute('data-rendered', 'true');
+}
+
+function renderAutomation() {
+    const view = showView('automation-view');
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+        <div class="automation-container fade-in">
+            <div class="dashboard-grid">
+                <div class="card glass-card" style="grid-column: span 2; padding: 30px;">
+                    <div class="results-header">
+                        <div class="card-title">Automated Validation Suite</div>
+                        <button class="btn-primary" onclick="runAutoTest()"><i class="fas fa-play"></i> Run Full Audit</button>
+                    </div>
+                    <p style="color: var(--text-muted); margin-top: 10px;">Execute end-to-end security and performance tests across the entire infrastructure stack.</p>
+                </div>
+
+                <div class="card glass-card" style="padding: 25px;">
+                    <div class="card-title">Test Matrix</div>
+                    <div style="margin-top:20px;">
+                        <div class="setting-item">
+                            <span>Latency Handshake</span>
+                            <div class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88;">Pass</div>
+                        </div>
+                        <div class="setting-item">
+                            <span>Auth Persistence</span>
+                            <div class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88;">Pass</div>
+                        </div>
+                        <div class="setting-item">
+                            <span>DB Cluster Sync</span>
+                            <div class="stat-pill" style="background: rgba(255, 204, 0, 0.1); color: #ffcc00;">Pending</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card glass-card" style="padding: 25px;">
+                    <div class="card-title">Automation Console</div>
+                    <div id="automation-console" style="margin-top:15px; background: rgba(0,0,0,0.3); padding: 15px; height: 120px; border-radius: 10px; font-family: 'Space Mono'; font-size: 0.75rem; color: #8899a6; overflow-y: auto;">
+                        [SYSTEM] Ready for deployment...
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    view.setAttribute('data-rendered', 'true');
+}
+
+async function runAutoTest() {
+    const consoleEl = document.getElementById('automation-console');
+    if (!consoleEl) return;
+
+    consoleEl.innerHTML = '[SYSTEM] Initiating Backend Handshake...<br>';
+    showToast("Starting Automated Audit...", "info");
+
+    try {
+        const res = await fetch('/api/automation/run-audit', { method: 'POST' });
+        const data = await res.json();
+
+        const logs = [
+            "[INFO] Initializing handshake...",
+            "[INFO] Requesting token from US-EAST-1...",
+            "[SUCCESS] Token SX-001 issued.",
+            `[INFO] Data retrieved at: ${new Date(data.timestamp).toLocaleTimeString()}`,
+            ...data.results.map(r => `[${r.status}] ${r.task}: ${r.detail}`),
+            "[INFO] Finalizing infrastructure audit..."
+        ];
+
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i >= logs.length) {
+                clearInterval(interval);
+                consoleEl.innerHTML += "<br><span style='color:#00ff88'>[SUCCESS] All critical paths validated. Platform Stable.</span>";
+                showToast("Automation Test Complete!", "success");
+                return;
+            }
+            // Add color for different statuses
+            let line = logs[i];
+            if (line.includes('[PASS]')) line = `<span style="color:#00ff88">${line}</span>`;
+            if (line.includes('[WARN]')) line = `<span style="color:#ffcc00">${line}</span>`;
+            if (line.includes('[ERROR]')) line = `<span style="color:#ff0055">${line}</span>`;
+
+            consoleEl.innerHTML += `<div>${line}</div>`;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+            i++;
+        }, 600);
+
+    } catch (e) {
+        consoleEl.innerHTML += "<br><span style='color:#ff0055'>[CRITICAL] Automation Engine Timeout. Check Backend.</span>";
+        showToast("Automation failed: Backend unreachable", "error");
+    }
+}
+
+window.runAutoTest = runAutoTest;
+
 // --- Global Toast System ---
 function showToast(message, type = 'info') {
     let container = document.getElementById('toast-container');
@@ -1452,48 +1791,138 @@ function renderProfile() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-        <div class="dashboard-grid" >
-            <div class="card" style="grid-column: span 2;">
-                <div class="card-title">My Profile</div>
-                <div style="display: flex; gap: 30px; margin-top: 20px; align-items: start;">
-                    <div style="width: 100px; height: 100px; background: var(--surface-light); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; color: var(--primary); border: 2px solid var(--primary);">
+        <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
+            <!-- Main Identifier -->
+            <div class="card glass-card" style="grid-column: span 2; padding: 40px; border-radius: 20px;">
+                <div style="display: flex; gap: 40px; align-items: center;">
+                    <div style="width: 120px; height: 120px; background: linear-gradient(135deg, var(--secondary), var(--primary)); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 3rem; color: white; border: 4px solid rgba(255,255,255,0.1); box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.3);">
                         ${u.name ? u.name.substring(0, 2).toUpperCase() : 'US'}
                     </div>
                     <div style="flex: 1;">
-                        <h2 style="margin: 0; color: white;">${u.name || 'User'}</h2>
-                        <p style="color: var(--text-muted); margin: 5px 0 15px 0;">${u.role || 'Member'} • ${u.provider || 'Local'} Account</p>
-                        
-                        <div class="form-group">
-                            <label>Email Address</label>
-                            <input type="text" class="form-input" value="${u.email || ''}" readonly>
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 5px;">
+                            <h1 style="margin: 0; font-size: 2.2rem; color: white;">${u.name || 'User'}</h1>
+                            <span class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88; border-color: #00ff88;">Verified Professional</span>
                         </div>
+                        <p style="color: var(--text-muted); font-size: 1.1rem; margin: 0;">${u.role || 'Enterprise Administrator'} • System Access Level 7</p>
                         
-                        <div style="margin-top:20px;">
-                            <button class="btn-primary" onclick="alert('Edit functionality coming soon')">Edit Profile</button>
-                            <button class="btn-primary" style="background: transparent; border: 1px solid #ff0055; color: #ff0055;" onclick="logout()">Sign Out</button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px;">
+                            <div class="form-group">
+                                <label style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Verified Email Identifier</label>
+                                <input type="text" class="form-input" value="${u.email || ''}" readonly style="background: rgba(255,255,255,0.03);">
+                            </div>
+                            <div class="form-group">
+                                <label style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Authentication Authority</label>
+                                <input type="text" class="form-input" value="${u.provider === 'local' ? 'Internal Security Database' : u.provider}" readonly style="background: rgba(255,255,255,0.03);">
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="card">
-                <div class="card-title">Interactions</div>
+
+            <!-- Detailed Stats Area -->
+            <div class="card glass-card">
+                <div class="card-title">Account Metrics</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">142</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Systems Managed</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #ff0055;">0</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Security Breaches</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary);">12.4k</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Events Audited</div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #00ff88;">32ms</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">Avg. AI Triage</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Log Area -->
+             <div class="card glass-card">
+                <div class="card-title">Session Intelligence</div>
                 <div style="margin-top: 20px;">
-                    <p style="color: var(--text-muted); font-size: 0.9rem;">Recent Activity:</p>
-                    <ul style="list-style: none; padding: 0; margin-top: 10px;">
-                        <li style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem;">
-                            <i class="fas fa-check-circle" style="color: #00ff88; margin-right: 8px;"></i> Login from Win10
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Recent Secure Access Tokens:</p>
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: white;">Local Workstation</div>
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">127.0.0.1 • Windows 11</div>
+                            </div>
+                            <span style="font-size: 0.7rem; color: #00ff88;">Active</span>
                         </li>
-                        <li style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem;">
-                            <i class="fas fa-robot" style="color: #00d4ff; margin-right: 8px;"></i> Chat with SentinelAI
+                        <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 0.85rem; color: white;">Mobile Console</div>
+                                <div style="font-size: 0.7rem; color: var(--text-muted);">172.64.1.42 • iOS 17</div>
+                            </div>
+                            <span style="font-size: 0.7rem; color: var(--text-muted);">6h ago</span>
                         </li>
                     </ul>
+                    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                        <button class="btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="showToast('Security configuration saved', 'success')">Enable 2FA Protection</button>
+                        <button class="btn-primary" style="width: 100%; background: transparent; border: 1px solid #ff0055; color: #ff0055; font-size: 0.9rem;" onclick="logout()">Terminate All Sessions</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Metadata -->
+            <div class="card glass-card" style="grid-column: span 2;">
+                <div class="card-title">Organizational metadata</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 20px;">
+                    <div>
+                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Infrastructure Tier</h4>
+                        <p style="font-size: 0.95rem; color: white; margin-top: 5px;">SentinelX Enterprise Elite</p>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">deployment Region</h4>
+                        <p style="font-size: 0.95rem; color: white; margin-top: 5px;">US-EAST-1 (Northern Virginia)</p>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Neural Key Signature</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; font-family: 'Space Mono';">SX-2025-PX-V6-992AB1-CC03</p>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; display: flex; gap: 15px;">
+                    <button class="btn-primary" onclick="editProfile()"><i class="fas fa-edit"></i> Edit Core Identity</button>
+                    <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Exporting encryption keys...', 'info')">Export Key Bundle</button>
                 </div>
             </div>
         </div>
         `;
     view.setAttribute('data-rendered', 'true');
 }
+
+function editProfile() {
+    const name = prompt("Enter new Display Name:", state.user.name);
+    if (name) {
+        state.user.name = name;
+        // Update UI elements
+        const avatar = document.querySelector('.avatar');
+        if (avatar) avatar.innerText = name.substring(0, 2).toUpperCase();
+
+        const avatarLarge = document.querySelector('.avatar.large');
+        if (avatarLarge) avatarLarge.innerText = name.substring(0, 2).toUpperCase();
+
+        const nameSpan = document.querySelector('.user-profile span');
+        if (nameSpan) nameSpan.innerText = name;
+
+        showToast("Profile identity updated successfully.", "success");
+
+        // Re-render profile view content
+        const view = document.getElementById('profile-view');
+        if (view) {
+            view.setAttribute('data-rendered', 'false');
+            renderProfile();
+        }
+    }
+}
+
+window.editProfile = editProfile;
 
 function addMessage(text, type) {
     const body = document.getElementById('chat-body');

@@ -2,36 +2,30 @@ const { Sequelize } = require('sequelize');
 const path = require('path');
 require('dotenv').config();
 
-let sequelize;
+// Optimized High-Performance SQLite (Priority Production Engine)
+const sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: path.join(__dirname, 'database.sqlite'),
+    logging: false,
+    define: {
+        timestamps: true,
+        freezeTableName: true
+    },
+    retry: {
+        max: 3
+    },
+    // WAL Mode for high concurrency and performance
+    dialectOptions: {
+        mode: 65536, // SQLITE_OPEN_FULLMUTEX
+        timeout: 5000
+    }
+});
 
-if (process.env.DB_HOST && process.env.DB_DIALECT === 'postgres') {
-    // PostgreSQL Connection
-    sequelize = new Sequelize(
-        process.env.DB_NAME,
-        process.env.DB_USER,
-        process.env.DB_PASS,
-        {
-            host: process.env.DB_HOST,
-            port: process.env.DB_PORT || 5432,
-            dialect: 'postgres',
-            logging: false,
-            pool: {
-                max: 5,
-                min: 0,
-                acquire: 30000,
-                idle: 10000
-            }
-        }
-    );
-    console.log('Database: Using PostgreSQL');
-} else {
-    // Fallback to SQLite
-    sequelize = new Sequelize({
-        dialect: 'sqlite',
-        storage: path.join(__dirname, 'database.sqlite'),
-        logging: false
-    });
-    console.log('Database: Using SQLite (Fallback)');
-}
+// Enable WAL mode for high performance
+sequelize.query('PRAGMA journal_mode=WAL;');
+sequelize.query('PRAGMA synchronous=NORMAL;');
+sequelize.query('PRAGMA cache_size=-10000;'); // Increase cache to 10MB
+
+console.log('Database Status: High-Performance SQLite (WAL-Core) Active');
 
 module.exports = sequelize;

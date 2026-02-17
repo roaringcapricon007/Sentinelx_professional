@@ -4,59 +4,64 @@ const fs = require('fs');
 
 const upload = multer({ dest: 'uploads/' });
 
-function detectDevice(line) {
-  const l = line.toLowerCase();
-  if (l.includes('sshd') || l.includes('kernel')) return 'Linux Server';
-  if (l.includes('system32') || l.includes('windows')) return 'Windows Server';
-  if (l.includes('docker') || l.includes('container')) return 'Docker Container';
-  if (l.includes('nginx') || l.includes('apache')) return 'Web Server';
-  return 'Unknown Device';
-}
+// POST /api/analysis/upload
+// Proxies to Python NLP Engine for Professional Analysis
+router.post('/upload', upload.single('log'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-function detectSeverity(line) {
-  const l = line.toLowerCase();
-  if (l.includes('error')) return 'ERROR';
-  if (l.includes('warn')) return 'WARN';
-  return 'INFO';
-}
+    console.log('Forwarding logs to Python Intelligence Engine...');
 
-function suggestFix(line) {
-  const l = line.toLowerCase();
-  if (l.includes('login failed'))
-    return 'Check authentication policy or reset credentials';
-  if (l.includes('disk'))
-    return 'Clear disk space or extend volume';
-  if (l.includes('memory') || l.includes('oom'))
-    return 'Increase RAM or optimize application';
-  if (l.includes('timeout'))
-    return 'Check network connectivity or service health';
-  return 'No immediate action required';
-}
+    // Use native FormData and fetch (Node 20+)
+    const formData = new FormData();
+    const fileContent = fs.readFileSync(req.file.path);
+    const blob = new Blob([fileContent], { type: req.file.mimetype });
+    formData.append('log', blob, req.file.originalname);
 
-router.post('/upload', upload.single('log'), (req, res) => {
-  const content = fs.readFileSync(req.file.path, 'utf8');
-  const lines = content.split('\n');
+    const response = await fetch('http://127.0.0.1:5001/analysis/upload', {
+      method: 'POST',
+      body: formData
+    });
 
-  const issues = [];
-  const summary = { INFO: 0, WARN: 0, ERROR: 0 };
+    const data = await response.json();
 
-  lines.forEach(line => {
-    if (!line.trim()) return;
+    // Clean up temp file
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
-    const severity = detectSeverity(line);
-    summary[severity]++;
+    res.json(data);
 
-    if (severity !== 'INFO') {
-      issues.push({
-        device: detectDevice(line),
-        severity,
-        message: line,
-        suggestion: suggestFix(line)
+  } catch (err) {
+    console.error('Python Analysis Proxy Error:', err.message);
+
+    // Fallback to basic Node analysis if Python is down
+    if (req.file && fs.existsSync(req.file.path)) {
+      const content = fs.readFileSync(req.file.path, 'utf8');
+      const lines = content.split('\n');
+      const issues = [];
+      const summary = { INFO: 0, WARN: 0, ERROR: 0 };
+
+      lines.forEach(line => {
+        if (!line.trim()) return;
+        const l = line.toLowerCase();
+        let sev = "INFO";
+        if (l.includes('error')) sev = "ERROR";
+        else if (l.includes('warn')) sev = "WARN";
+        summary[sev]++;
+
+        if (sev !== 'INFO') {
+          issues.push({
+            device: 'Node-Fallback',
+            severity: sev,
+            message: line,
+            suggestion: 'Fix manually or wait for Python Engine restore.'
+          });
+        }
       });
+      fs.unlinkSync(req.file.path);
+      return res.json({ summary, issues, engine: 'Node-Local-Fallback' });
     }
-  });
-
-  res.json({ summary, issues });
+    res.status(500).json({ error: 'Log analysis failed' });
+  }
 });
 
 module.exports = router;
