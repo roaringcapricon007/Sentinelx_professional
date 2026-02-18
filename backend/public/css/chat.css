@@ -195,26 +195,9 @@
     -webkit-mask-position: center;
     mask-position: center;
     animation: rainbow-shift 3s linear infinite;
+
     min-width: 20px;
     min-height: 20px;
-}
-
-.autobot-logo-neon {
-    display: inline-block;
-    background: linear-gradient(135deg, #00f2ff, #004cff);
-    /* Neon Cyan to Blue */
-    background-size: 200% 200%;
-    /* High-Quality Minimalist Autobot Path */
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 2L10 15v10l5 2v40l-5 5v15l40 11 40-11V72l-5-5V27l5-2V15L50 2zM35 18h30l5 5v5l-5 5H35l-5-5v-5l5-5zM22 35h10l2 2v30l-2 2H22l-2-2V37l2-2zm46 0h10l2 2v30l-2 2H68l-2-2V37l2-2zM35 75h30l5 5v5l-5 5H35l-5-5v-5l5-5z'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 2L10 15v10l5 2v40l-5 5v15l40 11 40-11V72l-5-5V27l5-2V15L50 2zM35 18h30l5 5v5l-5 5H35l-5-5v-5l5-5zM22 35h10l2 2v30l-2 2H22l-2-2V37l2-2zm46 0h10l2 2v30l-2 2H68l-2-2V37l2-2zM35 75h30l5 5v5l-5 5H35l-5-5v-5l5-5z'/%3E%3C/svg%3E");
-    -webkit-mask-size: contain;
-    mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    mask-position: center;
-    animation: neon-pulse 3s ease-in-out infinite;
-    filter: drop-shadow(0 0 8px rgba(0, 242, 255, 0.8));
 }
 
 @keyframes neon-pulse {

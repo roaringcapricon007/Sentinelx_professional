@@ -68,6 +68,37 @@ const TESTING_TOOLS = {
                 ]
             };
         }
+    },
+    'neural_audit': {
+        name: 'Neural Infrastructure Audit',
+        description: 'Deep-level validation via the PRIME_AI Python Core.',
+        execute: async () => {
+            try {
+                const response = await fetch('http://127.0.0.1:5001/automation/audit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                return {
+                    tool: 'PRIME_AI Neural Validator',
+                    overall: data.overallStatus.toUpperCase(),
+                    results: data.results.map(r => ({
+                        step: r.task,
+                        status: r.status,
+                        detail: r.detail,
+                        timestamp: new Date().toISOString()
+                    }))
+                };
+            } catch (err) {
+                return {
+                    tool: 'Neural Validator (Fallback)',
+                    overall: 'DEGRADED',
+                    results: [
+                        { step: 'Service Handshake', status: 'FAIL', detail: 'Python Core unreachable.', timestamp: new Date().toISOString() }
+                    ]
+                };
+            }
+        }
     }
 };
 

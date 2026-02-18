@@ -2,6 +2,7 @@ const router = require('express').Router();
 const fs = require('fs');
 const path = require('path');
 const sequelize = require('../database');
+const { LogEntry } = require('../models');
 
 // POST /api/automation/clear-cache
 router.post('/clear-cache', async (req, res) => {
@@ -26,12 +27,31 @@ router.post('/clear-cache', async (req, res) => {
             });
         }
 
-        // 2. Optimized DB Maintenance (Vacuum & Re-index)
-        await sequelize.query('VACUUM;');
-        console.log('Database Vacuumed.');
+        // 2. Clear Python Cache
+        const pyCacheDir = path.join(__dirname, '../python_service/__pycache__');
+        if (fs.existsSync(pyCacheDir)) {
+            const pyFiles = fs.readdirSync(pyCacheDir);
+            pyFiles.forEach(file => {
+                const filePath = path.join(pyCacheDir, file);
+                const stats = fs.statSync(filePath);
+                bytesFreed += stats.size;
+                fs.rmSync(filePath, { recursive: true, force: true });
+                filesCleared++;
+            });
+        }
 
-        // 3. Clear Node Modules Cache (if any)
-        // (Typically just temp files for this project)
+        // 3. Optimized DB Maintenance (Vacuum & Re-index)
+        // Also clear old log entries (older than 7 days) if needed
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const deletedLogs = await LogEntry.destroy({
+            where: {
+                createdAt: { [require('sequelize').Op.lt]: sevenDaysAgo }
+            }
+        });
+
+        await sequelize.query('VACUUM;');
+        console.log(`Database Vacuumed. Deleted ${deletedLogs} old logs.`);
 
         res.json({
             status: 'Success',

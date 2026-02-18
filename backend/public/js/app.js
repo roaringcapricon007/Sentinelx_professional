@@ -6,9 +6,12 @@ const state = {
     infraData: null,
     overviewData: null,
     notifications: [],
-    theme: localStorage.getItem('theme') || 'dark'
+    notificationsEnabled: localStorage.getItem('notificationsEnabled') !== 'false',
+    theme: localStorage.getItem('theme') || 'dark', // 'dark' or 'light'
+    liveLogs: []
 };
 
+// Apply theme on load
 document.documentElement.setAttribute('data-theme', state.theme);
 
 
@@ -511,7 +514,7 @@ function renderHome() {
         <h2 style="margin-bottom: 20px; font-weight: 500;">Intelligence Core</h2>
         <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
             <div class="card glass-card" onclick="switchTab('botprofile')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <div style="margin-bottom: 20px;" onclick="switchTab('botprofile')"><div class="autobot-logo-neon" style="width: 40px; height: 40px;"></div></div>
+                <div style="margin-bottom: 20px;" onclick="switchTab('botprofile')"><img src="img/autobot_logo.png" style="width: 40px; height: 40px; object-fit: contain;"></div>
                 <h3><span class="font-transformers">PRIME_AI</span> Engine</h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>Advanced Transformers</strong> and neural local NLP. Provides predictive root-cause analysis and autonomous system control.</p>
             </div>
@@ -1044,10 +1047,10 @@ function renderSettings() {
                     </div>
                     <div class="setting-item">
                         <div class="setting-text">
-                            <h4>Anomaly Sensitivity</h4>
-                            <p>Aggressiveness of the AI triage engine</p>
+                            <h4>System Notifications</h4>
+                            <p>Display real-time security alerts</p>
                         </div>
-                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+                        <div class="toggle-switch ${state.notificationsEnabled ? 'active' : ''}" onclick="toggleSystemNotifications(this)"></div>
                     </div>
                     <div class="setting-item">
                         <div class="setting-text">
@@ -1483,28 +1486,65 @@ function renderReports() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-        <div class="reports-view" >
+        <div class="reports-view fade-in">
+            <div style="margin-bottom: 30px;">
+                <h1 style="font-size: 2rem; margin-bottom: 5px;">Enterprise Reporting</h1>
+                <p style="color: var(--text-muted);">Generate and export infrastructure intelligence archives.</p>
+            </div>
             <div class="reports-grid">
                 <div class="report-card glass-card">
                     <i class="fas fa-file-pdf"></i>
                     <h3>Weekly Availability</h3>
                     <p>Uptime metrics across all regions.</p>
                     <div class="stat-pill" style="margin-bottom:15px">99.98% Uptime Score</div>
-                    <button class="btn-primary" onclick="openDownloadModal('availability')">Download Report</button>
+                    <div class="report-download-group">
+                        <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
+                            Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+                        </button>
+                        <div class="report-dropdown-menu">
+                            <a href="javascript:void(0)" onclick="generateReportDirect('availability', 'excel')">
+                                <i class="fas fa-file-excel" style="color: #217346;"></i> Excel Spreadsheet
+                            </a>
+                            <a href="javascript:void(0)" onclick="generateReportDirect('availability', 'pdf')">
+                                <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Document
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="report-card glass-card">
                     <i class="fas fa-shield-virus"></i>
                     <h3>Security Audit</h3>
                     <p>Breakdown of blocked threats.</p>
                     <div class="stat-pill" style="margin-bottom:15px; border-color:#ff0055; color:#ff0055">12 High Risks Found</div>
-                    <button class="btn-primary" onclick="openDownloadModal('security')">Download Report</button>
+                    <div class="report-download-group">
+                        <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
+                            Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+                        </button>
+                        <div class="report-dropdown-menu">
+                            <a href="javascript:void(0)" onclick="generateReportDirect('security', 'pdf')">
+                                <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Optimized
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <div class="report-card glass-card">
                     <i class="fas fa-bolt"></i>
                     <h3>Performance Trends</h3>
                     <p>Load averages and bottlenecks.</p>
                     <div class="stat-pill" style="margin-bottom:15px; border-color:#00ff88; color:#00ff88">Optimal Performance</div>
-                    <button class="btn-primary" onclick="openDownloadModal('performance')">Download Report</button>
+                    <div class="report-download-group">
+                        <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
+                            Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+                        </button>
+                        <div class="report-dropdown-menu">
+                            <a href="javascript:void(0)" onclick="generateReportDirect('performance', 'excel')">
+                                <i class="fas fa-file-excel" style="color: #217346;"></i> Excel Spreadsheet
+                            </a>
+                            <a href="javascript:void(0)" onclick="generateReportDirect('performance', 'pdf')">
+                                <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Document
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -2095,12 +2135,13 @@ function addMessage(text, type) {
     div.className = `message msg-${type}`;
 
     if (type === 'ai') {
-        const icon = document.createElement('div');
-        icon.className = 'autobot-logo-neon';
-        icon.style.width = '18px';
-        icon.style.height = '18px';
+        const icon = document.createElement('img');
+        icon.src = 'img/autobot_logo.png';
+        icon.style.width = '20px';
+        icon.style.height = '20px';
         icon.style.marginRight = '8px';
         icon.style.verticalAlign = 'middle';
+        icon.style.objectFit = 'contain';
 
         // Container for text to align with icon
         const content = document.createElement('span');
@@ -2136,8 +2177,20 @@ window.toggleChat = toggleChat;
 window.sendChat = sendChat;
 window.handleChatKey = handleChatKey;
 window.toggleNotifications = () => {
+    if (!state.notificationsEnabled) {
+        showToast("Notifications are currently disabled in settings.", "warning");
+        return;
+    }
     showToast("System notifications are healthy.", "success");
 };
+
+function toggleSystemNotifications(el) {
+    el.classList.toggle('active');
+    state.notificationsEnabled = el.classList.contains('active');
+    localStorage.setItem('notificationsEnabled', state.notificationsEnabled);
+    showToast(`Notifications ${state.notificationsEnabled ? 'Enabled' : 'Disabled'}`, "info");
+}
+window.toggleSystemNotifications = toggleSystemNotifications;
 window.optimizeSystem = optimizeSystem;
 
 // --- Cache Cleaner Utility ---
@@ -2212,37 +2265,60 @@ window.closeDownloadModal = closeDownloadModal;
 window.openDownloadModal = openDownloadModal;
 window.generateReport = generateReport; // Expose to window
 
+async function generateReportDirect(type, format) {
+    currentReportType = type;
+    await generateReport(format);
+}
+window.generateReportDirect = generateReportDirect;
+
 async function generateReport(format) {
-    closeDownloadModal();
     showToast(`Generating ${format.toUpperCase()} report...`, 'info');
 
     try {
+        // Capture type before potential modal close reset
+        const targetType = currentReportType;
         let data, title;
-        const timestamp = new Date().toLocaleString();
 
-        if (currentReportType === 'availability') {
+        if (targetType === 'availability') {
             const res = await fetch('/api/infrastructure');
             data = await res.json();
             title = "Weekly Availability Report";
-        } else if (currentReportType === 'security') {
-            const res = await fetch('/api/logs/history'); // New endpoint
+        } else if (targetType === 'security') {
+            const res = await fetch('/api/logs/history');
             data = await res.json();
             title = "Security Audit Logs";
-        } else if (currentReportType === 'performance') {
+        } else if (targetType === 'performance') {
             const res = await fetch('/api/metrics/history');
             data = await res.json();
             title = "Performance Trends";
         }
 
-        if (format === 'pdf') {
-            generatePDF(title, data, currentReportType);
-        } else {
-            generateExcel(title, data, currentReportType);
+        // --- Data Validation ---
+        if (!data || (Array.isArray(data) && data.length === 0)) {
+            showToast(`No historical data found for ${title}.`, "warning");
+            closeDownloadModal();
+            return;
         }
 
+        if (data.error) {
+            showToast(`Server Error: ${data.error}`, "error");
+            closeDownloadModal();
+            return;
+        }
+
+        if (format === 'pdf') {
+            generatePDF(title, data, targetType);
+        } else {
+            generateExcel(title, data, targetType);
+        }
+
+        // Close modal after successful generation trigger
+        closeDownloadModal();
+
     } catch (e) {
-        console.error(e);
-        showToast("Failed to generate report", "error");
+        console.error("Report Generation Error:", e);
+        showToast("System failed to generate report.", "error");
+        closeDownloadModal();
     }
 }
 
@@ -2335,7 +2411,7 @@ function renderBotProfile() {
         <div class="bot-profile-container fade-in">
             <div class="profile-header glass-card" style="padding: 60px 40px; text-align: center; margin-bottom: 30px; border-radius: 24px; position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
-                <div class="autobot-logo-neon" style="width: 120px; height: 120px; margin: 0 auto 20px auto;"></div>
+                <img src="img/autobot_logo.png" style="width: 120px; height: 120px; margin: 0 auto 20px auto; display: block; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.3));">
                 <h1 style="font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><span class="font-transformers">PRIME_AI</span> v6.5</h1>
                 <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Tier-1 Sovereign Intelligence Core. Optimized for infrastructure integrity and autonomous threat elimination.</p>
                 <div style="margin-top: 25px;">

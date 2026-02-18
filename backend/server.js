@@ -12,8 +12,6 @@ const ingestRoutes = require('./routes/ingest.routes');
 const analysisRoutes = require('./routes/analysis.routes');
 const authRoutes = require('./routes/auth.routes');
 const metricsRoutes = require('./routes/metrics.routes');
-// Logs Route (requires IO, so imported later)
-// const infrastructureRoutes = require('./routes/infrastructure.routes'); // Moved below
 const aiRoutes = require('./routes/ai.routes');
 const automationRoutes = require('./routes/automation.routes');
 const maintenanceRoutes = require('./routes/maintenance.routes');

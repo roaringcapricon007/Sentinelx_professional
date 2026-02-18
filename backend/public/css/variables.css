@@ -3,6 +3,7 @@
     --primary: #00f2ff;
     --primary-rgb: 0, 242, 255;
     --secondary: #a24dff;
+    --secondary-rgb: 162, 77, 255;
     --accent: #ff1f71;
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
@@ -16,6 +17,8 @@
 [data-theme="dark"] {
     --bg-dark: #04060b;
     --bg-panel: rgba(17, 22, 37, 0.7);
+    --bg-main-gradient: radial-gradient(circle at center, #0f1624 0%, #05070a 100%);
+    --topbar-bg: rgba(17, 22, 37, 0.5);
     --text-main: #ffffff;
     --text-muted: #abbad1;
     --glass-bg: rgba(255, 255, 255, 0.03);
@@ -27,6 +30,8 @@
 [data-theme="light"] {
     --bg-dark: #f0f4f8;
     --bg-panel: rgba(255, 255, 255, 0.7);
+    --bg-main-gradient: radial-gradient(circle at center, #ffffff 0%, #e2e8f0 100%);
+    --topbar-bg: rgba(255, 255, 255, 0.5);
     --text-main: #1a1f2e;
     --text-muted: #5e6d82;
     --glass-bg: rgba(255, 255, 255, 0.5);
@@ -105,4 +110,10 @@ body::after {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary);
 }
-.font-transformers, .transformers-font { font-family: 'Orbitron', sans-serif; letter-spacing: 2px; text-transform: uppercase; }
+
+.font-transformers,
+.transformers-font {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
