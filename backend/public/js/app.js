@@ -157,8 +157,12 @@ function runIntro() {
             clearInterval(matrixInterval);
             intro.classList.add('slide-up');
             // Remove display none after transition ends
+            // Reveal Login/Dashboard after intro
             setTimeout(() => {
                 intro.style.display = 'none';
+                if (!state.isLoggedIn) {
+                    if (views.login) views.login.style.display = 'flex';
+                }
             }, 800);
         }
     });
@@ -490,38 +494,38 @@ function setupSocket() {
 
 function renderHome() {
     const view = showView('home-view');
-    if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
         <div class="home-container fade-in">
-        <div class="hero-section glass-card" style="padding: 60px 40px; margin-bottom: 30px; text-align: center; border-radius: 24px; background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://www.transparenttextures.com/patterns/carbon-fibre.png'); position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
-            <h1 style="font-size: 2.8rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to <span class="font-transformers">PRIME_AI</span> Professional v6.5</h1>
-            <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 800px; margin: 0 auto;">The complete Enterprise IT Management solution for real-time infrastructure visibility, security intelligence, and autonomous testing.</p>
-            <div style="margin-top: 25px; display: flex; gap: 15px; justify-content: center;">
-                <button class="btn-primary" onclick="switchTab('overview')" style="padding: 12px 24px;">View Live Metrics</button>
-                <button class="btn-secondary" onclick="switchTab('automation')" style="padding: 12px 24px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 10px;">Automation Lab</button>
+        <div style="margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <h1 style="font-size: 2rem; margin-bottom: 5px;">Operational Dashboard</h1>
+                <p style="color: var(--text-muted);">SentinelX Infrastructure & AI Control Center</p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" onclick="switchTab('overview')" style="padding: 8px 20px; font-size: 0.85rem;">Live Metrics</button>
+                <button class="btn-secondary" onclick="switchTab('automation')" style="padding: 8px 20px; font-size: 0.85rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 8px;">Automation</button>
             </div>
         </div>
 
         <h2 style="margin-bottom: 20px; font-weight: 500;">Intelligence Core</h2>
         <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-            <div class="card glass-card">
-                <div style="margin-bottom: 20px;"><div class="autobot-logo-neon" style="width: 40px; height: 40px;"></div></div>
+            <div class="card glass-card" onclick="switchTab('botprofile')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                <div style="margin-bottom: 20px;" onclick="switchTab('botprofile')"><div class="autobot-logo-neon" style="width: 40px; height: 40px;"></div></div>
                 <h3><span class="font-transformers">PRIME_AI</span> Engine</h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>Advanced Transformers</strong> and neural local NLP. Provides predictive root-cause analysis and autonomous system control.</p>
             </div>
-            <div class="card glass-card">
+            <div class="card glass-card" onclick="switchTab('automation')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                 <div style="font-size: 2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-flask"></i></div>
                 <h3>Automation Suite</h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Execute specialized, automated tests including API Stress, Security Audits, and UI Performance without human intervention.</p>
             </div>
-            <div class="card glass-card">
+            <div class="card glass-card" onclick="switchTab('pulse')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                 <div style="font-size: 2rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
                 <h3>Security Pulse</h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Real-time global threat tracking and diagnostic simulations. Keep your infrastructure ahead of emerging anomalies.</p>
             </div>
-            <div class="card glass-card">
+            <div class="card glass-card" onclick="switchTab('vault')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                 <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-lock"></i></div>
                 <h3>Audit Vault</h3>
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Immutable historical archive for all security incidents and performance logs. Searchable and verifiable at enterprise scale.</p>
@@ -1073,6 +1077,30 @@ function renderSettings() {
                             <p>Managed developer credentials</p>
                         </div>
                         <button class="btn-primary" style="background: transparent; border: 1px solid var(--secondary); color: var(--secondary);" onclick="showToast('Generating new signature...', 'info')">Rotate Key</button>
+                    </div>
+                </div>
+
+                <!-- System Maintenance -->
+                <div class="card glass-card">
+                    <div class="results-header">
+                        <div class="card-title">System Maintenance</div>
+                        <i class="fas fa-tools" style="color:#ffcc00"></i>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-text">
+                            <h4>Cache Purge</h4>
+                            <p>Clears temporary uploads and optimizes database</p>
+                        </div>
+                        <button id="purge-btn" class="btn-primary" style="background: rgba(255, 204, 0, 0.1); border: 1px solid #ffcc00; color: #ffcc00; min-width: 120px;" onclick="purgeCache()">
+                            <i class="fas fa-broom"></i> Purge Cache
+                        </button>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-text">
+                            <h4>Diagnostics</h4>
+                            <p>Run full system integrity check</p>
+                        </div>
+                        <button class="btn-primary" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted);" onclick="showToast('Integrity scan queued...', 'info')">Run Scan</button>
                     </div>
                 </div>
             </div>

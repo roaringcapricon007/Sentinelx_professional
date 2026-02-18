@@ -13,9 +13,10 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: #000;
-    /* Autobot Colors - Updated to Black for Neon Effect */
-    box-shadow: 0 0 20px rgba(255, 26, 26, 0.4);
+    /* Carbon Fiber Black Background */
+    background: radial-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.9)), url('https://www.transparenttextures.com/patterns/carbon-fibre.png');
+    background-size: cover;
+    box-shadow: 0 0 25px rgba(0, 242, 255, 0.3);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -23,11 +24,13 @@
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     color: white;
     font-size: 1.8rem;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(0, 242, 255, 0.2);
 }
 
 .chat-fab:hover {
-    transform: scale(1.1) rotate(10deg);
+    transform: scale(1.1);
+    box-shadow: 0 0 35px rgba(0, 242, 255, 0.5);
+    border-color: rgba(0, 242, 255, 0.5);
 }
 
 .chat-window {
@@ -198,18 +201,34 @@
 
 .autobot-logo-neon {
     display: inline-block;
-    background: linear-gradient(90deg, #00f2ff, #004cff, #00f2ff);
-    background-size: 200% 100%;
-    -webkit-mask-image: url('../img/autobot_logo.png');
-    mask-image: url('../img/autobot_logo.png');
+    background: linear-gradient(135deg, #00f2ff, #004cff);
+    /* Neon Cyan to Blue */
+    background-size: 200% 200%;
+    /* High-Quality Minimalist Autobot Path */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 2L10 15v10l5 2v40l-5 5v15l40 11 40-11V72l-5-5V27l5-2V15L50 2zM35 18h30l5 5v5l-5 5H35l-5-5v-5l5-5zM22 35h10l2 2v30l-2 2H22l-2-2V37l2-2zm46 0h10l2 2v30l-2 2H68l-2-2V37l2-2zM35 75h30l5 5v5l-5 5H35l-5-5v-5l5-5z'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 2L10 15v10l5 2v40l-5 5v15l40 11 40-11V72l-5-5V27l5-2V15L50 2zM35 18h30l5 5v5l-5 5H35l-5-5v-5l5-5zM22 35h10l2 2v30l-2 2H22l-2-2V37l2-2zm46 0h10l2 2v30l-2 2H68l-2-2V37l2-2zM35 75h30l5 5v5l-5 5H35l-5-5v-5l5-5z'/%3E%3C/svg%3E");
     -webkit-mask-size: contain;
     mask-size: contain;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
-    animation: neon-shift 2s linear infinite;
-    filter: drop-shadow(0 0 5px rgba(0, 242, 255, 0.6));
+    animation: neon-pulse 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px rgba(0, 242, 255, 0.8));
+}
+
+@keyframes neon-pulse {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 5px rgba(0, 242, 255, 0.6));
+        opacity: 0.9;
+    }
+
+    50% {
+        filter: drop-shadow(0 0 15px rgba(0, 242, 255, 1));
+        opacity: 1;
+    }
 }
 
 @keyframes rainbow-shift {

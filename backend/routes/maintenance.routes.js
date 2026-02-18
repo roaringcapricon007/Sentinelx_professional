@@ -38,7 +38,9 @@ router.post('/clear-cache', async (req, res) => {
             message: 'All system caches purged successfully.',
             details: {
                 filesRemoved: filesCleared,
-                diskSpaceFreed: (bytesFreed / 1024).toFixed(2) + ' KB',
+                diskSpaceFreed: bytesFreed > 1024 * 1024
+                    ? (bytesFreed / (1024 * 1024)).toFixed(2) + ' MB'
+                    : (bytesFreed / 1024).toFixed(2) + ' KB',
                 dbOptimized: true
             }
         });
