@@ -19,10 +19,14 @@ router.post('/clear-cache', async (req, res) => {
             files.forEach(file => {
                 if (file !== '.gitkeep') {
                     const filePath = path.join(uploadDir, file);
-                    const stats = fs.statSync(filePath);
-                    bytesFreed += stats.size;
-                    fs.unlinkSync(filePath);
-                    filesCleared++;
+                    try {
+                        const stats = fs.statSync(filePath);
+                        bytesFreed += stats.size;
+                        fs.rmSync(filePath, { recursive: true, force: true });
+                        filesCleared++;
+                    } catch (e) {
+                        console.error(`Failed to delete ${file}:`, e.message);
+                    }
                 }
             });
         }
@@ -33,10 +37,14 @@ router.post('/clear-cache', async (req, res) => {
             const pyFiles = fs.readdirSync(pyCacheDir);
             pyFiles.forEach(file => {
                 const filePath = path.join(pyCacheDir, file);
-                const stats = fs.statSync(filePath);
-                bytesFreed += stats.size;
-                fs.rmSync(filePath, { recursive: true, force: true });
-                filesCleared++;
+                try {
+                    const stats = fs.statSync(filePath);
+                    bytesFreed += stats.size;
+                    fs.rmSync(filePath, { recursive: true, force: true });
+                    filesCleared++;
+                } catch (e) {
+                    console.error(`Failed to delete ${file} from pycache:`, e.message);
+                }
             });
         }
 

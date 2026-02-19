@@ -2102,27 +2102,44 @@ function renderProfile() {
     view.setAttribute('data-rendered', 'true');
 }
 
-function editProfile() {
+async function editProfile() {
     const name = prompt("Enter new Display Name:", state.user.name);
-    if (name) {
-        state.user.name = name;
-        // Update UI elements
-        const avatar = document.querySelector('.avatar');
-        if (avatar) avatar.innerText = name.substring(0, 2).toUpperCase();
+    if (name && name !== state.user.name) {
+        try {
+            const res = await fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
 
-        const avatarLarge = document.querySelector('.avatar.large');
-        if (avatarLarge) avatarLarge.innerText = name.substring(0, 2).toUpperCase();
+            if (res.ok) {
+                const data = await res.json();
+                state.user.name = data.user.name; // Sync state
 
-        const nameSpan = document.querySelector('.user-profile span');
-        if (nameSpan) nameSpan.innerText = name;
+                // Update UI elements
+                const avatar = document.querySelector('.avatar');
+                if (avatar) avatar.innerText = name.substring(0, 2).toUpperCase();
 
-        showToast("Profile identity updated successfully.", "success");
+                const avatarLarge = document.querySelector('.avatar.large');
+                if (avatarLarge) avatarLarge.innerText = name.substring(0, 2).toUpperCase();
 
-        // Re-render profile view content
-        const view = document.getElementById('profile-view');
-        if (view) {
-            view.setAttribute('data-rendered', 'false');
-            renderProfile();
+                const nameSpan = document.querySelector('.user-profile span');
+                if (nameSpan) nameSpan.innerText = name;
+
+                showToast("Profile identity updated successfully.", "success");
+
+                // Re-render profile view content
+                const view = document.getElementById('profile-view');
+                if (view) {
+                    view.setAttribute('data-rendered', 'false');
+                    renderProfile();
+                }
+            } else {
+                showToast("Failed to update profile", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("Connection error during update", "error");
         }
     }
 }

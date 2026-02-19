@@ -12,16 +12,27 @@ router.post('/upload', upload.single('log'), async (req, res) => {
 
     console.log('Forwarding logs to Python Intelligence Engine...');
 
-    // Use native FormData and fetch (Node 20+)
+    // Use native FormData and fetch (Node 18+)
     const formData = new FormData();
     const fileContent = fs.readFileSync(req.file.path);
     const blob = new Blob([fileContent], { type: req.file.mimetype });
     formData.append('log', blob, req.file.originalname);
 
+    // 10s Timeout for Python Service
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch('http://127.0.0.1:5001/analysis/upload', {
       method: 'POST',
-      body: formData
+      body: formData,
+      signal: controller.signal
     });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`Python Service returned ${response.status}: ${response.statusText}`);
+    }
 
     const data = await response.json();
 

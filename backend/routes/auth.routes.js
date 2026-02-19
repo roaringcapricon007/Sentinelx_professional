@@ -199,6 +199,35 @@ router.post('/login', async (req, res) => {
 });
 
 
+// PUT /api/auth/profile
+router.put('/profile', async (req, res) => {
+    try {
+        const { name, email } = req.body;
+        const userId = req.session.user ? req.session.user.id : (req.user ? req.user.id : null);
+
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+        const user = await User.findByPk(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        if (name) user.name = name;
+        if (email) user.email = email; // Note: In real app, verify email uniqueness
+
+        await user.save();
+
+        // Update Session
+        if (req.session.user) {
+            req.session.user.name = user.name;
+            req.session.user.email = user.email;
+        }
+
+        res.json({ message: 'Profile updated', user });
+    } catch (err) {
+        console.error("Profile Update Error:", err);
+        res.status(500).json({ error: 'Failed to update profile' });
+    }
+});
+
 // GET /api/auth/logout
 router.get('/logout', (req, res) => {
     req.session.destroy(() => {
