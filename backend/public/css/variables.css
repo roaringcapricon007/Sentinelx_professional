@@ -27,17 +27,7 @@
 }
 
 /* --- Light Mode --- */
-[data-theme="light"] {
-    --bg-dark: #f0f4f8;
-    --bg-panel: rgba(255, 255, 255, 0.7);
-    --bg-main-gradient: radial-gradient(circle at center, #ffffff 0%, #e2e8f0 100%);
-    --topbar-bg: rgba(255, 255, 255, 0.5);
-    --text-main: #1a1f2e;
-    --text-muted: #5e6d82;
-    --glass-bg: rgba(255, 255, 255, 0.5);
-    --glass-border: rgba(0, 0, 0, 0.05);
-    --aura-opacity: 0.10;
-}
+
 
 * {
     box-sizing: border-box;
@@ -116,4 +106,42 @@ body::after {
     font-family: 'Orbitron', sans-serif;
     letter-spacing: 2px;
     text-transform: uppercase;
+}
+
+@keyframes gradientLoop {
+    0% {
+        background-position: 0% 50%
+    }
+
+    50% {
+        background-position: 100% 50%
+    }
+
+    100% {
+        background-position: 0% 50%
+    }
+}
+
+/* --- LIGHT MODE OVERRIDES (FINAL) --- */
+html[data-theme="light"],
+body[data-theme="light"],
+[data-theme="light"] {
+    --bg-dark: #f0f2f5 !important;
+    --bg-panel: #ffffff !important;
+    --bg-main-gradient: radial-gradient(circle at center, #ffffff 0%, #e8ecf2 100%) !important;
+    --topbar-bg: rgba(255, 255, 255, 0.9) !important;
+
+    --text-main: #1a1a1a !important;
+    --text-muted: #555555 !important;
+
+    --glass-bg: rgba(0, 0, 0, 0.03) !important;
+    --glass-border: rgba(0, 0, 0, 0.08) !important;
+
+    --primary: #0066cc !important;
+    --primary-rgb: 0, 102, 204 !important;
+    --primary-glow: rgba(0, 102, 204, 0.3) !important;
+
+    --secondary: #6c757d !important;
+    --accent: #dc3545 !important;
+    --aura-opacity: 0.08 !important;
 }

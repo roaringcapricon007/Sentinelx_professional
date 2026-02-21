@@ -142,19 +142,47 @@ def analyze_logs():
         summary[sev] += 1
         
         if sev != "INFO":
-            # Device Detection
-            device = "Unknown Node"
-            if "sshd" in l or "kernel" in l: device = "Linux Backend"
-            elif "system32" in l or "windows" in l: device = "Windows Node"
-            elif "docker" in l or "container" in l: device = "Docker Cluster"
-            elif "nginx" in l or "apache" in l: device = "Web Gateway"
+            # Device Detection (Enhanced)
+            device = "Unknown Interface"
+            if "sshd" in l or "kernel" in l or "boot" in l: device = "Linux Kernel"
+            elif "system32" in l or "windows" in l or "update" in l: device = "Windows Server"
+            elif "docker" in l or "container" in l or "k8s" in l: device = "Container Cluster"
+            elif "nginx" in l or "apache" in l or "http" in l: device = "Web Gateway"
+            elif "db" in l or "sql" in l or "mongo" in l or "query" in l: device = "Database Core"
+            elif "firewall" in l or "packet" in l or "denied" in l: device = "Security Firewall"
+            elif "auth" in l or "login" in l or "session" in l: device = "Identity Provider"
+            elif "network" in l or "connection" in l or "latency" in l: device = "Network Backbone"
             
-            # Suggestion Logic
-            suggestion = "Monitor and audit periodically."
-            if "login failed" in l: suggestion = "Check authentication policy or reset credentials."
-            elif "disk" in l: suggestion = "Clear disk space or extend volume."
-            elif "memory" in l or "oom" in l: suggestion = "Increase RAM or optimize application."
-            elif "timeout" in l: suggestion = "Check network connectivity or service health."
+            # AI Suggestion Logic (Simulated Neural Inference)
+            suggestion = "AI Analysis: Routine pattern detected. Continue monitoring."
+            
+            # Security / Auth
+            if "login failed" in l or "auth" in l: 
+                suggestion = "AI Action: Enforce 2FA and lock account for 15m. Review IP reputation."
+            elif "denied" in l or "blocked" in l:
+                suggestion = "AI Action: Update firewall rules to drop traffic from this subnet."
+            
+            # Performance / Resources
+            elif "disk" in l or "space" in l: 
+                suggestion = "AI Action: Provision ephemeral storage or run cleanup script #42."
+            elif "memory" in l or "oom" in l or "heap" in l: 
+                suggestion = "AI Action: Scale vertical resources (RAM) or investigate memory leak in worker."
+            elif "cpu" in l or "load" in l:
+                suggestion = "AI Action: Throttling detected. Auto-scale group expansion recommended."
+                
+            # Network / Connectivity
+            elif "timeout" in l or "unreachable" in l: 
+                suggestion = "AI Action: Trace route to endpoint. Verify load balancer health checks."
+            elif "ssl" in l or "cert" in l:
+                suggestion = "AI Action: Renew certificates immediately to prevent outages."
+                
+            # Database
+            elif "query" in l or "sql" in l:
+                suggestion = "AI Action: Index optimization required. Query execution time exceeds SLA."
+                
+            # General Errors
+            elif "exception" in l or "stack" in l:
+                suggestion = "AI Action: Rollback recent deployment or patch module. Stack trace captured."
             
             issues.append({
                 "device": device,
@@ -167,6 +195,42 @@ def analyze_logs():
         "summary": summary,
         "issues": issues,
         "engine": "Python-NLP-v6"
+    })
+
+@app.route('/security/pulse', methods=['GET'])
+def security_pulse():
+    import random
+    pps = round(random.uniform(10.5, 18.2), 1)
+    sessions = random.randint(850, 1240)
+    risk_score = random.randint(1, 100)
+    
+    return jsonify({
+        "status": "active",
+        "pps": pps,
+        "sessions": sessions,
+        "risk_score": risk_score,
+        "threat_level": "LOW" if risk_score < 50 else "MODERATE" if risk_score < 80 else "CRITICAL"
+    })
+
+@app.route('/ai/train', methods=['POST'])
+def ai_train():
+    import time
+    time.sleep(2) # Simulate processing
+    return jsonify({
+        "status": "success",
+        "accuracy": 98.4,
+        "loss": 0.02,
+        "epoch": 150
+    })
+
+@app.route('/ai/sync', methods=['POST'])
+def ai_sync():
+    import time
+    time.sleep(1) # Simulate sync
+    return jsonify({
+        "status": "synced",
+        "weights_version": "v6.5.2-alpha",
+        "nodes_updated": 142
     })
 
 if __name__ == '__main__':

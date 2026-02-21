@@ -1,44 +1,45 @@
 const router = require('express').Router();
+// Native fetch is available in Node 18+
 
-const { generateResponse } = require('../controllers/ai.controller');
+// Proxy to Python Service
+const PYTHON_URL = 'http://127.0.0.1:5001';
 
-// GET /api/ai/status
-router.get('/status', (req, res) => {
-    res.json({
-        model: 'PRIME_AI Native Intelligence',
-        status: 'Active',
-        gptEnabled: false
-    });
-});
-
-// POST /api/ai/chat
-router.post('/chat', async (req, res) => {
+router.get('/pulse', async (req, res) => {
     try {
-        const { message, engine } = req.body;
-        if (!message) return res.status(400).json({ error: 'Message required' });
-
-        const reply = await generateResponse(message, engine || 'auto');
-        res.json({ reply });
-    } catch (err) {
-        console.error('AI Error:', err);
-        res.status(500).json({ error: 'AI processing failed' });
+        const response = await fetch(`${PYTHON_URL}/security/pulse`);
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        console.error("Pulse Error:", e);
+        // Fallback simulation if Python is down
+        res.json({
+            status: "active (fallback)",
+            pps: 12.5,
+            sessions: 900,
+            risk_score: 10,
+            threat_level: "LOW"
+        });
     }
 });
 
-// POST /api/ai/train
 router.post('/train', async (req, res) => {
-    const { exec } = require('child_process');
-    const path = require('path');
+    try {
+        const response = await fetch(`${PYTHON_URL}/ai/train`, { method: 'POST' });
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: "AI Service Unreachable" });
+    }
+});
 
-    const scriptPath = path.join(__dirname, '../train_ai.js');
-
-    exec(`node "${scriptPath}"`, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Train Error: ${error}`);
-            return res.status(500).json({ error: 'Training failed' });
-        }
-        res.json({ message: 'AI Model Retrained Successfully', details: stdout });
-    });
+router.post('/sync', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_URL}/ai/sync`, { method: 'POST' });
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: "AI Service Unreachable" });
+    }
 });
 
 module.exports = router;

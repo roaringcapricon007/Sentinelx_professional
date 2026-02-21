@@ -11,8 +11,14 @@ const state = {
     liveLogs: []
 };
 
+let currentReportType = null;
+
 // Apply theme on load
 document.documentElement.setAttribute('data-theme', state.theme);
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.querySelector('[onclick="toggleTheme()"] i');
+    if (btn) btn.className = state.theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+});
 
 
 
@@ -120,8 +126,19 @@ function runIntro() {
     const canvas = document.getElementById("matrix");
     if (!intro || !canvas) return;
 
-    // Set persistence flag immediately so refresh skips it
+    // --- CINEMATIC INTRO LOGIC ---
+
+    // Check persistence flag
+    const introPlayed = sessionStorage.getItem('sentinel_intro_played');
+    if (introPlayed === 'true') {
+        intro.style.display = 'none';
+        if (!state.isLoggedIn && views.login) views.login.style.display = 'flex';
+        return;
+    }
+
+    // Set flag for next time
     sessionStorage.setItem('sentinel_intro_played', 'true');
+    intro.style.display = 'flex'; // Ensure visible for animation
 
     const ctx = canvas.getContext("2d");
 
@@ -499,64 +516,64 @@ function renderHome() {
     const view = showView('home-view');
 
     view.innerHTML = `
-        <div class="home-container fade-in">
-        <div style="margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
-            <div>
-                <h1 style="font-size: 2rem; margin-bottom: 5px;">Operational Dashboard</h1>
-                <p style="color: var(--text-muted);">SentinelX Infrastructure & AI Control Center</p>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-primary" onclick="switchTab('overview')" style="padding: 8px 20px; font-size: 0.85rem;">Live Metrics</button>
-                <button class="btn-secondary" onclick="switchTab('automation')" style="padding: 8px 20px; font-size: 0.85rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 8px;">Automation</button>
-            </div>
+    <div class="home-container fade-in">
+    <div style="margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <div style="width: 100%; margin-bottom: 25px;">
+            <h1 style="font-size: 3.5rem; margin-bottom: 10px; background: linear-gradient(270deg, #00f2ff, #a24dff, #ff1f71, #00f2ff); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientLoop 6s ease infinite;"><span class="font-transformers">SentinelX_Dashboard</span></h1>
+            <p style="color: var(--text-muted); font-size: 1.2rem; letter-spacing: 1px;">SentinelX Infrastructure & AI Control Center</p>
         </div>
-
-        <h2 style="margin-bottom: 20px; font-weight: 500;">Intelligence Core</h2>
-        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-            <div class="card glass-card" onclick="switchTab('botprofile')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <div style="margin-bottom: 20px;" onclick="switchTab('botprofile')"><img src="img/autobot_logo.png" style="width: 40px; height: 40px; object-fit: contain;"></div>
-                <h3><span class="font-transformers">PRIME_AI</span> Engine</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>Advanced Transformers</strong> and neural local NLP. Provides predictive root-cause analysis and autonomous system control.</p>
-            </div>
-            <div class="card glass-card" onclick="switchTab('automation')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <div style="font-size: 2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-flask"></i></div>
-                <h3>Automation Suite</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Execute specialized, automated tests including API Stress, Security Audits, and UI Performance without human intervention.</p>
-            </div>
-            <div class="card glass-card" onclick="switchTab('pulse')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <div style="font-size: 2rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
-                <h3>Security Pulse</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Real-time global threat tracking and diagnostic simulations. Keep your infrastructure ahead of emerging anomalies.</p>
-            </div>
-            <div class="card glass-card" onclick="switchTab('vault')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-lock"></i></div>
-                <h3>Audit Vault</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Immutable historical archive for all security incidents and performance logs. Searchable and verifiable at enterprise scale.</p>
-            </div>
+        <div style="display: flex; gap: 15px;">
+            <button class="btn-primary" onclick="switchTab('overview')" style="padding: 8px 20px; font-size: 0.85rem;">Live Metrics</button>
+            <button class="btn-secondary" onclick="switchTab('automation')" style="padding: 8px 20px; font-size: 0.85rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 8px;">Automation</button>
         </div>
+    </div>
 
-        <div class="card glass-card" style="margin-top: 30px; padding: 40px; text-align: center; border-radius: 24px; background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.05) 0%, transparent 100%);">
-            <h2 style="margin-bottom: 20px;">Autonomous Operations at Scale</h2>
-            <p style="color: var(--text-muted); line-height: 1.8; max-width: 900px; margin: 0 auto 30px;">SentinelX v6.5 leverages a next-gen hybrid neural architecture. Our new Automation Lab allows administrators to run specialized diagnostic tools to verify infrastructure integrity autonomously.</p>
-            <div style="display: flex; gap: 40px; justify-content: center; align-items: center;">
-                <div style="text-align: center;">
-                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">99.99%</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Global Uptime SLA</div>
-                </div>
-                <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
-                <div style="text-align: center;">
-                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--secondary);">0.1ms</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Neural Ingest Latency</div>
-                </div>
-                <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
-                <div style="text-align: center;">
-                    <div style="font-size: 2.5rem; font-weight: 700; color: #00ff88;">6.5v</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Ready for Production</div>
-                </div>
+    <h2 style="margin-bottom: 20px; font-weight: 500;" class="font-transformers">Intelligence Core</h2>
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        <div class="card glass-card" onclick="switchTab('botprofile')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <div style="margin-bottom: 20px;" onclick="switchTab('botprofile')"><img src="img/autobot_logo.png" style="width: 40px; height: 40px; object-fit: contain;"></div>
+            <h3 class="font-transformers"><span class="font-transformers">PRIME_AI</span> Engine</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>Advanced Transformers</strong> and neural local NLP. Provides predictive root-cause analysis and autonomous system control.</p>
+        </div>
+        <div class="card glass-card" onclick="switchTab('automation')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <div style="font-size: 2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-flask"></i></div>
+            <h3 class="font-transformers">Automation Suite</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Execute specialized, automated tests including API Stress, Security Audits, and UI Performance without human intervention.</p>
+        </div>
+        <div class="card glass-card" onclick="switchTab('pulse')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <div style="font-size: 2rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
+            <h3 class="font-transformers">Security Pulse</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Real-time global threat tracking and diagnostic simulations. Keep your infrastructure ahead of emerging anomalies.</p>
+        </div>
+        <div class="card glass-card" onclick="switchTab('vault')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-lock"></i></div>
+            <h3 class="font-transformers">Audit Vault</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Immutable historical archive for all security incidents and performance logs. Searchable and verifiable at enterprise scale.</p>
+        </div>
+    </div>
+
+    <div class="card glass-card" style="margin-top: 30px; padding: 40px; text-align: center; border-radius: 24px; background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.05) 0%, transparent 100%);">
+        <h2 style="margin-bottom: 20px;" class="font-transformers">Autonomous Operations at Scale</h2>
+        <p style="color: var(--text-muted); line-height: 1.8; max-width: 900px; margin: 0 auto 30px;">SentinelX v6.5 leverages a next-gen hybrid neural architecture. Our new Automation Lab allows administrators to run specialized diagnostic tools to verify infrastructure integrity autonomously.</p>
+        <div style="display: flex; gap: 40px; justify-content: center; align-items: center;">
+            <div style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">99.99%</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Global Uptime SLA</div>
+            </div>
+            <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
+            <div style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: 700; color: var(--secondary);">0.1ms</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Neural Ingest Latency</div>
+            </div>
+            <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
+            <div style="text-align: center;">
+                <div style="font-size: 2.5rem; font-weight: 700; color: #00ff88;">6.5v</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Ready for Production</div>
             </div>
         </div>
     </div>
-    `;
+</div>
+`;
 }
 
 function updateDashboardMetrics(data) {
@@ -616,47 +633,47 @@ function renderOverview() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-        <div class="dashboard-grid" >
-            <div class="card">
-                <div class="card-title">CPU Load <i class="fas fa-microchip"></i></div>
-                <div class="card-value" id="metric-cpu">...</div>
-                <div class="card-trend"><i class="fas fa-server"></i> System Load</div>
-                <div class="glow-primary"></div>
-            </div>
-            <div class="card">
-                <div class="card-title">Memory Usage <i class="fas fa-memory"></i></div>
-                <div class="card-value" id="metric-ram" style="color:var(--accent)">...</div>
-                <div class="card-trend">Active RAM</div>
-            </div>
-            <div class="card">
-                <div class="card-title">Network Traffic <i class="fas fa-network-wired"></i></div>
-                <div class="card-value" id="metric-net">...</div>
-                <div class="card-trend">Bandwidth (KB/s)</div>
-            </div>
-            <div class="card">
-                <div class="card-title">Security Events <i class="fas fa-shield-alt"></i></div>
-                <div class="card-value">--</div>
-                <div class="card-trend">Scanned Today</div>
-            </div>
-            <div class="card" style="grid-column: span 1; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(0, 212, 255, 0.1); border:1px dashed var(--primary)" onclick="optimizeSystem()">
-                <div style="text-align:center">
-                    <i class="fas fa-rocket" style="font-size:1.5rem; color:var(--primary); margin-bottom:10px"></i>
-                     <div class="card-title" style="margin:0">Optimize System</div>
-                     <span style="font-size:0.75rem; color:var(--text-muted)">Free up resources</span>
-                </div>
+    <div class="dashboard-grid" >
+        <div class="card">
+            <div class="card-title font-transformers">CPU Load <i class="fas fa-microchip"></i></div>
+            <div class="card-value" id="metric-cpu">...</div>
+            <div class="card-trend"><i class="fas fa-server"></i> System Load</div>
+            <div class="glow-primary"></div>
+        </div>
+        <div class="card">
+            <div class="card-title font-transformers">Memory Usage <i class="fas fa-memory"></i></div>
+            <div class="card-value" id="metric-ram" style="color:var(--accent)">...</div>
+            <div class="card-trend">Active RAM</div>
+        </div>
+        <div class="card">
+            <div class="card-title font-transformers">Network Traffic <i class="fas fa-network-wired"></i></div>
+            <div class="card-value" id="metric-net">...</div>
+            <div class="card-trend">Bandwidth (KB/s)</div>
+        </div>
+        <div class="card">
+            <div class="card-title font-transformers">Security Events <i class="fas fa-shield-alt"></i></div>
+            <div class="card-value">--</div>
+            <div class="card-trend">Scanned Today</div>
+        </div>
+        <div class="card" style="grid-column: span 1; display:flex; align-items:center; justify-content:center; cursor:pointer; background:rgba(0, 212, 255, 0.1); border:1px dashed var(--primary)" onclick="optimizeSystem()">
+            <div style="text-align:center">
+                <i class="fas fa-rocket" style="font-size:1.5rem; color:var(--primary); margin-bottom:10px"></i>
+                 <div class="card-title" style="margin:0">Optimize System</div>
+                 <span style="font-size:0.75rem; color:var(--text-muted)">Free up resources</span>
             </div>
         </div>
+    </div>
 
-        <div class="charts-row" style="margin-top: 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; height: 350px;">
+    <div class="charts-row" style="margin-top: 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; height: 350px;">
 
-            <div class="chart-container" style="flex: 2; position: relative;">
-                <canvas id="mainTrendChart"></canvas>
-            </div>
-            <div class="chart-container" style="flex: 1; position: relative;">
-                <canvas id="statusPieChart"></canvas>
-            </div>
+        <div class="chart-container" style="flex: 2; position: relative;">
+            <canvas id="mainTrendChart"></canvas>
         </div>
-    `;
+        <div class="chart-container" style="flex: 1; position: relative;">
+            <canvas id="statusPieChart"></canvas>
+        </div>
+    </div>
+`;
 
     view.setAttribute('data-rendered', 'true');
 
@@ -787,69 +804,69 @@ function renderAnalysis() {
     }
 
     view.innerHTML = `
-        <div class="analysis-container" >
-            <!--Header & Upload-->
-            <div class="dashboard-grid" style="grid-template-columns: 1.5fr 2fr; gap: 20px; margin-bottom: 30px;">
-                <div class="upload-zone" id="drop-zone" onclick="document.getElementById('fileInput').click()" style="height: auto; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <input type="file" id="fileInput" hidden onchange="handleFileUpload(this)">
-                    <div class="upload-icon-pulse" style="font-size: 2.5rem; margin-bottom: 15px;">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                    </div>
-                    <h3 style="font-size: 1.2rem; margin-bottom: 5px;">Upload Logs</h3>
-                    <p style="font-size: 0.9rem; color: var(--text-muted);">Deep analyze offline infrastructure logs</p>
+    <div class="analysis-container" >
+        <!--Header & Upload-->
+        <div class="dashboard-grid" style="grid-template-columns: 1.5fr 2fr; gap: 20px; margin-bottom: 30px;">
+            <div class="upload-zone" id="drop-zone" onclick="document.getElementById('fileInput').click()" style="height: auto; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                <input type="file" id="fileInput" hidden onchange="handleFileUpload(this)">
+                <div class="upload-icon-pulse" style="font-size: 2.5rem; margin-bottom: 15px;">
+                    <i class="fas fa-cloud-upload-alt"></i>
                 </div>
-
-                <div class="card glass-card" style="display: flex; flex-direction: column; justify-content: center; padding: 30px;">
-                    <div class="results-header">
-                        <div class="card-title" style="font-size: 1.1rem; color: var(--text-main);">Live Security Intelligence</div>
-                        <div class="stat-pill pulse-dot" style="background: rgba(var(--primary-rgb), 0.1);"><i class="fas fa-satellite-dish"></i> Streaming</div>
-                    </div>
-                    <div style="margin-top: 15px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                        Monitoring <strong>${state.infraData ? state.infraData.length : 0} active nodes</strong> in real-time. 
-                        PRIME_AI is actively screening for anomalies, brute-force attempts, and unauthorized region access.
-                    </div>
-                </div>
+                <h3 style="font-size: 1.2rem; margin-bottom: 5px;">Upload Logs</h3>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">Deep analyze offline infrastructure logs</p>
             </div>
 
-            <!--Analysis Results(Upload)-->
-            <div id="analysis-results" style="display: ${analysisActive ? 'block' : 'none'}; margin-bottom: 50px;">
-                 <div class="results-header" style="margin-bottom: 25px;">
-                    <div class="stat-pill" style="background: var(--primary); color:black; font-weight: bold; padding: 8px 16px;">AI Analysis Report</div>
-                    <button class="btn-secondary" onclick="clearAnalysis()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer;">Close Report</button>
-                 </div>
-                 
-                 <!-- Enhanced Charts (Bigger & Clearer) -->
-                 <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 50px; height: 380px;">
-                    <div class="chart-container glass-card" style="padding: 25px;"><canvas id="deviceChart"></canvas></div>
-                    <div class="chart-container glass-card" style="padding: 25px;"><canvas id="severityChart"></canvas></div>
+            <div class="card glass-card" style="display: flex; flex-direction: column; justify-content: center; padding: 30px;">
+                <div class="results-header">
+                    <div class="card-title font-transformers" style="font-size: 1.1rem; color: var(--text-main);">Live Security Intelligence</div>
+                    <div class="stat-pill pulse-dot" style="background: rgba(var(--primary-rgb), 0.1);"><i class="fas fa-satellite-dish"></i> Streaming</div>
                 </div>
-            </div>
-
-            <!--Live / Mixed Table-->
-        <div class="table-container glass-card" style="margin-top: 20px;">
-            <div class="results-header" style="padding: 20px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0;">
-                <div class="card-title" style="font-size: 1.1rem; color: var(--text-main);"><i class="fas fa-list-alt" style="margin-right: 10px; color: var(--primary);"></i> ${analysisActive ? 'Detailed Audit Logs' : 'Live Event Stream'}</div>
-                <div class="stat-pill" id="log-count-pill" style="background: rgba(255,255,255,0.05);">${analysisActive ? state.analysisData.issues.length : logs.length} Events Logged</div>
-            </div>
-            <div style="padding: 0 10px;">
-                <table class="log-table">
-                    <thead>
-                        <tr>
-                            <th>Severity</th>
-                            <th>Device</th>
-                            <th>Time</th>
-                            <th>Message</th>
-                            <th>AI Recommendation</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logTableBody">
-                        <!-- Content filled by updateAnalysisTable -->
-                    </tbody>
-                </table>
+                <div style="margin-top: 15px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+                    Monitoring <strong>${state.infraData ? state.infraData.length : 0} active nodes</strong> in real-time. 
+                    PRIME_AI is actively screening for anomalies, brute-force attempts, and unauthorized region access.
+                </div>
             </div>
         </div>
+
+        <!--Analysis Results(Upload)-->
+        <div id="analysis-results" style="display: ${analysisActive ? 'block' : 'none'}; margin-bottom: 50px;">
+             <div class="results-header" style="margin-bottom: 25px;">
+                <div class="stat-pill font-transformers" style="background: var(--primary); color:black; font-weight: bold; padding: 8px 16px;">AI Analysis Report</div>
+                <button class="btn-secondary" onclick="clearAnalysis()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer;">Close Report</button>
+             </div>
+             
+             <!-- Enhanced Charts (Bigger & Clearer) -->
+             <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 50px; height: 380px;">
+                <div class="chart-container glass-card" style="padding: 25px;"><canvas id="deviceChart"></canvas></div>
+                <div class="chart-container glass-card" style="padding: 25px;"><canvas id="severityChart"></canvas></div>
+            </div>
         </div>
-        `;
+
+        <!--Live / Mixed Table-->
+    <div class="table-container glass-card" style="margin-top: 20px;">
+        <div class="results-header" style="padding: 20px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0;">
+            <div class="card-title font-transformers" style="font-size: 1.1rem; color: var(--text-main);"><i class="fas fa-list-alt" style="margin-right: 10px; color: var(--primary);"></i> ${analysisActive ? 'Detailed Audit Logs' : 'Live Event Stream'}</div>
+            <div class="stat-pill" id="log-count-pill" style="background: rgba(255,255,255,0.05);">${analysisActive ? state.analysisData.issues.length : logs.length} Events Logged</div>
+        </div>
+        <div style="padding: 0 10px;">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Device</th>
+                        <th>Time</th>
+                        <th>Message</th>
+                        <th>AI Recommendation</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody">
+                    <!-- Content filled by updateAnalysisTable -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+    `;
 
     view.setAttribute('data-rendered', 'true');
     updateAnalysisTable(view);
@@ -877,14 +894,25 @@ function updateAnalysisTable(viewContainer) {
     }
 
     tbody.innerHTML = dataToRender.map(log => `
-        <tr >
-            <td><span class="badge-severity ${log.severity}">${log.severity}</span></td>
-            <td>${log.device}</td>
-            <td style="font-size:0.8rem; color:#888">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Just now'}</td>
-            <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${log.message}</td>
-            <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${log.suggestion || 'Analyzing...'}</td>
-        </tr>
-        `).join('');
+    <tr >
+        <td><span class="badge-severity ${log.severity}">${log.severity}</span></td>
+        <td>${log.device}</td>
+        <td style="font-size:0.8rem; color:#888">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Just now'}</td>
+        <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${log.message}</td>
+        <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${formatSuggestion(log.suggestion)}</td>
+    </tr>
+    `).join('');
+}
+
+function formatSuggestion(text) {
+    if (!text) return 'Analyzing...';
+    if (text.includes('AI Action:')) {
+        return text.replace('AI Action:', '<span style="color:#00ff88; font-weight:bold; text-shadow: 0 0 10px rgba(0,255,136,0.3)">AI ACTION:</span>');
+    }
+    if (text.includes('AI Analysis:')) {
+        return text.replace('AI Analysis:', '<span style="color:#00d4ff; font-weight:bold;">AI ANALYSIS:</span>');
+    }
+    return text;
 }
 
 
@@ -894,27 +922,27 @@ async function renderInfrastructure() {
     // Show currently cached data immediately if not rendered
     if (view.getAttribute('data-rendered') !== 'true') {
         view.innerHTML = `
-        <div class="card glass-card" >
-                <div class="results-header">
-                    <div class="card-title">Server Fleet Status</div>
-                    <div class="stat-pill" id="infra-count"><i class="fas fa-network-wired"></i> Scanning...</div>
-                </div>
-                <table class="log-table" style="margin-top: 20px;">
-                    <thead>
-                        <tr>
-                            <th>Status</th>
-                            <th>Hostname</th>
-                            <th>IP Address</th>
-                            <th>Region</th>
-                            <th>Load</th>
-                        </tr>
-                    </thead>
-                    <tbody id="infra-table-body">
-                         <tr><td colspan="5" style="text-align:center; padding: 20px;">Loading fleet data...</td></tr>
-                    </tbody>
-                </table>
+    <div class="card glass-card" >
+            <div class="results-header">
+                <div class="card-title font-transformers">Server Fleet Status</div>
+                <div class="stat-pill" id="infra-count"><i class="fas fa-network-wired"></i> Scanning...</div>
             </div>
-        `;
+            <table class="log-table" style="margin-top: 20px;">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Hostname</th>
+                        <th>IP Address</th>
+                        <th>Region</th>
+                        <th>Load</th>
+                    </tr>
+                </thead>
+                <tbody id="infra-table-body">
+                     <tr><td colspan="5" style="text-align:center; padding: 20px;">Loading fleet data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    `;
         view.setAttribute('data-rendered', 'true');
     }
 
@@ -958,14 +986,14 @@ function renderInfraTable(servers, viewContainer) {
         rows = '<tr><td colspan="5" style="text-align:center; padding: 20px;">No servers registered. Send heartbeats to /api/ingest to see data here.</td></tr>';
     } else {
         rows = servers.map(s => `
-        <tr >
-                <td><span style="color:${getStatusColor(s.status)}">●</span> ${capitalize(s.status)}</td>
-                <td>${s.hostname}</td>
-                <td>${s.ipAddress}</td>
-                <td>${s.region || 'Unknown'}</td>
-                <td><div class="stat-pill">${s.load}% Load</div></td>
-            </tr>
-        `).join('');
+    <tr >
+            <td><span style="color:${getStatusColor(s.status)}">●</span> ${capitalize(s.status)}</td>
+            <td>${s.hostname}</td>
+            <td>${s.ipAddress}</td>
+            <td>${s.region || 'Unknown'}</td>
+            <td><div class="stat-pill">${s.load}% Load</div></td>
+        </tr>
+    `).join('');
     }
 
     tbody.innerHTML = rows;
@@ -989,126 +1017,126 @@ function renderSettings() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-        <div class="settings-view" >
-            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));">
-                <!-- Theme & Experience -->
-                <div class="card glass-card">
-                    <div class="results-header">
-                        <div class="card-title">Interface Alignment</div>
-                        <i class="fas fa-palette" style="color:var(--primary)"></i>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>Dynamic Mode</h4>
-                            <p>Switch between Light and Dark interface</p>
-                        </div>
-                        <button class="btn-primary" onclick="toggleTheme()" style="min-width:100px">${state.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</button>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>Animation Depth</h4>
-                            <p>Enable cinematic transitions and effects</p>
-                        </div>
-                        <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
-                    </div>
+    <div class="settings-view" >
+        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));">
+            <!-- Theme & Experience -->
+            <div class="card glass-card">
+                <div class="results-header">
+                    <div class="card-title font-transformers">Interface Alignment</div>
+                    <i class="fas fa-palette" style="color:var(--primary)"></i>
                 </div>
-
-                <!-- Infrastructure Governance -->
-                <div class="card glass-card">
-                    <div class="results-header">
-                        <div class="card-title">Infrastructure Governance</div>
-                        <i class="fas fa-microchip" style="color:var(--secondary)"></i>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>Dynamic Mode</h4>
+                        <p>Switch between Light and Dark interface</p>
                     </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>Ingest Retension</h4>
-                            <p>Duration to keep raw infrastructure logs</p>
-                        </div>
-                        <select class="form-input" style="width: 120px; padding: 5px;">
-                            <option>30 Days</option>
-                            <option selected>90 Days</option>
-                            <option>1 Year</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>Metric Sampling</h4>
-                            <p>Frequency of server heartbeats (seconds)</p>
-                        </div>
-                        <input type="number" class="form-input" value="3" style="width: 80px; padding: 5px;">
-                    </div>
+                    <button class="btn-primary" onclick="toggleTheme()" style="min-width:100px">${state.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</button>
                 </div>
-
-                <!-- Security Enforcement -->
-                <div class="card glass-card">
-                    <div class="results-header">
-                        <div class="card-title">Security Enforcement</div>
-                        <i class="fas fa-shield-alt" style="color:#ff0055"></i>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>Animation Depth</h4>
+                        <p>Enable cinematic transitions and effects</p>
                     </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>System Notifications</h4>
-                            <p>Display real-time security alerts</p>
-                        </div>
-                        <div class="toggle-switch ${state.notificationsEnabled ? 'active' : ''}" onclick="toggleSystemNotifications(this)"></div>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>Auto-Isolation</h4>
-                            <p>Disconnect suspicious nodes automatically</p>
-                        </div>
-                        <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
-                    </div>
+                    <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
                 </div>
+            </div>
 
-                <!-- API & Connectivity -->
-                <div class="card glass-card">
-                    <div class="results-header">
-                        <div class="card-title">External Synchronization</div>
-                        <i class="fas fa-link" style="color:#00ff88"></i>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>Webhook Integration</h4>
-                            <p>Send alerts to Slack or MS Teams</p>
-                        </div>
-                        <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Webhook portal loading...', 'info')">Configure</button>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>API Access Key</h4>
-                            <p>Managed developer credentials</p>
-                        </div>
-                        <button class="btn-primary" style="background: transparent; border: 1px solid var(--secondary); color: var(--secondary);" onclick="showToast('Generating new signature...', 'info')">Rotate Key</button>
-                    </div>
+            <!-- Infrastructure Governance -->
+            <div class="card glass-card">
+                <div class="results-header">
+                    <div class="card-title font-transformers">Infrastructure Governance</div>
+                    <i class="fas fa-microchip" style="color:var(--secondary)"></i>
                 </div>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>Ingest Retension</h4>
+                        <p>Duration to keep raw infrastructure logs</p>
+                    </div>
+                    <select class="form-input" style="width: 120px; padding: 5px;">
+                        <option>30 Days</option>
+                        <option selected>90 Days</option>
+                        <option>1 Year</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>Metric Sampling</h4>
+                        <p>Frequency of server heartbeats (seconds)</p>
+                    </div>
+                    <input type="number" class="form-input" value="3" style="width: 80px; padding: 5px;">
+                </div>
+            </div>
 
-                <!-- System Maintenance -->
-                <div class="card glass-card">
-                    <div class="results-header">
-                        <div class="card-title">System Maintenance</div>
-                        <i class="fas fa-tools" style="color:#ffcc00"></i>
+            <!-- Security Enforcement -->
+            <div class="card glass-card">
+                <div class="results-header">
+                    <div class="card-title font-transformers">Security Enforcement</div>
+                    <i class="fas fa-shield-alt" style="color:#ff0055"></i>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>System Notifications</h4>
+                        <p>Display real-time security alerts</p>
                     </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>Cache Purge</h4>
-                            <p>Clears temporary uploads and optimizes database</p>
-                        </div>
-                        <button id="purge-btn" class="btn-primary" style="background: rgba(255, 204, 0, 0.1); border: 1px solid #ffcc00; color: #ffcc00; min-width: 120px;" onclick="purgeCache()">
-                            <i class="fas fa-broom"></i> Purge Cache
-                        </button>
+                    <div class="toggle-switch ${state.notificationsEnabled ? 'active' : ''}" onclick="toggleSystemNotifications(this)"></div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>Auto-Isolation</h4>
+                        <p>Disconnect suspicious nodes automatically</p>
                     </div>
-                    <div class="setting-item">
-                        <div class="setting-text">
-                            <h4>Diagnostics</h4>
-                            <p>Run full system integrity check</p>
-                        </div>
-                        <button class="btn-primary" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted);" onclick="showToast('Integrity scan queued...', 'info')">Run Scan</button>
+                    <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                </div>
+            </div>
+
+            <!-- API & Connectivity -->
+            <div class="card glass-card">
+                <div class="results-header">
+                    <div class="card-title font-transformers">External Synchronization</div>
+                    <i class="fas fa-link" style="color:#00ff88"></i>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>Webhook Integration</h4>
+                        <p>Send alerts to Slack or MS Teams</p>
                     </div>
+                    <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Webhook portal loading...', 'info')">Configure</button>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>API Access Key</h4>
+                        <p>Managed developer credentials</p>
+                    </div>
+                    <button class="btn-primary" style="background: transparent; border: 1px solid var(--secondary); color: var(--secondary);" onclick="showToast('Generating new signature...', 'info')">Rotate Key</button>
+                </div>
+            </div>
+
+            <!-- System Maintenance -->
+            <div class="card glass-card">
+                <div class="results-header">
+                    <div class="card-title font-transformers">System Maintenance</div>
+                    <i class="fas fa-tools" style="color:#ffcc00"></i>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>Cache Purge</h4>
+                        <p>Clears temporary uploads and optimizes database</p>
+                    </div>
+                    <button id="purge-btn" class="btn-primary" style="background: rgba(255, 204, 0, 0.1); border: 1px solid #ffcc00; color: #ffcc00; min-width: 120px;" onclick="purgeCache()">
+                        <i class="fas fa-broom"></i> Purge Cache
+                    </button>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-text">
+                        <h4>Diagnostics</h4>
+                        <p>Run full system integrity check</p>
+                    </div>
+                    <button class="btn-primary" style="background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted);" onclick="showToast('Integrity scan queued...', 'info')">Run Scan</button>
                 </div>
             </div>
         </div>
-        `;
+    </div>
+    `;
 
 
     view.setAttribute('data-rendered', 'true');
@@ -1196,11 +1224,11 @@ function showAnalysisResults(data) {
         data.issues.forEach(issue => {
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td><span class="badge-severity ${issue.severity}">${issue.severity}</span></td>
-                <td>${issue.device}</td>
-                <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${issue.message}</td>
-                <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${issue.suggestion}</td>
-            `;
+            <td><span class="badge-severity ${issue.severity}">${issue.severity}</span></td>
+            <td>${issue.device}</td>
+            <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${issue.message}</td>
+            <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${formatSuggestion(issue.suggestion)}</td>
+        `;
             tbody.appendChild(row);
         });
     }
@@ -1226,11 +1254,25 @@ function renderAnalysisCharts(issues, summary) {
             data: {
                 labels: Object.keys(deviceCounts),
                 datasets: [{
-                    label: 'Issues',
+                    label: 'Issues Detected',
                     data: Object.values(deviceCounts),
-                    backgroundColor: 'rgba(0, 212, 255, 0.4)',
-                    borderColor: '#00d4ff',
-                    borderWidth: 1
+                    backgroundColor: [
+                        'rgba(0, 212, 255, 0.6)',
+                        'rgba(162, 77, 255, 0.6)',
+                        'rgba(255, 0, 85, 0.6)',
+                        'rgba(0, 255, 136, 0.6)',
+                        'rgba(255, 204, 0, 0.6)'
+                    ],
+                    borderColor: [
+                        '#00d4ff',
+                        '#a24dff',
+                        '#ff0055',
+                        '#00ff88',
+                        '#ffcc00'
+                    ],
+                    borderWidth: 1,
+                    barThickness: 40,
+                    maxBarThickness: 50
                 }]
             },
             options: {
@@ -1331,12 +1373,12 @@ async function sendChat() {
     typing.id = 'typing-indicator';
     typing.className = 'message msg-ai';
     typing.innerHTML = `
-        <div class="typing-dots" >
-            <div class="dot"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
-        </div>
-        `;
+    <div class="typing-dots" >
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+    `;
     body.appendChild(typing);
     body.scrollTop = body.scrollHeight;
 
@@ -1351,52 +1393,52 @@ function renderTopology() {
 
     if (view.getAttribute('data-rendered') !== 'true') {
         view.innerHTML = `
-        <div class="topology-view" >
-                <div class="topology-header">
-                    <div class="stat-pill"><i class="fas fa-project-diagram"></i> Network Topology v6.0 (Live)</div>
-                    <div class="topology-controls">
-                        <div class="pulse-dot" style="display:inline-block; margin-right:10px"></div>
-                        <span style="color:var(--text-muted); font-size:0.8rem; margin-right:15px">Monitoring</span>
-                        <button class="btn-primary" onclick="showToast('Scanning network...', 'info')"><i class="fas fa-sync"></i> Re-scan</button>
-                    </div>
-                </div>
-                <div class="topology-map-container glass-card">
-                    <svg id="topo-svg" width="100%" height="400" viewBox="0 0 800 400" style="overflow: visible">
-                        <defs>
-                            <filter id="glow">
-                                <feGaussianBlur stdDeviation="3.5" result="blur" />
-                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                            </filter>
-                            <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="var(--primary)" />
-                                <stop offset="100%" stop-color="var(--secondary)" />
-                            </linearGradient>
-                        </defs>
-
-                        <!-- Core Node -->
-                        <g transform="translate(400, 200)" class="topo-node-main">
-                            <circle r="35" fill="var(--bg-dark)" stroke="var(--primary)" stroke-width="2" filter="url(#glow)" />
-                            <text text-anchor="middle" dy=".3em" fill="white" font-weight="bold">CORE</text>
-                            <circle r="45" fill="none" stroke="var(--primary)" stroke-width="1" opacity="0.2">
-                                <animate attributeName="r" from="35" to="60" dur="2s" repeatCount="indefinite" />
-                                <animate attributeName="opacity" from="0.3" to="0" dur="2s" repeatCount="indefinite" />
-                            </circle>
-                        </g>
-                        
-                        <!-- Dynamic Nodes Container -->
-                        <g id="dynamic-nodes"></g>
-                    </svg>
-                </div>
-                <div class="topology-info glass-card">
-                    <h4>Node Legend</h4>
-                    <div style="display:flex; gap:15px; margin-top:10px;">
-                        <div style="font-size:0.8rem"><span style="color:#00ff88">●</span> Online</div>
-                        <div style="font-size:0.8rem"><span style="color:#ffcc00">●</span> Warning</div>
-                        <div style="font-size:0.8rem"><span style="color:#ff0055">●</span> Critical</div>
-                    </div>
+    <div class="topology-view" >
+            <div class="topology-header">
+                <div class="stat-pill"><i class="fas fa-project-diagram"></i> Network Topology v6.0 (Live)</div>
+                <div class="topology-controls">
+                    <div class="pulse-dot" style="display:inline-block; margin-right:10px"></div>
+                    <span style="color:var(--text-muted); font-size:0.8rem; margin-right:15px">Monitoring</span>
+                    <button class="btn-primary" onclick="showToast('Scanning network...', 'info')"><i class="fas fa-sync"></i> Re-scan</button>
                 </div>
             </div>
-        `;
+            <div class="topology-map-container glass-card">
+                <svg id="topo-svg" width="100%" height="400" viewBox="0 0 800 400" style="overflow: visible">
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="3.5" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                        </filter>
+                        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="var(--primary)" />
+                            <stop offset="100%" stop-color="var(--secondary)" />
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Core Node -->
+                    <g transform="translate(400, 200)" class="topo-node-main">
+                        <circle r="35" fill="var(--bg-dark)" stroke="var(--primary)" stroke-width="2" filter="url(#glow)" />
+                        <text text-anchor="middle" dy=".3em" fill="white" font-weight="bold">CORE</text>
+                        <circle r="45" fill="none" stroke="var(--primary)" stroke-width="1" opacity="0.2">
+                            <animate attributeName="r" from="35" to="60" dur="2s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" from="0.3" to="0" dur="2s" repeatCount="indefinite" />
+                        </circle>
+                    </g>
+                    
+                    <!-- Dynamic Nodes Container -->
+                    <g id="dynamic-nodes"></g>
+                </svg>
+            </div>
+            <div class="topology-info glass-card">
+                <h4>Node Legend</h4>
+                <div style="display:flex; gap:15px; margin-top:10px;">
+                    <div style="font-size:0.8rem"><span style="color:#00ff88">●</span> Online</div>
+                    <div style="font-size:0.8rem"><span style="color:#ffcc00">●</span> Warning</div>
+                    <div style="font-size:0.8rem"><span style="color:#ff0055">●</span> Critical</div>
+                </div>
+            </div>
+        </div>
+    `;
         view.setAttribute('data-rendered', 'true');
     }
 
@@ -1486,70 +1528,70 @@ function renderReports() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-        <div class="reports-view fade-in">
-            <div style="margin-bottom: 30px;">
-                <h1 style="font-size: 2rem; margin-bottom: 5px;">Enterprise Reporting</h1>
-                <p style="color: var(--text-muted);">Generate and export infrastructure intelligence archives.</p>
-            </div>
-            <div class="reports-grid">
-                <div class="report-card glass-card">
-                    <i class="fas fa-file-pdf"></i>
-                    <h3>Weekly Availability</h3>
-                    <p>Uptime metrics across all regions.</p>
-                    <div class="stat-pill" style="margin-bottom:15px">99.98% Uptime Score</div>
-                    <div class="report-download-group">
-                        <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
-                            Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
-                        </button>
-                        <div class="report-dropdown-menu">
-                            <a href="javascript:void(0)" onclick="generateReportDirect('availability', 'excel')">
-                                <i class="fas fa-file-excel" style="color: #217346;"></i> Excel Spreadsheet
-                            </a>
-                            <a href="javascript:void(0)" onclick="generateReportDirect('availability', 'pdf')">
-                                <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Document
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="report-card glass-card">
-                    <i class="fas fa-shield-virus"></i>
-                    <h3>Security Audit</h3>
-                    <p>Breakdown of blocked threats.</p>
-                    <div class="stat-pill" style="margin-bottom:15px; border-color:#ff0055; color:#ff0055">12 High Risks Found</div>
-                    <div class="report-download-group">
-                        <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
-                            Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
-                        </button>
-                        <div class="report-dropdown-menu">
-                            <a href="javascript:void(0)" onclick="generateReportDirect('security', 'pdf')">
-                                <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Optimized
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="report-card glass-card">
-                    <i class="fas fa-bolt"></i>
-                    <h3>Performance Trends</h3>
-                    <p>Load averages and bottlenecks.</p>
-                    <div class="stat-pill" style="margin-bottom:15px; border-color:#00ff88; color:#00ff88">Optimal Performance</div>
-                    <div class="report-download-group">
-                        <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
-                            Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
-                        </button>
-                        <div class="report-dropdown-menu">
-                            <a href="javascript:void(0)" onclick="generateReportDirect('performance', 'excel')">
-                                <i class="fas fa-file-excel" style="color: #217346;"></i> Excel Spreadsheet
-                            </a>
-                            <a href="javascript:void(0)" onclick="generateReportDirect('performance', 'pdf')">
-                                <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Document
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+    <div class="reports-view fade-in">
+        <div style="margin-bottom: 30px;">
+            <h1 style="font-size: 2rem; margin-bottom: 5px;" class="font-transformers">Enterprise Reporting</h1>
+            <p style="color: var(--text-muted);">Generate and export infrastructure intelligence archives.</p>
         </div>
-        `;
+        <div class="reports-grid">
+            <div class="report-card glass-card">
+                <i class="fas fa-file-pdf"></i>
+                <h3 class="font-transformers">Weekly Availability</h3>
+                <p>Uptime metrics across all regions.</p>
+                <div class="stat-pill" style="margin-bottom:15px">99.98% Uptime Score</div>
+                <div class="report-download-group">
+                    <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
+                        Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+                    </button>
+                    <div class="report-dropdown-menu">
+                        <a href="javascript:void(0)" onclick="generateReportDirect('availability', 'excel')">
+                            <i class="fas fa-file-excel" style="color: #217346;"></i> Excel Spreadsheet
+                        </a>
+                        <a href="javascript:void(0)" onclick="generateReportDirect('availability', 'pdf')">
+                            <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Document
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="report-card glass-card">
+                <i class="fas fa-shield-virus"></i>
+                <h3 class="font-transformers">Security Audit</h3>
+                <p>Breakdown of blocked threats.</p>
+                <div class="stat-pill" style="margin-bottom:15px; border-color:#ff0055; color:#ff0055">12 High Risks Found</div>
+                <div class="report-download-group">
+                    <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
+                        Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+                    </button>
+                    <div class="report-dropdown-menu">
+                        <a href="javascript:void(0)" onclick="generateReportDirect('security', 'pdf')">
+                            <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Optimized
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="report-card glass-card">
+                <i class="fas fa-bolt"></i>
+                <h3 class="font-transformers">Performance Trends</h3>
+                <p>Load averages and bottlenecks.</p>
+                <div class="stat-pill" style="margin-bottom:15px; border-color:#00ff88; color:#00ff88">Optimal Performance</div>
+                <div class="report-download-group">
+                    <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px;">
+                        Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+                    </button>
+                    <div class="report-dropdown-menu">
+                        <a href="javascript:void(0)" onclick="generateReportDirect('performance', 'excel')">
+                            <i class="fas fa-file-excel" style="color: #217346;"></i> Excel Spreadsheet
+                        </a>
+                        <a href="javascript:void(0)" onclick="generateReportDirect('performance', 'pdf')">
+                            <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Document
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    `;
     view.setAttribute('data-rendered', 'true');
 }
 
@@ -1561,72 +1603,72 @@ function renderPulse() {
     const sessions = Math.floor(Math.random() * 200 + 700);
 
     view.innerHTML = `
-        <div class="pulse-container fade-in">
-            <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
-                <div class="card glass-card" style="position: relative; overflow: hidden; padding: 30px;">
-                    <div class="results-header">
-                        <div class="card-title">Live Threat Intelligence v6.5</div>
-                        <button class="btn-primary" onclick="refreshPulse()" id="pulse-refresh-btn" style="padding: 5px 15px; font-size: 0.8rem;"><i class="fas fa-sync"></i> SCAN</button>
-                    </div>
-                    <div id="pulse-scan-area" style="height: 300px; margin-top: 20px; background: rgba(0,0,0,0.2); border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); position: relative;">
-                         <div style="text-align: center;">
-                            <div class="upload-icon-pulse" style="font-size: 3rem; color: var(--primary);"><i class="fas fa-satellite-dish"></i></div>
-                            <p style="color: var(--text-muted); margin-top: 15px;">Monitoring Global Signature Anomalies...</p>
-                         </div>
-                         <div id="pulse-radar" style="position: absolute; width: 200px; height: 200px; border: 1px solid var(--primary); border-radius: 50%; opacity: 0.1; animation: radar 4s linear infinite;"></div>
-                    </div>
-                    <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                        <div style="background: rgba(var(--primary-rgb), 0.05); padding: 15px; border-radius: 10px;">
-                            <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase;">PPS rate</div>
-                            <div style="font-size: 1.2rem; font-weight: bold;" id="pulse-pps">${pps}k</div>
-                        </div>
-                        <div style="background: rgba(162, 77, 255, 0.05); padding: 15px; border-radius: 10px;">
-                            <div style="font-size: 0.7rem; color: var(--secondary); text-transform: uppercase;">Active sessions</div>
-                            <div style="font-size: 1.2rem; font-weight: bold;" id="pulse-sessions">${sessions}</div>
-                        </div>
-                         <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 10px;">
-                            <div style="font-size: 0.7rem; color: #00ff88; text-transform: uppercase;">Entity Trust Score</div>
-                            <div style="font-size: 1.2rem; font-weight: bold;">99.4%</div>
-                        </div>
-                    </div>
+    <div class="pulse-container fade-in">
+        <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
+            <div class="card glass-card" style="position: relative; overflow: hidden; padding: 30px;">
+                <div class="results-header">
+                    <div class="card-title font-transformers">Live Threat Intelligence v6.5</div>
+                    <button class="btn-primary" onclick="refreshPulse()" id="pulse-refresh-btn" style="padding: 5px 15px; font-size: 0.8rem;"><i class="fas fa-sync"></i> SCAN</button>
                 </div>
-
-                <div class="card glass-card" style="padding: 25px;">
-                    <div class="card-title">Regional Risk Vector</div>
-                    <div style="margin-top:20px; display: flex; flex-direction: column; gap: 15px;">
-                        <div>
-                            <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                <span>North America</span>
-                                <span style="color: #00ff88;">Low</span>
-                            </div>
-                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                <div style="width: 15%; height: 100%; background: #00ff88; border-radius: 2px;"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                <span>Europe (Cluster 9)</span>
-                                <span style="color: #ffcc00;">Medium</span>
-                            </div>
-                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                <div style="width: 45%; height: 100%; background: #ffcc00; border-radius: 2px;"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                <span>Undetermined Proxy</span>
-                                <span style="color: #ff0055;">High</span>
-                            </div>
-                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                <div style="width: 82%; height: 100%; background: #ff0055; border-radius: 2px;"></div>
-                            </div>
-                        </div>
+                <div id="pulse-scan-area" style="height: 300px; margin-top: 20px; background: rgba(0,0,0,0.2); border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); position: relative;">
+                     <div style="text-align: center;">
+                        <div class="upload-icon-pulse" style="font-size: 3rem; color: var(--primary);"><i class="fas fa-satellite-dish"></i></div>
+                        <p style="color: var(--text-muted); margin-top: 15px;">Monitoring Global Signature Anomalies...</p>
+                     </div>
+                     <div id="pulse-radar" style="position: absolute; width: 200px; height: 200px; border: 1px solid var(--primary); border-radius: 50%; opacity: 0.1; animation: radar 4s linear infinite;"></div>
+                </div>
+                <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <div style="background: rgba(var(--primary-rgb), 0.05); padding: 15px; border-radius: 10px;">
+                        <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase;">PPS rate</div>
+                        <div style="font-size: 1.2rem; font-weight: bold;" id="pulse-pps">${pps}k</div>
                     </div>
-                    <button class="btn-primary" style="width: 100%; margin-top: 30px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055;" onclick="showToast('Protocol-9 Lockdown Engaged', 'error')">Global Lockdown</button>
+                    <div style="background: rgba(162, 77, 255, 0.05); padding: 15px; border-radius: 10px;">
+                        <div style="font-size: 0.7rem; color: var(--secondary); text-transform: uppercase;">Active sessions</div>
+                        <div style="font-size: 1.2rem; font-weight: bold;" id="pulse-sessions">${sessions}</div>
+                    </div>
+                     <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 10px;">
+                        <div style="font-size: 0.7rem; color: #00ff88; text-transform: uppercase;">Entity Trust Score</div>
+                        <div style="font-size: 1.2rem; font-weight: bold;">99.4%</div>
+                    </div>
                 </div>
             </div>
+
+            <div class="card glass-card" style="padding: 25px;">
+                <div class="card-title font-transformers">Regional Risk Vector</div>
+                <div style="margin-top:20px; display: flex; flex-direction: column; gap: 15px;">
+                    <div>
+                        <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                            <span>North America</span>
+                            <span style="color: #00ff88;">Low</span>
+                        </div>
+                        <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
+                            <div style="width: 15%; height: 100%; background: #00ff88; border-radius: 2px;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                            <span>Europe (Cluster 9)</span>
+                            <span style="color: #ffcc00;">Medium</span>
+                        </div>
+                        <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
+                            <div style="width: 45%; height: 100%; background: #ffcc00; border-radius: 2px;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
+                            <span>Undetermined Proxy</span>
+                            <span style="color: #ff0055;">High</span>
+                        </div>
+                        <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
+                            <div style="width: 82%; height: 100%; background: #ff0055; border-radius: 2px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn-primary" style="width: 100%; margin-top: 30px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055;" onclick="showToast('Protocol-9 Lockdown Engaged', 'error')">Global Lockdown</button>
+            </div>
         </div>
-    `;
+    </div>
+`;
     view.setAttribute('data-rendered', 'true');
 }
 
@@ -1635,13 +1677,19 @@ async function refreshPulse() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     showToast("Re-scanning security vectors...", "info");
 
-    await new Promise(r => setTimeout(r, 1500));
+    try {
+        const res = await fetch('/api/ai/pulse');
+        const data = await res.json();
 
-    document.getElementById('pulse-pps').innerText = (Math.random() * 5 + 10).toFixed(1) + 'k';
-    document.getElementById('pulse-sessions').innerText = Math.floor(Math.random() * 200 + 700);
+        document.getElementById('pulse-pps').innerText = data.pps + 'k';
+        document.getElementById('pulse-sessions').innerText = data.sessions;
 
-    btn.innerHTML = '<i class="fas fa-sync"></i> SCAN';
-    showToast("Global Pulse Synchronized", "success");
+        showToast(`Global Pulse Synchronized. Threat Level: ${data.threat_level}`, "success");
+    } catch (e) {
+        showToast("Pulse Signal Lost", "error");
+    } finally {
+        btn.innerHTML = '<i class="fas fa-sync"></i> SCAN';
+    }
 }
 window.refreshPulse = refreshPulse;
 
@@ -1650,39 +1698,39 @@ function renderAilab() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-        <div class="ailab-container fade-in">
-            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
-                <div class="card glass-card" style="grid-column: span 2; padding: 30px;">
-                    <div class="results-header">
-                        <div class="card-title">Neural Engine Orchestrator v6.5</div>
-                         <div class="stat-pill" style="background: rgba(0, 212, 255, 0.1); color: var(--primary);">NATIVE-TRANSFORMER</div>
-                    </div>
-                    <p style="color: var(--text-muted); margin-top: 10px;">Manage, train, and deploy local intelligence models for autonomous infrastructure recovery. Integrated with PRIME_AI Python Core.</p>
+    <div class="ailab-container fade-in">
+        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+            <div class="card glass-card" style="grid-column: span 2; padding: 30px;">
+                <div class="results-header">
+                    <div class="card-title font-transformers">Neural Engine Orchestrator v6.5</div>
+                     <div class="stat-pill" style="background: rgba(0, 212, 255, 0.1); color: var(--primary);">NATIVE-TRANSFORMER</div>
                 </div>
+                <p style="color: var(--text-muted); margin-top: 10px;">Manage, train, and deploy local intelligence models for autonomous infrastructure recovery. Integrated with PRIME_AI Python Core.</p>
+            </div>
 
-                <div class="card glass-card" style="padding: 25px; text-align: center;">
-                    <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-microchip"></i></div>
-                    <h3>Model Parameters</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current Weights: 1.2B (Optimized)</p>
-                    <button class="btn-primary" style="width:100%" onclick="syncAIWeights(this)">Sync Weights</button>
-                </div>
+            <div class="card glass-card" style="padding: 25px; text-align: center;">
+                <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-microchip"></i></div>
+                <h3 class="font-transformers">Model Parameters</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current Weights: 1.2B (Optimized)</p>
+                <button class="btn-primary" style="width:100%" onclick="syncAIWeights(this)">Sync Weights</button>
+            </div>
 
-                <div class="card glass-card" style="padding: 25px; text-align: center;">
-                    <div style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-database"></i></div>
-                    <h3>Neural Corpus</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Total unique events: 142.5k</p>
-                    <button class="btn-primary" style="width:100%" onclick="showToast('Expanding training set from Audit Vault...', 'info')">Extend Corpus</button>
-                </div>
+            <div class="card glass-card" style="padding: 25px; text-align: center;">
+                <div style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-database"></i></div>
+                <h3 class="font-transformers">Neural Corpus</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Total unique events: 142.5k</p>
+                <button class="btn-primary" style="width:100%" onclick="showToast('Expanding training set from Audit Vault...', 'info')">Extend Corpus</button>
+            </div>
 
-                <div class="card glass-card" style="padding: 25px; text-align: center;">
-                    <div style="font-size: 2.5rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-brain"></i></div>
-                    <h3>Triage Accuracy</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current confidence score: 98.2%</p>
-                    <button class="btn-primary" style="width:100%; background: #00ff88; color: black;" onclick="retrainAIModel(this)">Trigger Retraining</button>
-                </div>
+            <div class="card glass-card" style="padding: 25px; text-align: center;">
+                <div style="font-size: 2.5rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-brain"></i></div>
+                <h3 class="font-transformers">Triage Accuracy</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current confidence score: 98.2%</p>
+                <button class="btn-primary" style="width:100%; background: #00ff88; color: black;" onclick="retrainAIModel(this)">Trigger Retraining</button>
             </div>
         </div>
-    `;
+    </div>
+`;
     view.setAttribute('data-rendered', 'true');
 }
 
@@ -1690,17 +1738,39 @@ async function syncAIWeights(btn) {
     const original = btn.innerText;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCING';
     showToast("Synchronizing neural weights with Python Core...", "info");
-    await new Promise(r => setTimeout(r, 2000));
-    btn.innerText = original;
-    showToast("Weight synchronization successful.", "success");
+
+    try {
+        const res = await fetch('/api/ai/sync', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.status === 'synced') {
+            showToast(`Synced ${data.nodes_updated} nodes. Ver: ${data.weights_version}`, "success");
+        } else {
+            showToast("Sync Failed", "error");
+        }
+    } catch (e) {
+        showToast("Connection Error", "error");
+    } finally {
+        btn.innerText = original;
+    }
 }
 
 async function retrainAIModel(btn) {
     btn.innerHTML = '<i class="fas fa-brain-circuit fa-spin"></i> TRAINING';
     showToast("Re-optimizing neural matrix for latest threat vectors...", "info");
-    await new Promise(r => setTimeout(r, 3000));
-    btn.innerHTML = 'Trigger Retraining';
-    showToast("Model retraining complete. Accuracy improved to 98.4%", "success");
+
+    try {
+        const res = await fetch('/api/ai/train', { method: 'POST' });
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            btn.innerHTML = 'Trigger Retraining';
+            showToast(`Model retraining complete. Accuracy: ${data.accuracy}% (Epoch ${data.epoch})`, "success");
+        }
+    } catch (e) {
+        showToast("Training Sequence Failed", "error");
+        btn.innerHTML = 'Retry Training';
+    }
 }
 
 window.syncAIWeights = syncAIWeights;
@@ -1710,36 +1780,36 @@ async function renderVault() {
     const view = showView('vault-view');
     // Always re-fetch to show latest archived logs
     view.innerHTML = `
-        <div class="vault-container fade-in">
-            <div class="card glass-card" style="margin-bottom: 25px; padding: 30px;">
-                <div class="results-header">
-                    <div class="card-title">Historical Audit Vault v6.5</div>
-                     <i class="fas fa-lock" style="color: var(--secondary);"></i>
-                </div>
-                <div style="margin-top: 20px; display: flex; gap: 15px;">
-                    <input type="text" id="vault-search" class="form-input" style="flex: 1;" placeholder="Search archived incidents by Category, Node, or UID...">
-                    <button class="btn-primary" onclick="searchVault()"><i class="fas fa-search"></i> Search Archive</button>
-                </div>
+    <div class="vault-container fade-in">
+        <div class="card glass-card" style="margin-bottom: 25px; padding: 30px;">
+            <div class="results-header">
+                <div class="card-title">Historical Audit Vault v6.5</div>
+                 <i class="fas fa-lock" style="color: var(--secondary);"></i>
             </div>
-
-            <div class="table-container glass-card">
-                <table class="log-table">
-                    <thead>
-                        <tr>
-                            <th>Vault ID</th>
-                            <th>Archive Date</th>
-                            <th>Incident Category</th>
-                            <th>Resolution</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="vault-table-body">
-                        <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Accessing Neural Archives...</td></tr>
-                    </tbody>
-                </table>
+            <div style="margin-top: 20px; display: flex; gap: 15px;">
+                <input type="text" id="vault-search" class="form-input" style="flex: 1;" placeholder="Search archived incidents by Category, Node, or UID...">
+                <button class="btn-primary" onclick="searchVault()"><i class="fas fa-search"></i> Search Archive</button>
             </div>
         </div>
-    `;
+
+        <div class="table-container glass-card">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>Vault ID</th>
+                        <th>Archive Date</th>
+                        <th>Incident Category</th>
+                        <th>Resolution</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="vault-table-body">
+                    <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Accessing Neural Archives...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+`;
 
     loadVaultData();
     view.setAttribute('data-rendered', 'true');
@@ -1763,14 +1833,14 @@ async function loadVaultData(filter = '') {
         );
 
         tbody.innerHTML = filtered.map(log => `
-            <tr class="fade-in">
-                <td><span style="font-family: 'Space Mono'; color: var(--primary);">#VX-${log.id.toString().padStart(3, '0')}</span></td>
-                <td>${new Date(log.timestamp || log.createdAt).toLocaleDateString()} ${new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                <td>${log.device || 'System'} Alert</td>
-                <td><span class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88;">Resolved</span></td>
-                <td><button onclick="showToast('Loading incident #${log.id} details...', 'info')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-eye"></i></button></td>
-            </tr>
-        `).join('');
+        <tr class="fade-in">
+            <td><span style="font-family: 'Space Mono'; color: var(--primary);">#VX-${log.id.toString().padStart(3, '0')}</span></td>
+            <td>${new Date(log.timestamp || log.createdAt).toLocaleDateString()} ${new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+            <td>${log.device || 'System'} Alert</td>
+            <td><span class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88;">Resolved</span></td>
+            <td><button onclick="showToast('Loading incident #${log.id} details...', 'info')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-eye"></i></button></td>
+        </tr>
+    `).join('');
 
         if (filtered.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No records match your query.</td></tr>';
@@ -1798,70 +1868,70 @@ async function renderAutomation() {
     } catch (e) { console.error("Failed to load tools", e); }
 
     view.innerHTML = `
-        <div class="automation-container fade-in">
-            <div class="dashboard-grid" style="grid-template-columns: 1.5fr 1fr; gap: 25px;">
-                <div class="card glass-card" style="padding: 30px;">
-                    <div class="results-header">
-                        <div class="card-title">Advanced Automation Suite v6.5</div>
-                        <div class="stat-pill" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">Autonomous Mode</div>
-                    </div>
-                    <p style="color: var(--text-muted); margin-top: 10px; margin-bottom: 25px;">
-                        Select a specialized diagnostic module to execute predefined validation protocols. 
-                        The system will autonomously verify system state against expected benchmarks.
-                    </p>
-                    
-                    <div style="display: flex; gap: 15px; align-items: flex-end;">
-                        <div style="flex: 1;">
-                            <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Directives Repository</label>
-                            <select id="testing-tool-select" class="form-input" style="width: 100%; margin-top: 5px; height: 45px;">
-                                ${tools.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
-                            </select>
-                        </div>
-                        <button class="btn-primary" onclick="executeAutomationTest()" style="height: 45px; padding: 0 30px;">
-                            <i class="fas fa-play"></i> EXECUTE
-                        </button>
-                    </div>
+    <div class="automation-container fade-in">
+        <div class="dashboard-grid" style="grid-template-columns: 1.5fr 1fr; gap: 25px;">
+            <div class="card glass-card" style="padding: 30px;">
+                <div class="results-header">
+                    <div class="card-title">Advanced Automation Suite v6.5</div>
+                    <div class="stat-pill" style="background: rgba(var(--primary-rgb), 0.1); color: var(--primary);">Autonomous Mode</div>
                 </div>
-
-                <div class="card glass-card" style="padding: 25px;">
-                    <div class="card-title">Module Intelligence</div>
-                    <div id="tool-description" style="margin-top: 15px; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
-                        ${tools[0] ? tools[0].description : 'Select a tool to view technical specifications.'}
+                <p style="color: var(--text-muted); margin-top: 10px; margin-bottom: 25px;">
+                    Select a specialized diagnostic module to execute predefined validation protocols. 
+                    The system will autonomously verify system state against expected benchmarks.
+                </p>
+                
+                <div style="display: flex; gap: 15px; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Directives Repository</label>
+                        <select id="testing-tool-select" class="form-input" style="width: 100%; margin-top: 5px; height: 45px;">
+                            ${tools.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                        </select>
                     </div>
-                    <div style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
-                        <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-bottom: 5px;">Expected Outcome</div>
-                        <div style="font-size: 0.85rem; color: white;">Zero Critical Exceptions | Nominal Latency</div>
-                    </div>
+                    <button class="btn-primary" onclick="executeAutomationTest()" style="height: 45px; padding: 0 30px;">
+                        <i class="fas fa-play"></i> EXECUTE
+                    </button>
                 </div>
             </div>
 
-            <div class="dashboard-grid" style="margin-top: 25px; grid-template-columns: 2fr 1fr;">
-                <!-- Execution Console -->
-                <div class="card glass-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
-                    <div style="padding: 15px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between;">
-                        <span style="font-size: 0.85rem; font-weight: 600;">Execution Output</span>
-                        <span id="exec-status" style="font-size: 0.75rem; font-family: 'Space Mono';">READY</span>
-                    </div>
-                    <div id="testing-console" style="padding: 20px; height: 350px; overflow-y: auto; background: #05070a; font-family: 'Space Mono', monospace; font-size: 0.8rem; line-height: 1.8;">
-                        <div style="color: #444;">[SYSTEM] Initializing PRIME_AI Testing Kernel...</div>
-                        <div style="color: #444;">[SYSTEM] Handshake stable at 3000/tcp.</div>
-                        <div style="color: #444;">[SYSTEM] Waiting for user directive...</div>
-                    </div>
+            <div class="card glass-card" style="padding: 25px;">
+                <div class="card-title">Module Intelligence</div>
+                <div id="tool-description" style="margin-top: 15px; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;">
+                    ${tools[0] ? tools[0].description : 'Select a tool to view technical specifications.'}
                 </div>
-
-                <!-- Test Analytics -->
-                <div class="card glass-card" style="padding: 25px;">
-                    <div class="card-title">Analysis Summary</div>
-                    <div id="test-summary-content" style="margin-top: 20px;">
-                         <div style="text-align: center; padding: 40px; color: var(--text-muted);">
-                            <i class="fas fa-microchip" style="font-size: 3rem; opacity: 0.1; margin-bottom: 15px;"></i>
-                            <p>Execute a module to generate diagnostic data.</p>
-                         </div>
-                    </div>
+                <div style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
+                    <div style="font-size: 0.75rem; color: var(--primary); text-transform: uppercase; margin-bottom: 5px;">Expected Outcome</div>
+                    <div style="font-size: 0.85rem; color: white;">Zero Critical Exceptions | Nominal Latency</div>
                 </div>
             </div>
         </div>
-    `;
+
+        <div class="dashboard-grid" style="margin-top: 25px; grid-template-columns: 2fr 1fr;">
+            <!-- Execution Console -->
+            <div class="card glass-card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="padding: 15px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between;">
+                    <span style="font-size: 0.85rem; font-weight: 600;">Execution Output</span>
+                    <span id="exec-status" style="font-size: 0.75rem; font-family: 'Space Mono';">READY</span>
+                </div>
+                <div id="testing-console" style="padding: 20px; height: 350px; overflow-y: auto; background: #05070a; font-family: 'Space Mono', monospace; font-size: 0.8rem; line-height: 1.8;">
+                    <div style="color: #444;">[SYSTEM] Initializing PRIME_AI Testing Kernel...</div>
+                    <div style="color: #444;">[SYSTEM] Handshake stable at 3000/tcp.</div>
+                    <div style="color: #444;">[SYSTEM] Waiting for user directive...</div>
+                </div>
+            </div>
+
+            <!-- Test Analytics -->
+            <div class="card glass-card" style="padding: 25px;">
+                <div class="card-title">Analysis Summary</div>
+                <div id="test-summary-content" style="margin-top: 20px;">
+                     <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i class="fas fa-microchip" style="font-size: 3rem; opacity: 0.1; margin-bottom: 15px;"></i>
+                        <p>Execute a module to generate diagnostic data.</p>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+`;
 
     // Internal Tool Description Toggle
     const select = document.getElementById('testing-tool-select');
@@ -1929,25 +1999,25 @@ function renderTestSummary(data) {
     const failCount = data.results.filter(r => r.status === 'FAIL').length;
 
     container.innerHTML = `
-        <div style="font-size: 1.2rem; font-weight: 700; color: white; margin-bottom: 15px;">${data.tool}</div>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #00ff88; font-size: 0.85rem;">Benchmarks Passed</span>
-                <span style="font-weight: 700;">${passCount}</span>
-            </div>
-             <div style="background: rgba(255, 166, 0, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #ffa600; font-size: 0.85rem;">System Warnings</span>
-                <span style="font-weight: 700;">${warnCount}</span>
-            </div>
-             <div style="background: rgba(255, 0, 85, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="color: #ff0055; font-size: 0.85rem;">Exceptions</span>
-                <span style="font-weight: 700;">${failCount}</span>
-            </div>
+    <div style="font-size: 1.2rem; font-weight: 700; color: white; margin-bottom: 15px;">${data.tool}</div>
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #00ff88; font-size: 0.85rem;">Benchmarks Passed</span>
+            <span style="font-weight: 700;">${passCount}</span>
         </div>
-        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 12px; font-size: 0.8rem; color: var(--text-muted);">
-            <strong>Recommendation:</strong> ${data.overall === 'STABLE' ? 'Infrastructure is healthy. No action required.' : 'Schedule a localized diagnostic review for warning triggers.'}
+         <div style="background: rgba(255, 166, 0, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #ffa600; font-size: 0.85rem;">System Warnings</span>
+            <span style="font-weight: 700;">${warnCount}</span>
         </div>
-    `;
+         <div style="background: rgba(255, 0, 85, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #ff0055; font-size: 0.85rem;">Exceptions</span>
+            <span style="font-weight: 700;">${failCount}</span>
+        </div>
+    </div>
+    <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 12px; font-size: 0.8rem; color: var(--text-muted);">
+        <strong>Recommendation:</strong> ${data.overall === 'STABLE' ? 'Infrastructure is healthy. No action required.' : 'Schedule a localized diagnostic review for warning triggers.'}
+    </div>
+`;
 }
 
 window.executeAutomationTest = executeAutomationTest;
@@ -1972,9 +2042,9 @@ function showToast(message, type = 'info') {
     if (type === 'warning') icon = 'exclamation-triangle';
 
     toast.innerHTML = `
-        <i class="fas fa-${icon}"></i>
-        <div class="toast-content">${message}</div>
-    `;
+    <i class="fas fa-${icon}"></i>
+    <div class="toast-content">${message}</div>
+`;
 
     container.appendChild(toast);
 
@@ -1996,109 +2066,109 @@ function renderProfile() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-        <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
-            <!-- Main Identifier -->
-            <div class="card glass-card" style="grid-column: span 2; padding: 40px; border-radius: 20px;">
-                <div style="display: flex; gap: 40px; align-items: center;">
-                    <div style="width: 120px; height: 120px; background: linear-gradient(135deg, var(--secondary), var(--primary)); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 3rem; color: white; border: 4px solid rgba(255,255,255,0.1); box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.3);">
-                        ${u.name ? u.name.substring(0, 2).toUpperCase() : 'US'}
+    <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
+        <!-- Main Identifier -->
+        <div class="card glass-card" style="grid-column: span 2; padding: 40px; border-radius: 20px;">
+            <div style="display: flex; gap: 40px; align-items: center;">
+                <div style="width: 120px; height: 120px; background: linear-gradient(135deg, var(--secondary), var(--primary)); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 3rem; color: white; border: 4px solid rgba(255,255,255,0.1); box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.3);">
+                    ${u.name ? u.name.substring(0, 2).toUpperCase() : 'US'}
+                </div>
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 5px;">
+                        <h1 style="margin: 0; font-size: 2.2rem; color: white;">${u.name || 'User'}</h1>
+                        <span class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88; border-color: #00ff88;">Verified Professional</span>
                     </div>
-                    <div style="flex: 1;">
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 5px;">
-                            <h1 style="margin: 0; font-size: 2.2rem; color: white;">${u.name || 'User'}</h1>
-                            <span class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88; border-color: #00ff88;">Verified Professional</span>
+                    <p style="color: var(--text-muted); font-size: 1.1rem; margin: 0;">${u.role || 'Enterprise Administrator'} • System Access Level 7</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px;">
+                        <div class="form-group">
+                            <label style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Verified Email Identifier</label>
+                            <input type="text" class="form-input" value="${u.email || ''}" readonly style="background: rgba(255,255,255,0.03);">
                         </div>
-                        <p style="color: var(--text-muted); font-size: 1.1rem; margin: 0;">${u.role || 'Enterprise Administrator'} • System Access Level 7</p>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 25px;">
-                            <div class="form-group">
-                                <label style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Verified Email Identifier</label>
-                                <input type="text" class="form-input" value="${u.email || ''}" readonly style="background: rgba(255,255,255,0.03);">
-                            </div>
-                            <div class="form-group">
-                                <label style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Authentication Authority</label>
-                                <input type="text" class="form-input" value="${u.provider === 'local' ? 'Internal Security Database' : u.provider}" readonly style="background: rgba(255,255,255,0.03);">
-                            </div>
+                        <div class="form-group">
+                            <label style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Authentication Authority</label>
+                            <input type="text" class="form-input" value="${u.provider === 'local' ? 'Internal Security Database' : u.provider}" readonly style="background: rgba(255,255,255,0.03);">
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Detailed Stats Area -->
-            <div class="card glass-card">
-                <div class="card-title">Account Metrics</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
-                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">142</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">Systems Managed</div>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #ff0055;">0</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">Security Breaches</div>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary);">12.4k</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">Events Audited</div>
-                    </div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #00ff88;">32ms</div>
-                        <div style="font-size: 0.7rem; color: var(--text-muted);">Avg. AI Triage</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Security Log Area -->
-             <div class="card glass-card">
-                <div class="card-title">Session Intelligence</div>
-                <div style="margin-top: 20px;">
-                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Recent Secure Access Tokens:</p>
-                    <ul style="list-style: none; padding: 0;">
-                        <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-size: 0.85rem; color: white;">Local Workstation</div>
-                                <div style="font-size: 0.7rem; color: var(--text-muted);">127.0.0.1 • Windows 11</div>
-                            </div>
-                            <span style="font-size: 0.7rem; color: #00ff88;">Active</span>
-                        </li>
-                        <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div style="font-size: 0.85rem; color: white;">Mobile Console</div>
-                                <div style="font-size: 0.7rem; color: var(--text-muted);">172.64.1.42 • iOS 17</div>
-                            </div>
-                            <span style="font-size: 0.7rem; color: var(--text-muted);">6h ago</span>
-                        </li>
-                    </ul>
-                    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-                        <button class="btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="showToast('Security configuration saved', 'success')">Enable 2FA Protection</button>
-                        <button class="btn-primary" style="width: 100%; background: transparent; border: 1px solid #ff0055; color: #ff0055; font-size: 0.9rem;" onclick="logout()">Terminate All Sessions</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Advanced Metadata -->
-            <div class="card glass-card" style="grid-column: span 2;">
-                <div class="card-title">Organizational metadata</div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 20px;">
-                    <div>
-                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Infrastructure Tier</h4>
-                        <p style="font-size: 0.95rem; color: white; margin-top: 5px;">SentinelX Enterprise Elite</p>
-                    </div>
-                    <div>
-                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">deployment Region</h4>
-                        <p style="font-size: 0.95rem; color: white; margin-top: 5px;">US-EAST-1 (Northern Virginia)</p>
-                    </div>
-                    <div>
-                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Neural Key Signature</h4>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; font-family: 'Space Mono';">SX-2025-PX-V6-992AB1-CC03</p>
-                    </div>
-                </div>
-                <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; display: flex; gap: 15px;">
-                    <button class="btn-primary" onclick="editProfile()"><i class="fas fa-edit"></i> Edit Core Identity</button>
-                    <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Exporting encryption keys...', 'info')">Export Key Bundle</button>
                 </div>
             </div>
         </div>
-        `;
+
+        <!-- Detailed Stats Area -->
+        <div class="card glass-card">
+            <div class="card-title">Account Metrics</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">142</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Systems Managed</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #ff0055;">0</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Security Breaches</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary);">12.4k</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Events Audited</div>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: #00ff88;">32ms</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">Avg. AI Triage</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Log Area -->
+         <div class="card glass-card">
+            <div class="card-title">Session Intelligence</div>
+            <div style="margin-top: 20px;">
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Recent Secure Access Tokens:</p>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 0.85rem; color: white;">Local Workstation</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">127.0.0.1 • Windows 11</div>
+                        </div>
+                        <span style="font-size: 0.7rem; color: #00ff88;">Active</span>
+                    </li>
+                    <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 0.85rem; color: white;">Mobile Console</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">172.64.1.42 • iOS 17</div>
+                        </div>
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">6h ago</span>
+                    </li>
+                </ul>
+                <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+                    <button class="btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="showToast('Security configuration saved', 'success')">Enable 2FA Protection</button>
+                    <button class="btn-primary" style="width: 100%; background: transparent; border: 1px solid #ff0055; color: #ff0055; font-size: 0.9rem;" onclick="logout()">Terminate All Sessions</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Metadata -->
+        <div class="card glass-card" style="grid-column: span 2;">
+            <div class="card-title">Organizational metadata</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 20px;">
+                <div>
+                    <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Infrastructure Tier</h4>
+                    <p style="font-size: 0.95rem; color: white; margin-top: 5px;">SentinelX Enterprise Elite</p>
+                </div>
+                <div>
+                    <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">deployment Region</h4>
+                    <p style="font-size: 0.95rem; color: white; margin-top: 5px;">US-EAST-1 (Northern Virginia)</p>
+                </div>
+                <div>
+                    <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Neural Key Signature</h4>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; font-family: 'Space Mono';">SX-2025-PX-V6-992AB1-CC03</p>
+                </div>
+            </div>
+            <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; display: flex; gap: 15px;">
+                <button class="btn-primary" onclick="editProfile()"><i class="fas fa-edit"></i> Edit Core Identity</button>
+                <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Exporting encryption keys...', 'info')">Export Key Bundle</button>
+            </div>
+        </div>
+    </div>
+    `;
     view.setAttribute('data-rendered', 'true');
 }
 
@@ -2193,50 +2263,93 @@ window.showToast = showToast;
 window.toggleChat = toggleChat;
 window.sendChat = sendChat;
 window.handleChatKey = handleChatKey;
-window.toggleNotifications = () => {
-    if (!state.notificationsEnabled) {
-        showToast("Notifications are currently disabled in settings.", "warning");
-        return;
+// --- Theme Management ---
+window.toggleTheme = () => {
+    // 1. Toggle State
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+
+    // 2. Apply to DOM
+    document.documentElement.setAttribute('data-theme', state.theme);
+    localStorage.setItem('theme', state.theme);
+
+    // 3. Update Icon immediateley
+    const themeBtnIcon = document.querySelector('[onclick="toggleTheme()"] i');
+    if (themeBtnIcon) {
+        themeBtnIcon.className = state.theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+        // Add a small animation effect
+        themeBtnIcon.style.transform = 'rotate(360deg)';
+        setTimeout(() => themeBtnIcon.style.transform = 'none', 400);
     }
-    showToast("System notifications are healthy.", "success");
+
+    // 4. Feedback
+    showToast(`Theme switched to ${state.theme.toUpperCase()}`, "info");
 };
 
-function toggleSystemNotifications(el) {
-    el.classList.toggle('active');
-    state.notificationsEnabled = el.classList.contains('active');
+// --- Notification Management ---
+window.toggleNotifications = () => {
+    // 1. Toggle State
+    state.notificationsEnabled = !state.notificationsEnabled;
     localStorage.setItem('notificationsEnabled', state.notificationsEnabled);
-    showToast(`Notifications ${state.notificationsEnabled ? 'Enabled' : 'Disabled'}`, "info");
-}
-window.toggleSystemNotifications = toggleSystemNotifications;
+
+    // 2. Update Icon Visuals
+    const notifBtn = document.querySelector('[onclick="toggleNotifications()"]');
+    const icon = notifBtn ? notifBtn.querySelector('i') : null;
+
+    if (notifBtn && icon) {
+        if (state.notificationsEnabled) {
+            icon.className = 'fas fa-bell';
+            notifBtn.style.opacity = '1';
+            showToast("System notifications enabled.", "success");
+        } else {
+            icon.className = 'fas fa-bell-slash';
+            notifBtn.style.opacity = '0.5';
+            showToast("System notifications disabled.", "warning");
+        }
+    }
+};
+
+// Remove old duplicate function if it exists
+window.toggleSystemNotifications = window.toggleNotifications;
+
 window.optimizeSystem = optimizeSystem;
 
 // --- Cache Cleaner Utility ---
 async function purgeCache() {
     const btn = document.getElementById('purge-btn');
-    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    if (btn) {
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = 'fas fa-spinner fa-spin';
+    }
 
     showToast("Purging system caches...", "info");
 
     try {
         const res = await fetch('/api/maintenance/clear-cache', { method: 'POST' });
+
+        if (!res.ok) throw new Error('Network response was not ok');
+
         const data = await res.json();
 
         if (data.status === 'Success') {
-            showToast(`Clear Complete: ${data.details.diskSpaceFreed} freed.`, "success");
+            // The backend returns details.diskSpaceFreed string (e.g., "15.20 MB")
+            const freed = data.details?.diskSpaceFreed || '0 KB';
+            showToast(`Cache Cleared: ${freed} freed`, "success");
         } else {
-            showToast("Failed to clear some caches.", "error");
+            showToast("Maintenance completed with some warnings.", "warning");
         }
     } catch (e) {
-        showToast("Server unreachable for maintenance.", "error");
+        console.error("Purge Error:", e);
+        showToast("Failed to connect to maintenance service.", "error");
     } finally {
-        if (btn) btn.innerHTML = '<i class="fas fa-broom"></i>';
+        if (btn) {
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = 'fas fa-broom';
+        }
     }
 }
 window.purgeCache = purgeCache;
 
 // --- Report Generation Logic ---
-
-let currentReportType = null;
 
 function openDownloadModal(type) {
     currentReportType = type;
@@ -2254,21 +2367,21 @@ function openDownloadModal(type) {
     if (type === 'security') {
         desc.innerText = "Select format for Security Audit (PDF Optimized):";
         actions.innerHTML = `
-            <button class="btn-pdf" onclick="generateReport('pdf')">
-                <i class="fas fa-file-pdf"></i> PDF Document
-            </button>
-        `;
+        <button class="btn-pdf" onclick="generateReport('pdf')">
+            <i class="fas fa-file-pdf"></i> PDF Document
+        </button>
+    `;
     } else {
         const reportName = type === 'availability' ? 'Weekly Availability' : 'Performance Trends';
         desc.innerText = `Select export format for ${reportName}:`;
         actions.innerHTML = `
-            <button class="btn-excel" onclick="generateReport('excel')">
-                <i class="fas fa-file-excel"></i> Excel Spreadsheet
-            </button>
-            <button class="btn-pdf" onclick="generateReport('pdf')">
-                <i class="fas fa-file-pdf"></i> PDF Document
-            </button>
-        `;
+        <button class="btn-excel" onclick="generateReport('excel')">
+            <i class="fas fa-file-excel"></i> Excel Spreadsheet
+        </button>
+        <button class="btn-pdf" onclick="generateReport('pdf')">
+            <i class="fas fa-file-pdf"></i> PDF Document
+        </button>
+    `;
     }
 
     modal.style.display = 'flex';
@@ -2280,7 +2393,39 @@ function closeDownloadModal() {
 }
 window.closeDownloadModal = closeDownloadModal;
 window.openDownloadModal = openDownloadModal;
-window.generateReport = generateReport; // Expose to window
+// --- Profile Menu Logic ---
+function toggleProfileMenu(e) {
+    if (e) e.stopPropagation();
+    const dropdown = document.getElementById('profile-dropdown');
+    const chevron = document.getElementById('profile-chevron');
+
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+        if (chevron) {
+            chevron.style.transform = dropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('profile-dropdown');
+    const profileTrigger = document.querySelector('.user-profile');
+
+    if (dropdown && dropdown.classList.contains('show')) {
+        if (!processClick(e, profileTrigger) && !processClick(e, dropdown)) {
+            dropdown.classList.remove('show');
+            const chevron = document.getElementById('profile-chevron');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+});
+
+function processClick(e, el) {
+    return el && (el === e.target || el.contains(e.target));
+}
+
+window.toggleProfileMenu = toggleProfileMenu;
 
 async function generateReportDirect(type, format) {
     currentReportType = type;
@@ -2378,15 +2523,15 @@ function generatePDF(title, data, type) {
             head: head,
             body: body,
             theme: 'grid',
-            styles: { fontSize: 10, cellPadding: 3 },
-            headStyles: { fillColor: [70, 0, 255] }
+            styles: { fontSize: 10, cellPadding: 3, textColor: [255, 255, 255], fillColor: [20, 20, 25] },
+            headStyles: { fillColor: [0, 212, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
+            alternateRowStyles: { fillColor: [30, 30, 35] }
         });
         doc.save(`${type}_report_${Date.now()}.pdf`);
-        showToast("PDF Downloaded", "success");
+        showToast("PDF Downloaded Successfully", "success");
     } else {
-        console.warn("AutoTable plugin missing. Trying workaround...");
-        // Fallback or explicit check
-        showToast("PDF Plugin missing (AutoTable).", "error");
+        console.warn("AutoTable plugin missing.");
+        showToast("PDF Plugin Error (AutoTable missing).", "error");
     }
 }
 
@@ -2397,27 +2542,38 @@ function generateExcel(title, data, type) {
     }
 
     const { utils, writeFile } = window.XLSX;
+
+    // Create Worksheet
+    const wb = utils.book_new();
     let ws_data = [];
 
-    // Header
+    // Header Info
     ws_data.push([title]);
-    ws_data.push([`Generated: ${new Date().toLocaleString()} `]);
+    ws_data.push([`Generated: ${new Date().toLocaleString()}`]);
     ws_data.push([]); // Empty row
 
+    // Data Mapping
     if (type === 'availability') {
-        ws_data.push(['Hostname', 'IP', 'Region', 'Status', 'Load (%)']);
+        ws_data.push(['Hostname', 'IP Address', 'Region', 'Status', 'Load (%)']);
         data.forEach(d => ws_data.push([d.hostname, d.ipAddress, d.region, d.status, d.load]));
     } else if (type === 'performance') {
-        ws_data.push(['Time', 'CPU (%)', 'Mem (%)', 'Net Traffic']);
-        data.forEach(d => ws_data.push([new Date(d.createdAt || d.timestamp).toLocaleTimeString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]));
+        ws_data.push(['Timestamp', 'CPU Load (%)', 'Memory Usage (%)', 'Network Traffic (KB/s)']);
+        data.forEach(d => ws_data.push([
+            new Date(d.createdAt || d.timestamp).toLocaleString(),
+            d.cpuLoad,
+            d.memoryUsage,
+            d.networkTraffic
+        ]));
+    } else {
+        // Generic Fallback
+        ws_data.push(['Data Export']);
+        data.forEach(d => ws_data.push([JSON.stringify(d)]));
     }
-    // Security not needed for Excel per logic
 
-    const wb = utils.book_new();
     const ws = utils.aoa_to_sheet(ws_data);
     utils.book_append_sheet(wb, ws, "Report");
     writeFile(wb, `${type}_report_${Date.now()}.xlsx`);
-    showToast("Excel Downloaded", "success");
+    showToast("Excel Downloaded Successfully", "success");
 }
 
 function renderBotProfile() {
@@ -2425,52 +2581,52 @@ function renderBotProfile() {
     if (view.getAttribute('data-rendered') === 'true' && view.innerHTML !== '') return;
 
     view.innerHTML = `
-        <div class="bot-profile-container fade-in">
-            <div class="profile-header glass-card" style="padding: 60px 40px; text-align: center; margin-bottom: 30px; border-radius: 24px; position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
-                <img src="img/autobot_logo.png" style="width: 120px; height: 120px; margin: 0 auto 20px auto; display: block; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.3));">
-                <h1 style="font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><span class="font-transformers">PRIME_AI</span> v6.5</h1>
-                <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Tier-1 Sovereign Intelligence Core. Optimized for infrastructure integrity and autonomous threat elimination.</p>
-                <div style="margin-top: 25px;">
-                    <span class="stat-pill" style="background: rgba(0, 242, 255, 0.1); color: var(--primary);">NEURAL MATRIX: SYNCHRONIZED</span>
-                </div>
-            </div>
-
-            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
-                <div class="card glass-card" style="padding: 25px;">
-                    <h3 style="margin-bottom: 20px; color: var(--primary);"><i class="fas fa-microchip"></i> Physical Hardware</h3>
-                    <div style="display: flex; flex-direction: column; gap: 15px;">
-                        <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
-                            <span style="color: var(--text-muted);">Processing Power:</span>
-                            <span style="color: #fff;">1.2 PB/s (Cluster 9)</span>
-                        </div>
-                        <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
-                            <span style="color: var(--text-muted);">Neural Weights:</span>
-                            <span style="color: #fff;">180 Billion (Quantized)</span>
-                        </div>
-                        <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
-                            <span style="color: var(--text-muted);">Response Latency:</span>
-                            <span style="color: #00ff88;">< 0.4ms</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card glass-card" style="padding: 25px;">
-                    <h3 style="margin-bottom: 20px; color: var(--secondary);"><i class="fas fa-shield-alt"></i> Intelligence Guardrails</h3>
-                    <ul style="color: var(--text-muted); padding-left: 20px; font-size: 0.9rem; line-height: 1.8;">
-                        <li>Sovereign Infrastructure Protection</li>
-                        <li>Autonomous Protocol Lockdown</li>
-                        <li>Zero-Trust Identity Validation</li>
-                        <li>Sub-Surface Neural Filtering</li>
-                    </ul>
-                </div>
-
-                <div class="card glass-card" style="padding: 25px;">
-                    <h3 style="margin-bottom: 20px; color: #ffcc00;"><i class="fas fa-brain"></i> Active Directives</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Currently monitoring <strong>Global Node Signature 12-B</strong> and optimizing regional packet flow for Europe-A Cluster.</p>
-                </div>
+    <div class="bot-profile-container fade-in">
+        <div class="profile-header glass-card" style="padding: 60px 40px; text-align: center; margin-bottom: 30px; border-radius: 24px; position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
+            <img src="img/autobot_logo.png" style="width: 120px; height: 120px; margin: 0 auto 20px auto; display: block; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.3));">
+            <h1 style="font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><span class="font-transformers">PRIME_AI</span> v6.5</h1>
+            <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Tier-1 Sovereign Intelligence Core. Optimized for infrastructure integrity and autonomous threat elimination.</p>
+            <div style="margin-top: 25px;">
+                <span class="stat-pill" style="background: rgba(0, 242, 255, 0.1); color: var(--primary);">NEURAL MATRIX: SYNCHRONIZED</span>
             </div>
         </div>
-    `;
+
+        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
+            <div class="card glass-card" style="padding: 25px;">
+                <h3 style="margin-bottom: 20px; color: var(--primary);" class="font-transformers"><i class="fas fa-microchip"></i> Physical Hardware</h3>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
+                        <span style="color: var(--text-muted);">Processing Power:</span>
+                        <span style="color: #fff;">1.2 PB/s (Cluster 9)</span>
+                    </div>
+                    <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
+                        <span style="color: var(--text-muted);">Neural Weights:</span>
+                        <span style="color: #fff;">180 Billion (Quantized)</span>
+                    </div>
+                    <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
+                        <span style="color: var(--text-muted);">Response Latency:</span>
+                        <span style="color: #00ff88;">< 0.4ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card glass-card" style="padding: 25px;">
+                <h3 style="margin-bottom: 20px; color: var(--secondary);" class="font-transformers"><i class="fas fa-shield-alt"></i> Intelligence Guardrails</h3>
+                <ul style="color: var(--text-muted); padding-left: 20px; font-size: 0.9rem; line-height: 1.8;">
+                    <li>Sovereign Infrastructure Protection</li>
+                    <li>Autonomous Protocol Lockdown</li>
+                    <li>Zero-Trust Identity Validation</li>
+                    <li>Sub-Surface Neural Filtering</li>
+                </ul>
+            </div>
+
+            <div class="card glass-card" style="padding: 25px;">
+                <h3 style="margin-bottom: 20px; color: #ffcc00;" class="font-transformers"><i class="fas fa-brain"></i> Active Directives</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Currently monitoring <strong>Global Node Signature 12-B</strong> and optimizing regional packet flow for Europe-A Cluster.</p>
+            </div>
+        </div>
+    </div>
+`;
     view.setAttribute('data-rendered', 'true');
 }

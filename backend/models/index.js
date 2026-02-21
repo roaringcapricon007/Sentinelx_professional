@@ -24,7 +24,7 @@ const SystemMetric = sequelize.define('SystemMetric', {
 
 // --- Log Entry Model (For Log Analysis History) ---
 const LogEntry = sequelize.define('LogEntry', {
-    severity: { type: DataTypes.ENUM('low', 'medium', 'high', 'critical') },
+    severity: { type: DataTypes.STRING },
     device: { type: DataTypes.STRING },
     message: { type: DataTypes.TEXT },
     suggestion: { type: DataTypes.TEXT },

@@ -103,6 +103,18 @@ sequelize.sync({ force: false }).then(async () => {
     console.log('Infrastructure servers seeded');
   }
 
+  // Seed Logs for Audit Vault
+  const logCount = await LogEntry.count();
+  if (logCount === 0) {
+    await LogEntry.bulkCreate([
+      { device: 'Firewall-01', severity: 'WARN', message: 'Port 22 attempted access from 192.168.1.105', suggestion: 'Ban IP', timestamp: new Date() },
+      { device: 'Auth-Server', severity: 'ERROR', message: 'Multiple failed login attempts for root', suggestion: 'Lock account', timestamp: new Date(Date.now() - 86400000) },
+      { device: 'Web-Gateway', severity: 'INFO', message: 'SSL Certificate renewed', suggestion: 'None', timestamp: new Date(Date.now() - 172800000) },
+      { device: 'Database-Cluster', severity: 'WARN', message: 'Slow query detected on UserTable', suggestion: 'Optimize Index', timestamp: new Date(Date.now() - 259200000) }
+    ]);
+    console.log('Audit logs seeded');
+  }
+
 
   // --- Real-time Metrics Emitter (v5.0) ---
   const si = require('systeminformation');
