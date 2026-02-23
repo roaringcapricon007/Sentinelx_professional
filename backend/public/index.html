@@ -225,16 +225,15 @@
       <header class="topbar">
         <div class="page-title" id="page-title">System Overview</div>
         <div class="user-actions">
-          <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+          <button class="icon-btn" id="theme-toggle-btn" title="Toggle Theme">
             <i class="fas fa-moon"></i>
           </button>
-          <button class="icon-btn danger-btn" onclick="purgeCache()" title="Clear System Cache" id="purge-btn">
+          <button class="icon-btn danger-btn" id="cache-clear-btn" title="Clear System Cache">
             <i class="fas fa-broom"></i>
           </button>
-          <button class="icon-btn" onclick="toggleNotifications()">
-
+          <button class="icon-btn" id="notif-toggle-btn">
             <i class="fas fa-bell"></i>
-            <div class="badge"></div>
+            <div class="badge" id="notif-badge"></div>
           </button>
           <div class="profile-wrapper" style="position: relative;">
             <div class="user-profile" onclick="toggleProfileMenu()">

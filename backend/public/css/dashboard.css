@@ -209,6 +209,15 @@
     border-radius: 50%;
 }
 
+.icon-btn.muted {
+    opacity: 0.4;
+}
+
+.icon-btn.muted i {
+    color: var(--text-muted);
+}
+
+
 .user-profile {
     display: flex;
     align-items: center;
