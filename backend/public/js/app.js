@@ -432,6 +432,9 @@ function switchTab(tab) {
     } else if (tab === 'botprofile') {
         if (pageTitle) pageTitle.innerText = 'PRIME_AI Profile';
         renderBotProfile();
+    } else if (tab === 'powerbi') {
+        if (pageTitle) pageTitle.innerText = 'PowerBI Intelligence';
+        renderPowerBI();
     }
 }
 
@@ -1593,6 +1596,238 @@ function renderReports() {
     </div>
     `;
     view.setAttribute('data-rendered', 'true');
+}
+
+function renderPowerBI() {
+    const view = showView('powerbi-view');
+
+    if (view.getAttribute('data-rendered') === 'true') return;
+
+    view.innerHTML = `
+    <div class="powerbi-container fade-in">
+        <!-- PowerBI Ribbon -->
+        <div class="pbi-header">
+            <div class="pbi-logo">
+                <i class="fas fa-chart-bar"></i>
+                <span>Power BI Dashboard</span>
+            </div>
+            <div class="pbi-tabs">
+                <div class="pbi-tab active">Overview</div>
+                <div class="pbi-tab">Resource Details</div>
+                <div class="pbi-tab">Security Trends</div>
+            </div>
+        </div>
+
+        <!-- PowerBI Body -->
+        <div class="pbi-body">
+            <!-- Slicer Pane -->
+            <aside class="pbi-slicers">
+                <div class="slicer-group">
+                    <label>Time Range</label>
+                    <select class="pbi-select">
+                        <option>Last 24 Hours</option>
+                        <option>Last 7 Days</option>
+                        <option>Last 30 Days</option>
+                    </select>
+                </div>
+                <div class="slicer-group">
+                    <label>Device Type</label>
+                    <div class="pbi-checkbox"><label><input type="checkbox" checked> <span>Servers</span></label></div>
+                    <div class="pbi-checkbox"><label><input type="checkbox" checked> <span>Firewalls</span></label></div>
+                    <div class="pbi-checkbox"><label><input type="checkbox" checked> <span>Switches</span></label></div>
+                </div>
+                <div class="slicer-group">
+                    <label>Region</label>
+                    <select class="pbi-select">
+                        <option>All Regions</option>
+                        <option>Global-Edge-1</option>
+                        <option>Local-Net-0</option>
+                    </select>
+                </div>
+            </aside>
+
+            <!-- Report Canvas -->
+            <main class="pbi-canvas">
+                <div class="pbi-grid">
+                    <!-- KPI Cards -->
+                    <div class="pbi-card kpi">
+                        <div class="pbi-kpi-val">99.9%</div>
+                        <div class="pbi-kpi-label">Availability Avg.</div>
+                    </div>
+                    <div class="pbi-card kpi">
+                        <div class="pbi-kpi-val">1.2ms</div>
+                        <div class="pbi-kpi-label">Latency Median</div>
+                    </div>
+                    <div class="pbi-card kpi">
+                        <div class="pbi-kpi-val">24</div>
+                        <div class="pbi-kpi-label">Critical Alerts</div>
+                    </div>
+                    <div class="pbi-card kpi">
+                        <div class="pbi-kpi-val">4.5TB</div>
+                        <div class="pbi-kpi-label">Data Ingress</div>
+                    </div>
+
+                    <!-- Main Charts -->
+                    <div class="pbi-card chart large" style="grid-column: span 3; grid-row: span 2;">
+                        <div class="pbi-card-header">Infrastructure Performance Over Time</div>
+                        <div class="pbi-chart-wrapper">
+                            <canvas id="pbi-line-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="pbi-card chart" style="grid-column: span 1; grid-row: span 2;">
+                        <div class="pbi-card-header">Device Status Distribution</div>
+                        <div class="pbi-chart-wrapper">
+                            <canvas id="pbi-doughnut-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="pbi-card chart" style="grid-column: span 2; grid-row: span 2;">
+                        <div class="pbi-card-header">Security Threat Categories (Funnel)</div>
+                        <div class="pbi-chart-wrapper">
+                             <canvas id="pbi-bar-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="pbi-card chart" style="grid-column: span 2; grid-row: span 2;">
+                        <div class="pbi-card-header">Resource Utilization by Region</div>
+                        <div class="pbi-chart-wrapper">
+                              <canvas id="pbi-radar-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    `;
+
+    view.setAttribute('data-rendered', 'true');
+
+    // Initialize Charts with PowerBI styling
+    setTimeout(() => {
+        initPowerBICharts();
+    }, 100);
+}
+
+function initPowerBICharts() {
+    if (typeof Chart === 'undefined') return;
+
+    const pbiTheme = {
+        colors: ['#118DFF', '#12239E', '#E66C37', '#6B007B', '#E044A7', '#744EC2', '#D9B300', '#D64550'],
+        font: 'Outfit'
+    };
+
+    // 1. Line Chart
+    new Chart(document.getElementById('pbi-line-chart'), {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'System Load',
+                data: [45, 52, 48, 70, 65, 40, 38],
+                borderColor: pbiTheme.colors[0],
+                backgroundColor: 'rgba(17, 141, 255, 0.1)',
+                fill: true,
+                tension: 0.3
+            }, {
+                label: 'Network Traffic',
+                data: [30, 35, 32, 50, 48, 28, 25],
+                borderColor: pbiTheme.colors[2],
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top', labels: { color: '#ccc', font: { family: pbiTheme.font } } }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#888' } },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } }
+            }
+        }
+    });
+
+    // 2. Doughnut Chart
+    new Chart(document.getElementById('pbi-doughnut-chart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Online', 'Offline', 'Warning', 'Maintenance'],
+            datasets: [{
+                data: [65, 10, 15, 10],
+                backgroundColor: pbiTheme.colors.slice(0, 4),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '70%',
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#ccc', boxWidth: 10, font: { family: pbiTheme.font } } }
+            }
+        }
+    });
+
+    // 3. Horizontal Bar Chart (Funnel effect)
+    new Chart(document.getElementById('pbi-bar-chart'), {
+        type: 'bar',
+        data: {
+            labels: ['Malware', 'SQL Injection', 'DDoS', 'Brute Force', 'Phishing'],
+            datasets: [{
+                label: 'Interception Count',
+                data: [1200, 950, 780, 540, 320],
+                backgroundColor: pbiTheme.colors[1],
+                borderRadius: 5
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                y: { grid: { display: false }, ticks: { color: '#888' } }
+            }
+        }
+    });
+
+    // 4. Radar Chart
+    new Chart(document.getElementById('pbi-radar-chart'), {
+        type: 'radar',
+        data: {
+            labels: ['CPU', 'Memory', 'Disk', 'Network', 'IOPS', 'Temp'],
+            datasets: [{
+                label: 'Global-Edge-1',
+                data: [85, 70, 60, 90, 75, 55],
+                borderColor: pbiTheme.colors[4],
+                backgroundColor: 'rgba(224, 68, 167, 0.2)'
+            }, {
+                label: 'Local-Net-0',
+                data: [40, 50, 80, 30, 45, 40],
+                borderColor: pbiTheme.colors[5],
+                backgroundColor: 'rgba(116, 78, 194, 0.2)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { color: 'rgba(255,255,255,0.1)' },
+                    grid: { color: 'rgba(255,255,255,0.1)' },
+                    pointLabels: { color: '#ccc' },
+                    ticks: { display: false }
+                }
+            }
+        }
+    });
 }
 
 function renderPulse() {
