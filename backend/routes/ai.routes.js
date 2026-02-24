@@ -1,10 +1,11 @@
 const router = require('express').Router();
+const { authorize } = require('../middleware/auth.middleware');
 // Native fetch is available in Node 18+
 
 // Proxy to Python Service
 const PYTHON_URL = 'http://127.0.0.1:5001';
 
-router.get('/pulse', async (req, res) => {
+router.get('/pulse', authorize(['super_admin', 'admin', 'analyst', 'viewer']), async (req, res) => {
     try {
         const response = await fetch(`${PYTHON_URL}/security/pulse`);
         const data = await response.json();
@@ -22,7 +23,7 @@ router.get('/pulse', async (req, res) => {
     }
 });
 
-router.post('/train', async (req, res) => {
+router.post('/train', authorize(['super_admin']), async (req, res) => {
     try {
         const response = await fetch(`${PYTHON_URL}/ai/train`, { method: 'POST' });
         const data = await response.json();
@@ -32,7 +33,7 @@ router.post('/train', async (req, res) => {
     }
 });
 
-router.post('/sync', async (req, res) => {
+router.post('/sync', authorize(['super_admin']), async (req, res) => {
     try {
         const response = await fetch(`${PYTHON_URL}/ai/sync`, { method: 'POST' });
         const data = await response.json();

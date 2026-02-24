@@ -71,23 +71,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 sequelize.sync({ force: false }).then(async () => {
   console.log('Database connected and synced');
 
-  // Seed Admin if not exists
-  const adminEmail = 'Admin@senitnelX.com';
-  const adminPassword = 'SentinelXadmin007';
+  // --- ENTERPRISE ROLE SEEDING ---
+  const roles = [
+    { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' },
+    { name: 'Administrator', role: 'admin', email: 'Admin@SentinelX.com', pass: '12345Admin!' },
+    { name: 'Security Analyst', role: 'analyst', email: 'Analyst@SentinelX.com', pass: '12345Analyst!' },
+    { name: 'System Operator', role: 'operator', email: 'Operator@SentinelX.com', pass: '12345Operator!' },
+    { name: 'Guest Viewer', role: 'viewer', email: 'Viewer@SentinelX.com', pass: '12345Viewer!' }
+  ];
 
-  const adminCount = await User.count({ where: { email: adminEmail } });
-  if (adminCount === 0) {
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(adminPassword, 4);
-
-    await User.create({
-      name: 'SentinelX Admin',
-      email: adminEmail,
-      password: hashedPassword,
-      role: 'Super Admin',
-      provider: 'local'
-    });
-    console.log('Admin user seeded with requested credentials');
+  const bcrypt = require('bcryptjs');
+  for (const r of roles) {
+    const exists = await User.count({ where: { email: r.email } });
+    if (exists === 0) {
+      const hashedPassword = await bcrypt.hash(r.pass, 4);
+      await User.create({
+        name: r.name,
+        email: r.email,
+        password: hashedPassword,
+        role: r.role,
+        provider: 'local'
+      });
+      console.log(`Seeded user: ${r.email} [${r.role}]`);
+    }
   }
 
 

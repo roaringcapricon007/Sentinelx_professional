@@ -1,12 +1,12 @@
 const router = require('express').Router();
 const multer = require('multer');
 const fs = require('fs');
-
 const upload = multer({ dest: 'uploads/' });
+const { authorize } = require('../middleware/auth.middleware');
 
 // POST /api/analysis/upload
 // Proxies to Python NLP Engine for Professional Analysis
-router.post('/upload', upload.single('log'), async (req, res) => {
+router.post('/upload', upload.single('log'), authorize(['super_admin', 'admin', 'analyst']), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 

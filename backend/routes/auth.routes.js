@@ -157,17 +157,7 @@ router.post('/login', async (req, res) => {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-        const adminEmail = 'Admin@senitnelX.com';
-        const adminPass = 'SentinelXadmin007';
-
-        // 1. Check for Admin Override (Exact Match)
-        if (email === adminEmail && password === adminPass) {
-            const admin = await User.findOne({ where: { email: adminEmail } });
-            req.session.user = { id: admin.id, name: admin.name, email: admin.email, role: admin.role };
-            return res.json({ message: 'Admin Login successful', user: req.session.user });
-        }
-
-        // 2. Client Flow
+        // 1. Authenticate via DB (Real Security)
         let user = await User.findOne({ where: { email } });
 
         if (!user) {

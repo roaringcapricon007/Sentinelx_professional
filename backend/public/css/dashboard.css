@@ -748,14 +748,16 @@
 .profile-dropdown {
     position: absolute;
     top: 100%;
-    right: 0;
+    right: -15px;
+    /* Moved to the right */
     width: 280px;
     background: #0a0e14;
     /* Solid dark background */
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    margin-top: 15px;
+    margin-top: 25px;
+    /* Moved down */
     overflow: hidden;
     opacity: 0;
     pointer-events: none;

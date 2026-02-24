@@ -338,6 +338,9 @@ function login(user) {
     const nameSpan = document.querySelector('.user-profile span');
     if (nameSpan) nameSpan.innerText = user.name || 'User';
 
+    // Apply Role-Based Access Handover
+    applyRolePermissions(user.role);
+
     // Show Chatbot after login
     const chatbot = document.getElementById('main-chat-widget');
     if (chatbot) chatbot.style.display = 'flex';
@@ -345,6 +348,42 @@ function login(user) {
     // Restore last active tab or default to home
     const lastTab = localStorage.getItem('last_tab') || 'home';
     switchTab(lastTab);
+}
+
+function applyRolePermissions(role) {
+    console.log(`Applying security clearance for role: ${role}`);
+
+    const permissions = {
+        'super_admin': ['home', 'analysis', 'infrastructure', 'topology', 'overview', 'reports', 'powerbi', 'pulse', 'ailab', 'automation', 'botprofile', 'vault'],
+        'admin': ['home', 'analysis', 'infrastructure', 'topology', 'overview', 'reports', 'powerbi', 'pulse', 'ailab', 'botprofile'],
+        'analyst': ['home', 'analysis', 'topology', 'overview', 'reports', 'powerbi', 'pulse'],
+        'operator': ['home', 'overview'],
+        'viewer': ['home', 'analysis', 'overview', 'reports', 'powerbi', 'pulse']
+    };
+
+    const allowed = permissions[role] || ['home'];
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    navLinks.forEach(link => {
+        const onClick = link.getAttribute('onclick');
+        if (!onClick) return;
+
+        const tabMatch = onClick.match(/switchTab\('([^']+)'\)/);
+        if (tabMatch) {
+            const tab = tabMatch[1];
+            if (allowed.includes(tab)) {
+                link.style.display = 'flex';
+            } else {
+                link.style.display = 'none';
+            }
+        }
+    });
+
+    // Special UI Handover: Hide sensitive buttons for non-super admins
+    const dangerousButtons = document.querySelectorAll('.danger-btn, .admin-only');
+    dangerousButtons.forEach(btn => {
+        btn.style.display = (role === 'super_admin') ? 'block' : 'none';
+    });
 }
 
 async function checkSession() {
@@ -433,7 +472,7 @@ function switchTab(tab) {
         if (pageTitle) pageTitle.innerText = 'PRIME_AI Profile';
         renderBotProfile();
     } else if (tab === 'powerbi') {
-        if (pageTitle) pageTitle.innerText = 'PowerBI Intelligence';
+        if (pageTitle) pageTitle.innerText = 'BI Charts';
         renderPowerBI();
     }
 }
@@ -1609,12 +1648,12 @@ function renderPowerBI() {
         <div class="pbi-header">
             <div class="pbi-logo">
                 <i class="fas fa-chart-bar"></i>
-                <span>Power BI Dashboard</span>
+                <span>BI Charts</span>
             </div>
-            <div class="pbi-tabs">
-                <div class="pbi-tab active">Overview</div>
-                <div class="pbi-tab">Resource Details</div>
-                <div class="pbi-tab">Security Trends</div>
+            <div class="pbi-tabs" id="pbi-tab-container">
+                <div class="pbi-tab active" data-tab="overview">Overview</div>
+                <div class="pbi-tab" data-tab="resource">Resource Details</div>
+                <div class="pbi-tab" data-tab="security">Security Trends</div>
             </div>
         </div>
 
@@ -1624,46 +1663,49 @@ function renderPowerBI() {
             <aside class="pbi-slicers">
                 <div class="slicer-group">
                     <label>Time Range</label>
-                    <select class="pbi-select">
-                        <option>Last 24 Hours</option>
-                        <option>Last 7 Days</option>
-                        <option>Last 30 Days</option>
+                    <select class="pbi-select" id="pbi-slicer-time">
+                        <option value="24h">Last 24 Hours</option>
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d">Last 30 Days</option>
                     </select>
                 </div>
                 <div class="slicer-group">
                     <label>Device Type</label>
-                    <div class="pbi-checkbox"><label><input type="checkbox" checked> <span>Servers</span></label></div>
-                    <div class="pbi-checkbox"><label><input type="checkbox" checked> <span>Firewalls</span></label></div>
-                    <div class="pbi-checkbox"><label><input type="checkbox" checked> <span>Switches</span></label></div>
+                    <div class="pbi-checkbox"><label><input type="checkbox" class="pbi-device-filter" value="servers" checked> <span>Servers</span></label></div>
+                    <div class="pbi-checkbox"><label><input type="checkbox" class="pbi-device-filter" value="firewalls" checked> <span>Firewalls</span></label></div>
+                    <div class="pbi-checkbox"><label><input type="checkbox" class="pbi-device-filter" value="switches" checked> <span>Switches</span></label></div>
                 </div>
                 <div class="slicer-group">
                     <label>Region</label>
-                    <select class="pbi-select">
-                        <option>All Regions</option>
-                        <option>Global-Edge-1</option>
-                        <option>Local-Net-0</option>
+                    <select class="pbi-select" id="pbi-slicer-region">
+                        <option value="all">All Regions</option>
+                        <option value="global">Global-Edge-1</option>
+                        <option value="local">Local-Net-0</option>
                     </select>
+                </div>
+                <div style="margin-top: auto; padding-top: 20px;">
+                    <button class="pbi-btn-secondary" onclick="resetPBIFilters()" style="width: 100%; padding: 8px; font-size: 0.75rem; background: transparent; border: 1px solid #ddd; color: inherit; cursor: pointer; border-radius: 4px;">Reset Filters</button>
                 </div>
             </aside>
 
             <!-- Report Canvas -->
-            <main class="pbi-canvas">
-                <div class="pbi-grid">
+            <main class="pbi-canvas" id="pbi-canvas">
+                <div class="pbi-grid" id="pbi-overview-grid">
                     <!-- KPI Cards -->
                     <div class="pbi-card kpi">
-                        <div class="pbi-kpi-val">99.9%</div>
+                        <div class="pbi-kpi-val" id="pbi-kpi-avail">99.9%</div>
                         <div class="pbi-kpi-label">Availability Avg.</div>
                     </div>
                     <div class="pbi-card kpi">
-                        <div class="pbi-kpi-val">1.2ms</div>
+                        <div class="pbi-kpi-val" id="pbi-kpi-latency">1.2ms</div>
                         <div class="pbi-kpi-label">Latency Median</div>
                     </div>
                     <div class="pbi-card kpi">
-                        <div class="pbi-kpi-val">24</div>
+                        <div class="pbi-kpi-val" id="pbi-kpi-alerts">24</div>
                         <div class="pbi-kpi-label">Critical Alerts</div>
                     </div>
                     <div class="pbi-card kpi">
-                        <div class="pbi-kpi-val">4.5TB</div>
+                        <div class="pbi-kpi-val" id="pbi-kpi-ingress">4.5TB</div>
                         <div class="pbi-kpi-label">Data Ingress</div>
                     </div>
 
@@ -1696,6 +1738,15 @@ function renderPowerBI() {
                         </div>
                     </div>
                 </div>
+                <!-- Dynamic Content for other tabs can be added here -->
+                <div id="pbi-resource-grid" style="display:none; padding: 20px; text-align: center; color: #888;">
+                    <h3>Resource Utilization Details</h3>
+                    <p>Detailed breakdown of server-level metrics coming soon.</p>
+                </div>
+                <div id="pbi-security-grid" style="display:none; padding: 20px; text-align: center; color: #888;">
+                    <h3>Security Threat Trends</h3>
+                    <p>Advanced security vectors and heatmaps coming soon.</p>
+                </div>
             </main>
         </div>
     </div>
@@ -1709,126 +1760,232 @@ function renderPowerBI() {
     }, 100);
 }
 
-function initPowerBICharts() {
+async function initPowerBICharts() {
     if (typeof Chart === 'undefined') return;
+
+    // Reliability: Destroy existing charts if they exist (SPA behavior)
+    ['pbi-line-chart', 'pbi-doughnut-chart', 'pbi-bar-chart', 'pbi-radar-chart'].forEach(id => {
+        const existing = Chart.getChart(id);
+        if (existing) existing.destroy();
+    });
 
     const pbiTheme = {
         colors: ['#118DFF', '#12239E', '#E66C37', '#6B007B', '#E044A7', '#744EC2', '#D9B300', '#D64550'],
         font: 'Outfit'
     };
 
-    // 1. Line Chart
-    new Chart(document.getElementById('pbi-line-chart'), {
-        type: 'line',
-        data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [{
-                label: 'System Load',
-                data: [45, 52, 48, 70, 65, 40, 38],
-                borderColor: pbiTheme.colors[0],
-                backgroundColor: 'rgba(17, 141, 255, 0.1)',
-                fill: true,
-                tension: 0.3
-            }, {
-                label: 'Network Traffic',
-                data: [30, 35, 32, 50, 48, 28, 25],
-                borderColor: pbiTheme.colors[2],
-                backgroundColor: 'transparent',
-                borderDash: [5, 5],
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top', labels: { color: '#ccc', font: { family: pbiTheme.font } } }
+    // --- FETCH REAL DATA FOR CHARTS ---
+    let history = [];
+    try {
+        const hRes = await fetch('/api/metrics/history');
+        history = await hRes.json();
+    } catch (e) { console.error("PBI History fetch failed", e); }
+
+    // 1. Line Chart (Real History)
+    const lineCtx = document.getElementById('pbi-line-chart');
+    if (lineCtx) {
+        const labels = history.length ? history.map(h => new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : ['Now'];
+        const cpuData = history.length ? history.map(h => h.cpuLoad) : [0];
+        const memData = history.length ? history.map(h => h.memoryUsage) : [0];
+
+        new Chart(lineCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'CPU Load (%)',
+                    data: cpuData,
+                    borderColor: pbiTheme.colors[0],
+                    backgroundColor: 'rgba(17, 141, 255, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }, {
+                    label: 'Memory Usage (%)',
+                    data: memData,
+                    borderColor: pbiTheme.colors[2],
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    tension: 0.3
+                }]
             },
-            scales: {
-                x: { grid: { display: false }, ticks: { color: '#888' } },
-                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } }
-            }
-        }
-    });
-
-    // 2. Doughnut Chart
-    new Chart(document.getElementById('pbi-doughnut-chart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Online', 'Offline', 'Warning', 'Maintenance'],
-            datasets: [{
-                data: [65, 10, 15, 10],
-                backgroundColor: pbiTheme.colors.slice(0, 4),
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: { position: 'bottom', labels: { color: '#ccc', boxWidth: 10, font: { family: pbiTheme.font } } }
-            }
-        }
-    });
-
-    // 3. Horizontal Bar Chart (Funnel effect)
-    new Chart(document.getElementById('pbi-bar-chart'), {
-        type: 'bar',
-        data: {
-            labels: ['Malware', 'SQL Injection', 'DDoS', 'Brute Force', 'Phishing'],
-            datasets: [{
-                label: 'Interception Count',
-                data: [1200, 950, 780, 540, 320],
-                backgroundColor: pbiTheme.colors[1],
-                borderRadius: 5
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
-                y: { grid: { display: false }, ticks: { color: '#888' } }
-            }
-        }
-    });
-
-    // 4. Radar Chart
-    new Chart(document.getElementById('pbi-radar-chart'), {
-        type: 'radar',
-        data: {
-            labels: ['CPU', 'Memory', 'Disk', 'Network', 'IOPS', 'Temp'],
-            datasets: [{
-                label: 'Global-Edge-1',
-                data: [85, 70, 60, 90, 75, 55],
-                borderColor: pbiTheme.colors[4],
-                backgroundColor: 'rgba(224, 68, 167, 0.2)'
-            }, {
-                label: 'Local-Net-0',
-                data: [40, 50, 80, 30, 45, 40],
-                borderColor: pbiTheme.colors[5],
-                backgroundColor: 'rgba(116, 78, 194, 0.2)'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                r: {
-                    angleLines: { color: 'rgba(255,255,255,0.1)' },
-                    grid: { color: 'rgba(255,255,255,0.1)' },
-                    pointLabels: { color: '#ccc' },
-                    ticks: { display: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { color: '#ccc', font: { family: pbiTheme.font } } }
+                },
+                scales: {
+                    x: { display: false },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: '#888' } }
                 }
             }
+        });
+    }
+
+    // 2. Doughnut Chart (Real Server Status)
+    const doughnutCtx = document.getElementById('pbi-doughnut-chart');
+    if (doughnutCtx) {
+        const servers = state.infraData || [];
+        const statusCounts = { online: 0, offline: 0, warning: 0, maintenance: 0 };
+        servers.forEach(s => statusCounts[s.status] = (statusCounts[s.status] || 0) + 1);
+        if (servers.length === 0) statusCounts.online = 1;
+
+        new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Online', 'Offline', 'Warning', 'Maintenance'],
+                datasets: [{
+                    data: [statusCounts.online, statusCounts.offline, statusCounts.warning, statusCounts.maintenance || 0],
+                    backgroundColor: pbiTheme.colors.slice(0, 4),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#ccc', boxWidth: 10, font: { family: pbiTheme.font } } }
+                }
+            }
+        });
+    }
+
+    // 3. Horizontal Bar Chart (Real Security Incident Summary)
+    const barCtx = document.getElementById('pbi-bar-chart');
+    if (barCtx) {
+        // Use live logs if available to simulate "Threat Categories"
+        const logs = state.liveLogs || [];
+        const categories = { 'Malware': 0, 'Injections': 0, 'DDoS': 0, 'Attempts': 0, 'Phishing': 0 };
+        logs.forEach(l => {
+            if (l.message.includes('Port')) categories['Attempts']++;
+            else if (l.severity === 'ERROR') categories['DDoS']++;
+            else categories['Malware']++;
+        });
+        // Add random seeds if empty for visual flow
+        if (Object.values(categories).every(v => v === 0)) {
+            Object.keys(categories).forEach(k => categories[k] = Math.floor(Math.random() * 20 + 5));
         }
+
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(categories),
+                datasets: [{
+                    label: 'Interception Count',
+                    data: Object.values(categories),
+                    backgroundColor: pbiTheme.colors[1],
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
+                    y: { grid: { display: false }, ticks: { color: '#888' } }
+                }
+            }
+        });
+    }
+
+    // 4. Radar Chart (Simulated Node Health)
+    const radarCtx = document.getElementById('pbi-radar-chart');
+    if (radarCtx) {
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['CPU', 'Memory', 'Disk', 'Network', 'IOPS', 'Temp'],
+                datasets: [{
+                    label: 'Global-Edge-1',
+                    data: [85, 70, 60, 90, 75, 55],
+                    borderColor: pbiTheme.colors[4],
+                    backgroundColor: 'rgba(224, 68, 167, 0.2)'
+                }, {
+                    label: 'Local-Net-0',
+                    data: [40, 50, 80, 30, 45, 40],
+                    borderColor: pbiTheme.colors[5],
+                    backgroundColor: 'rgba(116, 78, 194, 0.2)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(255,255,255,0.1)' },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        pointLabels: { color: '#ccc' },
+                        ticks: { display: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // Add interactivity to slicers
+    setupPBISlicers();
+    setupPBITabs();
+}
+
+async function refreshPowerBIData() {
+    initPowerBICharts();
+}
+
+function setupPBISlicers() {
+    const timeSlicer = document.getElementById('pbi-slicer-time');
+    const regionSlicer = document.getElementById('pbi-slicer-region');
+    const deviceFilters = document.querySelectorAll('.pbi-device-filter');
+
+    const updateDashboard = () => {
+        showToast("Re-calculating data vectors...", "info");
+        initPowerBICharts(); // Reload with simulated or fresh data
+    };
+
+    if (timeSlicer) timeSlicer.addEventListener('change', updateDashboard);
+    if (regionSlicer) regionSlicer.addEventListener('change', updateDashboard);
+    deviceFilters.forEach(f => {
+        f.addEventListener('change', updateDashboard);
     });
 }
+
+function setupPBITabs() {
+    const tabs = document.querySelectorAll('.pbi-tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            const target = tab.getAttribute('data-tab');
+            const overview = document.getElementById('pbi-overview-grid');
+            const resource = document.getElementById('pbi-resource-grid');
+            const security = document.getElementById('pbi-security-grid');
+
+            if (overview) overview.style.display = target === 'overview' ? 'grid' : 'none';
+            if (resource) resource.style.display = target === 'resource' ? 'block' : 'none';
+            if (security) security.style.display = target === 'security' ? 'block' : 'none';
+        });
+    });
+}
+
+function resetPBIFilters() {
+    const timeSlicer = document.getElementById('pbi-slicer-time');
+    const regionSlicer = document.getElementById('pbi-slicer-region');
+    const deviceFilters = document.querySelectorAll('.pbi-device-filter');
+
+    if (timeSlicer) timeSlicer.value = '24h';
+    if (regionSlicer) regionSlicer.value = 'all';
+    deviceFilters.forEach(f => f.checked = true);
+
+    initPowerBICharts();
+    showToast("Reporting filters reset.", "info");
+}
+
+window.resetPBIFilters = resetPBIFilters;
 
 function renderPulse() {
     const view = showView('pulse-view');

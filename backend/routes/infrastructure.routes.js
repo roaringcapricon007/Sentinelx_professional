@@ -2,8 +2,10 @@ module.exports = function (io) {
     const router = require('express').Router();
     const { Server } = require('../models');
 
+    const { authorize } = require('../middleware/auth.middleware');
+
     // GET /api/infrastructure
-    router.get('/', async (req, res) => {
+    router.get('/', authorize(['super_admin', 'admin']), async (req, res) => {
         try {
             const servers = await Server.findAll({
                 order: [['hostname', 'ASC']]
@@ -16,7 +18,7 @@ module.exports = function (io) {
     });
 
     // POST /api/infrastructure/register
-    router.post('/register', async (req, res) => {
+    router.post('/register', authorize(['super_admin', 'admin']), async (req, res) => {
         try {
             const { hostname, ipAddress, region, status, load } = req.body;
 

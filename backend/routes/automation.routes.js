@@ -1,9 +1,10 @@
 const router = require('express').Router();
 const { LogEntry, Server, SystemMetric } = require('../models');
+const { authorize } = require('../middleware/auth.middleware');
 
 // POST /api/automation/run-audit
 // Proxies validation to the Python Intelligence Engine
-router.post('/run-audit', async (req, res) => {
+router.post('/run-audit', authorize(['super_admin']), async (req, res) => {
     try {
         console.log('Sending Audit Request to Python Service...');
 

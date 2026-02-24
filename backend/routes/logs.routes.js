@@ -2,8 +2,10 @@ const router = require('express').Router();
 const { LogEntry } = require('../models');
 
 module.exports = function (io) {
+    const { authorize } = require('../middleware/auth.middleware');
+
     // GET /api/logs/history
-    router.get('/history', async (req, res) => {
+    router.get('/history', authorize(['super_admin', 'admin', 'analyst', 'viewer']), async (req, res) => {
         try {
             const logs = await LogEntry.findAll({
                 limit: 50,
@@ -16,7 +18,7 @@ module.exports = function (io) {
     });
 
     // POST /api/logs/ingest
-    router.post('/ingest', async (req, res) => {
+    router.post('/ingest', authorize(['super_admin', 'admin', 'operator']), async (req, res) => {
         try {
             const { severity, device, message, suggestion } = req.body;
 
