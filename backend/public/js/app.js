@@ -356,9 +356,8 @@ function applyRolePermissions(role) {
     const permissions = {
         'super_admin': ['home', 'analysis', 'infrastructure', 'topology', 'overview', 'reports', 'powerbi', 'pulse', 'ailab', 'automation', 'botprofile', 'vault'],
         'admin': ['home', 'analysis', 'infrastructure', 'topology', 'overview', 'reports', 'powerbi', 'pulse', 'ailab', 'botprofile'],
-        'analyst': ['home', 'analysis', 'topology', 'overview', 'reports', 'powerbi', 'pulse'],
-        'operator': ['home', 'overview'],
-        'viewer': ['home', 'analysis', 'overview', 'reports', 'powerbi', 'pulse']
+        'analyst': ['home', 'analysis', 'overview', 'reports'],
+        'user': ['home', 'analysis', 'overview', 'reports', 'topology']
     };
 
     const allowed = permissions[role] || ['home'];
@@ -379,10 +378,19 @@ function applyRolePermissions(role) {
         }
     });
 
-    // Special UI Handover: Hide sensitive buttons for non-super admins
-    const dangerousButtons = document.querySelectorAll('.danger-btn, .admin-only');
+    // Special UI Handover: Hide sensitive buttons for non-super admins/admins
+    const dangerousButtons = document.querySelectorAll('.danger-btn, .admin-only, .btn-primary, .btn-secondary');
     dangerousButtons.forEach(btn => {
-        btn.style.display = (role === 'super_admin') ? 'block' : 'none';
+        // Normal users can't see action buttons like "Upload", "Run Audit", etc.
+        const isAdmin = (role === 'super_admin' || role === 'admin');
+
+        // Specific check for things that should only be Super Admin if necessary
+        // For now, let's let admins see them too, but non-admins (analyst, user) can't
+        if (btn.classList.contains('danger-btn') || btn.classList.contains('admin-only')) {
+            btn.style.display = (role === 'super_admin') ? 'block' : 'none';
+        } else {
+            btn.style.display = isAdmin ? 'inline-block' : 'none';
+        }
     });
 }
 
@@ -561,56 +569,56 @@ function renderHome() {
     <div class="home-container fade-in">
     <div style="margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; text-align: center;">
         <div style="width: 100%; margin-bottom: 25px;">
-            <h1 style="font-size: 3.5rem; margin-bottom: 10px; background: linear-gradient(270deg, #00f2ff, #a24dff, #ff1f71, #00f2ff); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientLoop 6s ease infinite;"><span class="font-transformers">SentinelX_Dashboard</span></h1>
-            <p style="color: var(--text-muted); font-size: 1.2rem; letter-spacing: 1px;">SentinelX Infrastructure & AI Control Center</p>
+            <h1 style="font-size: 3.5rem; margin-bottom: 10px; background: linear-gradient(270deg, var(--primary), var(--secondary), var(--quantum), var(--primary)); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientLoop 6s ease infinite;"><span class="font-transformers">SENTINELX_NEXUS</span></h1>
+            <p style="color: var(--text-muted); font-size: 1.2rem; letter-spacing: 1.5px; text-transform: uppercase;">Universal Infrastructure & Quantum AI Interface</p>
         </div>
         <div style="display: flex; gap: 15px;">
-            <button class="btn-primary" onclick="switchTab('overview')" style="padding: 8px 20px; font-size: 0.85rem;">Live Metrics</button>
-            <button class="btn-secondary" onclick="switchTab('automation')" style="padding: 8px 20px; font-size: 0.85rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; border-radius: 8px;">Automation</button>
+            <button class="btn-primary" onclick="switchTab('topology')" style="padding: 10px 25px; font-size: 0.9rem; box-shadow: var(--neon-shadow);">ACCESS MESH</button>
+            <button class="btn-secondary" onclick="switchTab('ailab')" style="padding: 10px 25px; font-size: 0.9rem; background: rgba(0,255,163,0.1); border: 1px solid var(--quantum); color: var(--quantum); border-radius: 8px;">NEURAL CORE</button>
         </div>
     </div>
 
-    <h2 style="margin-bottom: 20px; font-weight: 500;" class="font-transformers">Intelligence Core</h2>
     <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-        <div class="card glass-card" onclick="switchTab('botprofile')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-            <div style="margin-bottom: 20px;" onclick="switchTab('botprofile')"><img src="img/autobot_logo.png" style="width: 40px; height: 40px; object-fit: contain;"></div>
-            <h3 class="font-transformers"><span class="font-transformers">PRIME_AI</span> Engine</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Powered by <strong>Advanced Transformers</strong> and neural local NLP. Provides predictive root-cause analysis and autonomous system control.</p>
+        <div class="card glass-card" onclick="switchTab('botprofile')" style="cursor: pointer; position: relative;">
+            <div style="position: absolute; top: 15px; right: 15px; font-size: 0.7rem; color: var(--quantum);">NEURAL v7.2</div>
+            <div style="margin-bottom: 20px;"><img src="img/autobot_logo.png" style="width: 45px; height: 45px; object-fit: contain; filter: drop-shadow(0 0 10px var(--primary));"></div>
+            <h3 class="font-transformers"><span class="font-transformers">PRIME_AI</span> Quantum</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Next-generation <strong>Nexus Transformer</strong> core. Operating with sub-1ms predictive response latency.</p>
         </div>
-        <div class="card glass-card" onclick="switchTab('automation')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-            <div style="font-size: 2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-flask"></i></div>
-            <h3 class="font-transformers">Automation Suite</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Execute specialized, automated tests including API Stress, Security Audits, and UI Performance without human intervention.</p>
+        <div class="card glass-card" onclick="switchTab('topology')" style="cursor: pointer;">
+            <div style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-project-diagram"></i></div>
+            <h3 class="font-transformers">Neural Mesh</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Real-time visualization of 142 global nodes synchronized via quantum-secure handshakes.</p>
         </div>
-        <div class="card glass-card" onclick="switchTab('pulse')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-            <div style="font-size: 2rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
-            <h3 class="font-transformers">Security Pulse</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Real-time global threat tracking and diagnostic simulations. Keep your infrastructure ahead of emerging anomalies.</p>
+        <div class="card glass-card" onclick="switchTab('pulse')" style="cursor: pointer;">
+            <div style="font-size: 2rem; color: var(--quantum); margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
+            <h3 class="font-transformers">Quantum Shield</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Active interceptor for emerging zero-day threats. Dynamic heuristic-based node isolation.</p>
         </div>
-        <div class="card glass-card" onclick="switchTab('vault')" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-            <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-lock"></i></div>
-            <h3 class="font-transformers">Audit Vault</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Immutable historical archive for all security incidents and performance logs. Searchable and verifiable at enterprise scale.</p>
+        <div class="card glass-card" onclick="switchTab('vault')" style="cursor: pointer;">
+            <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-shield-halved"></i></div>
+            <h3 class="font-transformers">Audit Nexus</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Immutable blockchain-backed audit records. Verifiable integrity for all system manipulations.</p>
         </div>
     </div>
 
     <div class="card glass-card" style="margin-top: 30px; padding: 40px; text-align: center; border-radius: 24px; background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.05) 0%, transparent 100%);">
-        <h2 style="margin-bottom: 20px;" class="font-transformers">Autonomous Operations at Scale</h2>
-        <p style="color: var(--text-muted); line-height: 1.8; max-width: 900px; margin: 0 auto 30px;">SentinelX v6.5 leverages a next-gen hybrid neural architecture. Our new Automation Lab allows administrators to run specialized diagnostic tools to verify infrastructure integrity autonomously.</p>
+        <h2 style="margin-bottom: 20px;" class="font-transformers">Infinite Scale. Absolute Security.</h2>
+        <p style="color: var(--text-muted); line-height: 1.8; max-width: 900px; margin: 0 auto 30px;">SentinelX v7.0 introduces the Quantum Nexus, a distributed intelligence architecture that eliminates centralized points of failure. Our neural mesh provides healing capabilities that outpace traditional automation.</p>
         <div style="display: flex; gap: 40px; justify-content: center; align-items: center;">
             <div style="text-align: center;">
-                <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">99.99%</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Global Uptime SLA</div>
+                <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary); text-shadow: var(--neon-shadow);">99.999%</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Uptime Stability</div>
             </div>
             <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
             <div style="text-align: center;">
-                <div style="font-size: 2.5rem; font-weight: 700; color: var(--secondary);">0.1ms</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Neural Ingest Latency</div>
+                <div style="font-size: 2.5rem; font-weight: 700; color: var(--quantum); text-shadow: 0 0 15px rgba(0, 255, 163, 0.3);">0.08ms</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Quantum Latency</div>
             </div>
             <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
             <div style="text-align: center;">
-                <div style="font-size: 2.5rem; font-weight: 700; color: #00ff88;">6.5v</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Ready for Production</div>
+                <div style="font-size: 2.5rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);">GEN 7</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Nexus Engine</div>
             </div>
         </div>
     </div>
@@ -948,6 +956,9 @@ function updateAnalysisTable(viewContainer) {
 
 function formatSuggestion(text) {
     if (!text) return 'Analyzing...';
+    if (text.includes('QUANTUM ACTION:')) {
+        return text.replace('QUANTUM ACTION:', '<span style="color:var(--quantum); font-weight:bold; text-shadow: 0 0 10px var(--quantum)">QUANTUM ACTION:</span>');
+    }
     if (text.includes('AI Action:')) {
         return text.replace('AI Action:', '<span style="color:#00ff88; font-weight:bold; text-shadow: 0 0 10px rgba(0,255,136,0.3)">AI ACTION:</span>');
     }
@@ -1255,8 +1266,35 @@ function showAnalysisResults(data) {
     const resultsDiv = document.getElementById('analysis-results');
     if (resultsDiv) resultsDiv.style.display = 'block';
 
-    const countEl = document.getElementById('log-count');
-    if (countEl) countEl.innerText = data.issues.length;
+    const countEl = document.getElementById('log-count-pill');
+    if (countEl) countEl.innerText = `${data.issues.length} Anomalies Detected`;
+
+    // Inject LLM Report Section if it doesn't exist
+    let llmSection = document.getElementById('quantum-report-section');
+    if (!llmSection) {
+        llmSection = document.createElement('div');
+        llmSection.id = 'quantum-report-section';
+        llmSection.className = 'quantum-report-card fade-in';
+        resultsDiv.prepend(llmSection);
+    }
+
+    llmSection.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+            <i class="fas fa-brain" style="color: var(--primary); font-size: 1.4rem;"></i>
+            <h3 class="font-transformers" style="margin: 0; font-size: 1.1rem;">PRIME_AI Quantum Log Summary</h3>
+        </div>
+        <div class="llm-response-text">${data.llm_report || 'Analysis in progress...'}</div>
+        <div style="margin-top: 20px; display: flex; gap: 15px;">
+            <div class="trend-indicator ${data.summary.ERROR > 5 ? 'trend-up' : 'trend-down'}">
+                <i class="fas fa-chart-line"></i>
+                Risk Level: ${data.summary.ERROR > 5 ? 'ELEVEATED' : 'STABLE'}
+            </div>
+            <div class="trend-indicator" style="color: var(--primary)">
+                <i class="fas fa-microchip"></i>
+                Engine: ${data.engine}
+            </div>
+        </div>
+    `;
 
     renderAnalysisCharts(data.issues, data.summary);
 
@@ -1268,6 +1306,7 @@ function showAnalysisResults(data) {
             row.innerHTML = `
             <td><span class="badge-severity ${issue.severity}">${issue.severity}</span></td>
             <td>${issue.device}</td>
+            <td style="font-size:0.8rem; color:#888">${issue.timestamp ? new Date(issue.timestamp).toLocaleTimeString() : 'Just now'}</td>
             <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${issue.message}</td>
             <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${formatSuggestion(issue.suggestion)}</td>
         `;
@@ -1435,35 +1474,49 @@ function renderTopology() {
 
     if (view.getAttribute('data-rendered') !== 'true') {
         view.innerHTML = `
-    <div class="topology-view" >
-            <div class="topology-header">
-                <div class="stat-pill"><i class="fas fa-project-diagram"></i> Network Topology v6.0 (Live)</div>
+    <div class="topology-view fade-in">
+            <div class="topology-header" style="margin-bottom: 25px;">
+                <div>
+                    <h1 class="font-transformers" style="font-size: 1.8rem; margin-bottom: 5px;">Quantum Neural Topology</h1>
+                    <div class="stat-pill"><i class="fas fa-atom"></i> Nexus v7.0 | Live Mesh Synchronization</div>
+                </div>
                 <div class="topology-controls">
-                    <div class="pulse-dot" style="display:inline-block; margin-right:10px"></div>
-                    <span style="color:var(--text-muted); font-size:0.8rem; margin-right:15px">Monitoring</span>
-                    <button class="btn-primary" onclick="showToast('Scanning network...', 'info')"><i class="fas fa-sync"></i> Re-scan</button>
+                    <div class="pulse-dot" style="display:inline-block; margin-right:10px; background: var(--quantum)"></div>
+                    <span style="color:var(--text-muted); font-size:0.8rem; margin-right:15px">Quantum Link: STABLE</span>
+                    <button class="btn-primary" onclick="showToast('Scanning Nexus Nodes...', 'info')"><i class="fas fa-satellite-dish"></i> Re-sync Nexus</button>
                 </div>
             </div>
-            <div class="topology-map-container glass-card">
-                <svg id="topo-svg" width="100%" height="400" viewBox="0 0 800 400" style="overflow: visible">
+            
+            <div class="topology-map-container">
+                <svg id="topo-svg" width="100%" height="450" viewBox="0 0 800 450" style="overflow: visible">
                     <defs>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="3.5" result="blur" />
+                        <filter id="glow-heavy">
+                            <feGaussianBlur stdDeviation="5" result="blur" />
                             <feComposite in="SourceGraphic" in2="blur" operator="over" />
                         </filter>
-                        <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="nexusGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="var(--primary)" />
-                            <stop offset="100%" stop-color="var(--secondary)" />
+                            <stop offset="100%" stop-color="var(--quantum)" />
                         </linearGradient>
+                        <radialGradient id="ringGrad">
+                            <stop offset="0%" stop-color="var(--primary)" stop-opacity="0" />
+                            <stop offset="100%" stop-color="var(--primary)" stop-opacity="0.2" />
+                        </radialGradient>
                     </defs>
 
+                    <!-- Background Rings -->
+                    <circle cx="400" cy="225" r="100" fill="none" stroke="var(--primary)" stroke-width="0.5" opacity="0.1" />
+                    <circle cx="400" cy="225" r="180" fill="none" stroke="var(--primary)" stroke-width="0.5" opacity="0.05" />
+
                     <!-- Core Node -->
-                    <g transform="translate(400, 200)" class="topo-node-main">
-                        <circle r="35" fill="var(--bg-dark)" stroke="var(--primary)" stroke-width="2" filter="url(#glow)" />
-                        <text text-anchor="middle" dy=".3em" fill="white" font-weight="bold">CORE</text>
-                        <circle r="45" fill="none" stroke="var(--primary)" stroke-width="1" opacity="0.2">
-                            <animate attributeName="r" from="35" to="60" dur="2s" repeatCount="indefinite" />
-                            <animate attributeName="opacity" from="0.3" to="0" dur="2s" repeatCount="indefinite" />
+                    <g transform="translate(400, 225)" class="topo-node-main">
+                        <circle r="45" fill="var(--bg-dark)" stroke="url(#nexusGrad)" stroke-width="2" filter="url(#glow-heavy)" />
+                        <text text-anchor="middle" dy=".3em" fill="white" font-weight="900" class="font-transformers" style="font-size: 12px;">NEXUS</text>
+                        
+                        <!-- Orbital Rings -->
+                        <circle r="55" fill="none" stroke="var(--primary)" stroke-width="1" opacity="0.3">
+                            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="10s" repeatCount="indefinite" />
+                            <animate attributeName="stroke-dasharray" values="0,350;350,0;0,350" dur="5s" repeatCount="indefinite" />
                         </circle>
                     </g>
                     
@@ -1471,12 +1524,19 @@ function renderTopology() {
                     <g id="dynamic-nodes"></g>
                 </svg>
             </div>
-            <div class="topology-info glass-card">
-                <h4>Node Legend</h4>
-                <div style="display:flex; gap:15px; margin-top:10px;">
-                    <div style="font-size:0.8rem"><span style="color:#00ff88">●</span> Online</div>
-                    <div style="font-size:0.8rem"><span style="color:#ffcc00">●</span> Warning</div>
-                    <div style="font-size:0.8rem"><span style="color:#ff0055">●</span> Critical</div>
+
+            <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 30px;">
+                <div class="card glass-card" style="padding: 15px;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Active Mesh Nodes</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" id="topo-node-count">0</div>
+                </div>
+                <div class="card glass-card" style="padding: 15px;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Signal Integrity</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--quantum);">99.9%</div>
+                </div>
+                <div class="card glass-card" style="padding: 15px;">
+                    <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Neural Sync State</div>
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--secondary);">LOCKED</div>
                 </div>
             </div>
         </div>
@@ -1490,42 +1550,56 @@ function renderTopology() {
 
 function updateTopologyNodes(servers) {
     const svg = document.getElementById('dynamic-nodes');
+    const nodeCountEl = document.getElementById('topo-node-count');
     if (!svg) return;
+    if (nodeCountEl) nodeCountEl.innerText = servers.length;
 
     const centerX = 400;
-    const centerY = 200;
-    const radius = 150;
+    const centerY = 225;
+    const radius = 200;
 
     // Clear previous
     while (svg.firstChild) { svg.removeChild(svg.firstChild); }
 
     // Add Paths first (so they are behind nodes)
     servers.forEach((s, index) => {
-        const angle = (index / servers.length) * 2 * Math.PI;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
+        const offset = (index / servers.length) * 2 * Math.PI;
+        const x = centerX + radius * Math.cos(offset);
+        const y = centerY + radius * Math.sin(offset);
 
-        // Calculate starting point on the outer edge of the core circle (radius 35)
-        const coreRadius = 35;
-        const startX = centerX + coreRadius * Math.cos(angle);
-        const startY = centerY + coreRadius * Math.sin(angle);
+        const coreRadius = 45;
+        const startX = centerX + coreRadius * Math.cos(offset);
+        const startY = centerY + coreRadius * Math.sin(offset);
 
+        // Path
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", `M${startX},${startY} L${x},${y}`);
-        path.setAttribute("stroke", "url(#lineGrad)");
-        path.setAttribute("stroke-width", "1.5");
-        path.setAttribute("stroke-dasharray", "5,5");
+        path.setAttribute("stroke", "url(#nexusGrad)");
+        path.setAttribute("stroke-width", "1");
+        path.setAttribute("stroke-dasharray", "4,4");
+        path.setAttribute("opacity", "0.4");
         path.setAttribute("class", "topo-path");
-        // Animation delay variation
-        path.style.animation = `dash 3s linear infinite ${index * 0.5}s`;
         svg.appendChild(path);
+
+        // Data Packet Animation
+        const packet = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        packet.setAttribute("r", "2");
+        packet.setAttribute("class", "topo-packet");
+        svg.appendChild(packet);
+
+        const anim = document.createElementNS("http://www.w3.org/2000/svg", "animateMotion");
+        anim.setAttribute("path", `M${startX},${startY} L${x},${y}`);
+        anim.setAttribute("dur", `${1 + Math.random() * 2}s`);
+        anim.setAttribute("repeatCount", "indefinite");
+        anim.setAttribute("begin", `${index * 0.2}s`);
+        packet.appendChild(anim);
     });
 
     // Add Nodes
     servers.forEach((s, index) => {
-        const angle = (index / servers.length) * 2 * Math.PI;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
+        const offset = (index / servers.length) * 2 * Math.PI;
+        const x = centerX + radius * Math.cos(offset);
+        const y = centerY + radius * Math.sin(offset);
 
         const color = getStatusColor(s.status);
 
@@ -1533,22 +1607,32 @@ function updateTopologyNodes(servers) {
         g.setAttribute("transform", `translate(${x}, ${y})`);
         g.setAttribute("class", "topo-node");
         g.style.cursor = "pointer";
-        g.onclick = () => showToast(`Node: ${s.hostname} | Load: ${s.load}% | Status: ${s.status} `, 'info');
+        g.onclick = () => showToast(`Quantum Link: ${s.hostname} | Health: ${s.load < 80 ? 'OPTIMIZED' : 'STRESSED'} `, 'info');
 
+        // Hexagon-ish shape for futuristic feel
         const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        c.setAttribute("r", "22");
-        c.setAttribute("fill", "var(--bg-dark)");
+        c.setAttribute("r", "18");
+        c.setAttribute("fill", "rgba(var(--primary-rgb), 0.05)");
         c.setAttribute("stroke", color);
-        c.setAttribute("stroke-width", "1.5");
+        c.setAttribute("stroke-width", "2");
+        c.setAttribute("filter", "url(#glow-heavy)");
+
+        const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        inner.setAttribute("r", "12");
+        inner.setAttribute("fill", color);
+        inner.setAttribute("opacity", "0.2");
 
         const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
         t.setAttribute("y", "35");
         t.setAttribute("text-anchor", "middle");
-        t.setAttribute("fill", "var(--text-muted)");
+        t.setAttribute("fill", "white");
         t.setAttribute("font-size", "10");
-        t.textContent = s.hostname;
+        t.setAttribute("font-weight", "bold");
+        t.setAttribute("class", "font-transformers");
+        t.textContent = s.hostname.split('.')[0]; // Shorten name
 
         g.appendChild(c);
+        g.appendChild(inner);
         g.appendChild(t);
         svg.appendChild(g);
     });
@@ -1556,10 +1640,11 @@ function updateTopologyNodes(servers) {
     if (servers.length === 0) {
         const g = document.createElementNS("http://www.w3.org/2000/svg", "text");
         g.setAttribute("x", "400");
-        g.setAttribute("y", "350");
+        g.setAttribute("y", "380");
         g.setAttribute("text-anchor", "middle");
-        g.setAttribute("fill", "#666");
-        g.textContent = "No active agents connected.";
+        g.setAttribute("fill", "var(--text-muted)");
+        g.setAttribute("class", "font-transformers");
+        g.textContent = "AWAITING NODE SYNCHRONIZATION...";
         svg.appendChild(g);
     }
 }

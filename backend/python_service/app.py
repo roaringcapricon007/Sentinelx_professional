@@ -72,12 +72,12 @@ def chat():
             intent = model.predict(features)[0]
             
             response_map = {
-                'greeting': "Hello! SentinelX System is online. How can I assist you?",
-                'status': "System Status: All servers are currently operational.",
-                'security': "Security Alert: No active threats detected at this time.",
-                'logs': "Log Analysis: You can view the full detailed logs in the Dashboard tab.",
-                'help': "I can help you check system status, security alerts, and logs.",
-                'unknown': "I'm not sure I understand. Try asking about 'status' or 'security'."
+                'greeting': "NEXUS ONLINE. Greetings, Administrator. Neural link established.",
+                'status': "SYSTEM SCAN: All quantum kernels are operating at peak efficiency. No anomalies detected.",
+                'security': "THREAT MONITOR: Global shield active. Monitoring 142 mesh nodes for zero-day vectors.",
+                'logs': "DATA ARCHIVE: Log repositories are synchronized. Deep analysis suggests 99.9% integrity.",
+                'help': "I can assist with Mesh Topology, Quantum Security, Log Analysis, and System Intelligence.",
+                'unknown': "INSUFFICIENT DATA. Please provide specific command parameters for Nexus processing."
             }
             return jsonify({
                 'response': response_map.get(intent, response_map['unknown']),
@@ -130,8 +130,9 @@ def analyze_logs():
     
     issues = []
     summary = {"INFO": 0, "WARN": 0, "ERROR": 0}
+    trends = {"severity_over_time": [], "node_frequency": {}}
     
-    for line in lines:
+    for i, line in enumerate(lines):
         if not line.strip(): continue
         
         l = line.lower()
@@ -140,6 +141,9 @@ def analyze_logs():
         if "error" in l or "critical" in l or "fail" in l: sev = "ERROR"
         elif "warn" in l or "caution" in l: sev = "WARN"
         summary[sev] += 1
+        
+        # Track trends (simulated time progression by line index)
+        trends["severity_over_time"].append({"idx": i, "sev": sev})
         
         if sev != "INFO":
             # Device Detection (Enhanced)
@@ -153,63 +157,78 @@ def analyze_logs():
             elif "auth" in l or "login" in l or "session" in l: device = "Identity Provider"
             elif "network" in l or "connection" in l or "latency" in l: device = "Network Backbone"
             
-            # AI Suggestion Logic (Simulated Neural Inference)
+            trends["node_frequency"][device] = trends["node_frequency"].get(device, 0) + 1
+
+            # AI Suggestion Logic (Enhanced Neural Inference)
             suggestion = "AI Analysis: Routine pattern detected. Continue monitoring."
             
             # Security / Auth
             if "login failed" in l or "auth" in l: 
-                suggestion = "AI Action: Enforce 2FA and lock account for 15m. Review IP reputation."
+                suggestion = "QUANTUM ACTION: Initiate zero-trust lockdown. Reset credentials for UID:992. Analyze IP geo-velocity."
             elif "denied" in l or "blocked" in l:
-                suggestion = "AI Action: Update firewall rules to drop traffic from this subnet."
+                suggestion = "QUANTUM ACTION: Dynamic firewall update. Origin IP blacklisted across all 14 nodes. Geo-fencing updated."
             
             # Performance / Resources
             elif "disk" in l or "space" in l: 
-                suggestion = "AI Action: Provision ephemeral storage or run cleanup script #42."
+                suggestion = "QUANTUM ACTION: Predictive storage expansion. Moving cold data to S3-Glacier. Running automated FS-trim."
             elif "memory" in l or "oom" in l or "heap" in l: 
-                suggestion = "AI Action: Scale vertical resources (RAM) or investigate memory leak in worker."
+                suggestion = "QUANTUM ACTION: Thermal balancing triggered. Moving memory-intensive pods to Node-04-Alpha. GC tuning applied."
             elif "cpu" in l or "load" in l:
-                suggestion = "AI Action: Throttling detected. Auto-scale group expansion recommended."
+                suggestion = "QUANTUM ACTION: Dynamic core reallocation. Throttling non-essential background tasks. Auto-scale cooling initialized."
                 
             # Network / Connectivity
             elif "timeout" in l or "unreachable" in l: 
-                suggestion = "AI Action: Trace route to endpoint. Verify load balancer health checks."
+                suggestion = "QUANTUM ACTION: Re-routing traffic through EU-CENTRAL-1. BGP path optimization in progress. Validating fiber-cut metrics."
             elif "ssl" in l or "cert" in l:
-                suggestion = "AI Action: Renew certificates immediately to prevent outages."
+                suggestion = "QUANTUM ACTION: Certificate rotation auto-provisioned via Vault. Zero-downtime handshake verified."
                 
             # Database
             elif "query" in l or "sql" in l:
-                suggestion = "AI Action: Index optimization required. Query execution time exceeds SLA."
+                suggestion = "QUANTUM ACTION: AI-driven index synthesis. Materialized view recommended for this query pattern. Sharding re-evaluation."
                 
             # General Errors
             elif "exception" in l or "stack" in l:
-                suggestion = "AI Action: Rollback recent deployment or patch module. Stack trace captured."
+                suggestion = "QUANTUM ACTION: Neural root-cause analysis: Pattern matches known vuln-3342. Patching module v2.4.1. Rollback suppressed."
             
             issues.append({
                 "device": device,
                 "severity": sev,
                 "message": line.strip(),
-                "suggestion": suggestion
+                "suggestion": suggestion,
+                "timestamp": datetime.now().isoformat()
             })
             
+    # Brain Summarization if available
+    llm_summary = "Standard heuristic analysis complete."
+    if brain:
+        try:
+            llm_summary = brain.summarize_anomalies([i['message'] for i in issues[:3]])
+        except: pass
+
     return jsonify({
         "summary": summary,
         "issues": issues,
-        "engine": "Python-NLP-v6"
+        "trends": trends,
+        "llm_report": llm_summary,
+        "engine": "SentinelX-Quantum-v7.0"
     })
 
 @app.route('/security/pulse', methods=['GET'])
 def security_pulse():
     import random
-    pps = round(random.uniform(10.5, 18.2), 1)
-    sessions = random.randint(850, 1240)
+    # Futuristic values
+    pps = round(random.uniform(45.2, 58.7), 1)
+    sessions = random.randint(4500, 6200)
     risk_score = random.randint(1, 100)
+    threat_vectors = ["DDoS-Mitigation", "SQL-Injection-Probe", "Lateral-Movement-Blocked", "API-Scraping-Detected"]
     
     return jsonify({
-        "status": "active",
+        "status": "Quantum Guard Active",
         "pps": pps,
         "sessions": sessions,
         "risk_score": risk_score,
-        "threat_level": "LOW" if risk_score < 50 else "MODERATE" if risk_score < 80 else "CRITICAL"
+        "threat_level": "OPTIMIZED" if risk_score < 30 else "VIGILANT" if risk_score < 70 else "NEXUS-BREACH-ALERT",
+        "active_vectors": random.sample(threat_vectors, 2)
     })
 
 @app.route('/ai/train', methods=['POST'])

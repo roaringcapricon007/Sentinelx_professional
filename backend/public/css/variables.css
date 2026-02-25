@@ -5,12 +5,14 @@
     --secondary: #a24dff;
     --secondary-rgb: 162, 77, 255;
     --accent: #ff1f71;
+    --quantum: #00ffa3;
     --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-elastic: cubic-bezier(0.68, -0.6, 0.32, 1.6);
     --font-main: 'Outfit', sans-serif;
     --font-mono: 'Space Mono', monospace;
     --glass-blur: 16px;
     --primary-glow: rgba(0, 242, 255, 0.6);
+    --neon-shadow: 0 0 10px rgba(0, 242, 255, 0.5), 0 0 20px rgba(0, 242, 255, 0.2);
 }
 
 /* --- Dark Mode (Default) --- */

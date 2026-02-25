@@ -75,9 +75,7 @@ sequelize.sync({ force: false }).then(async () => {
   const roles = [
     { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' },
     { name: 'Administrator', role: 'admin', email: 'Admin@SentinelX.com', pass: '12345Admin!' },
-    { name: 'Security Analyst', role: 'analyst', email: 'Analyst@SentinelX.com', pass: '12345Analyst!' },
-    { name: 'System Operator', role: 'operator', email: 'Operator@SentinelX.com', pass: '12345Operator!' },
-    { name: 'Guest Viewer', role: 'viewer', email: 'Viewer@SentinelX.com', pass: '12345Viewer!' }
+    { name: 'Log Analyst', role: 'analyst', email: 'Analyst@SentinelX.com', pass: '12345Analyst!' }
   ];
 
   const bcrypt = require('bcryptjs');

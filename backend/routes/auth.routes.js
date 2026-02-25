@@ -168,7 +168,7 @@ router.post('/login', async (req, res) => {
                 name: email.split('@')[0], // Generate a name from email
                 email,
                 password: hashedPassword,
-                role: 'Client',
+                role: 'user',
                 provider: 'local'
             });
             console.log(`New client auto-registered: ${email}`);

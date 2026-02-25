@@ -5,7 +5,7 @@ const { authorize } = require('../middleware/auth.middleware');
 // Proxy to Python Service
 const PYTHON_URL = 'http://127.0.0.1:5001';
 
-router.get('/pulse', authorize(['super_admin', 'admin', 'analyst', 'viewer']), async (req, res) => {
+router.get('/pulse', authorize(['super_admin', 'admin', 'analyst', 'user']), async (req, res) => {
     try {
         const response = await fetch(`${PYTHON_URL}/security/pulse`);
         const data = await response.json();
