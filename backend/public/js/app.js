@@ -355,7 +355,7 @@ function applyRolePermissions(role) {
 
     const permissions = {
         'super_admin': ['home', 'analysis', 'infrastructure', 'topology', 'overview', 'reports', 'powerbi', 'pulse', 'ailab', 'automation', 'botprofile', 'vault'],
-        'admin': ['home', 'analysis', 'infrastructure', 'topology', 'overview', 'reports', 'powerbi', 'pulse', 'ailab', 'botprofile'],
+        'admin': ['home', 'analysis', 'infrastructure', 'topology', 'overview', 'reports', 'powerbi', 'pulse', 'ailab', 'automation', 'botprofile'],
         'analyst': ['home', 'analysis', 'overview', 'reports'],
         'user': ['home', 'analysis', 'overview', 'reports', 'topology']
     };
@@ -381,17 +381,18 @@ function applyRolePermissions(role) {
     // Special UI Handover: Hide sensitive buttons for non-super admins/admins
     const dangerousButtons = document.querySelectorAll('.danger-btn, .admin-only, .btn-primary, .btn-secondary');
     dangerousButtons.forEach(btn => {
-        // Normal users can't see action buttons like "Upload", "Run Audit", etc.
         const isAdmin = (role === 'super_admin' || role === 'admin');
-
-        // Specific check for things that should only be Super Admin if necessary
-        // For now, let's let admins see them too, but non-admins (analyst, user) can't
         if (btn.classList.contains('danger-btn') || btn.classList.contains('admin-only')) {
-            btn.style.display = (role === 'super_admin') ? 'block' : 'none';
+            btn.style.display = isAdmin ? 'block' : 'none';
         } else {
             btn.style.display = isAdmin ? 'inline-block' : 'none';
         }
     });
+
+    const intelHeader = document.querySelector('.intel-governance');
+    if (intelHeader) {
+        intelHeader.style.display = (role === 'super_admin' || role === 'admin') ? 'block' : 'none';
+    }
 }
 
 async function checkSession() {
@@ -415,8 +416,8 @@ function logout() {
 function fillDemo() {
     const emailInput = document.querySelector('#login-form input[type="email"]');
     const passInput = document.querySelector('#login-form input[type="password"]');
-    if (emailInput) emailInput.value = "Admin@senitnelX.com";
-    if (passInput) passInput.value = "SentinelXadmin007";
+    if (emailInput) emailInput.value = "Superadmin@SentinelX.com";
+    if (passInput) passInput.value = "12345SuperAdmin!";
 }
 
 
@@ -424,6 +425,12 @@ function fillDemo() {
 function switchTab(tab) {
     state.currentTab = tab;
     localStorage.setItem('last_tab', tab);
+
+    // Close sidebar on mobile
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar && sidebar.classList.contains('mobile-show')) {
+        sidebar.classList.remove('mobile-show');
+    }
 
     // Close profile dropdown if open
     const dropdown = document.getElementById('profile-dropdown');
@@ -483,6 +490,11 @@ function switchTab(tab) {
         if (pageTitle) pageTitle.innerText = 'BI Charts';
         renderPowerBI();
     }
+}
+
+function toggleMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.classList.toggle('mobile-show');
 }
 
 // --- View Manager (SPA Logic) ---

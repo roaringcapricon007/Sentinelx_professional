@@ -10,6 +10,7 @@ try:
 except ImportError:
     DEEP_LEARNING_AVAILABLE = False
     print("Dependencies not yet ready. Falling back to Lite NLP.")
+DEEP_LEARNING_AVAILABLE = False # Force Lite mode for instant startup
 
 app = Flask(__name__)
 
@@ -255,4 +256,4 @@ def ai_sync():
 if __name__ == '__main__':
     port = 5001
     print(f"Starting Python AI Service on port {port}...", file=sys.stderr)
-    app.run(host='127.0.0.1', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)

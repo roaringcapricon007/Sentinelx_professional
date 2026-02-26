@@ -13,6 +13,43 @@
     height: 100vh;
 }
 
+/* Responseive Queries */
+@media (max-width: 900px) {
+    .sidebar {
+        position: fixed !important;
+        left: -260px;
+        top: 0;
+        bottom: 0;
+        transition: left 0.3s ease !important;
+    }
+
+    .sidebar.mobile-show {
+        left: 0 !important;
+    }
+
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .network-speed-bar {
+        left: 0 !important;
+    }
+
+    .charts-row {
+        grid-template-columns: 1fr !important;
+    }
+
+    .card-value {
+        font-size: 1.5rem !important;
+    }
+
+    .mobile-menu-btn {
+        display: block !important;
+        margin-right: 5px;
+    }
+}
+
 #dashboard-view::before {
     content: " ";
     display: block;

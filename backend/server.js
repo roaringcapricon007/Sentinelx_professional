@@ -73,9 +73,7 @@ sequelize.sync({ force: false }).then(async () => {
 
   // --- ENTERPRISE ROLE SEEDING ---
   const roles = [
-    { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' },
-    { name: 'Administrator', role: 'admin', email: 'Admin@SentinelX.com', pass: '12345Admin!' },
-    { name: 'Log Analyst', role: 'analyst', email: 'Analyst@SentinelX.com', pass: '12345Analyst!' }
+    { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' }
   ];
 
   const bcrypt = require('bcryptjs');
@@ -164,8 +162,8 @@ sequelize.sync({ force: false }).then(async () => {
   }, 4000); // Optimized 4s frequency for Enterprise Stability
 
   const PORT = process.env.PORT || 3000;
-  server.listen(PORT, () => {
-    console.log(`SentinelX Professional v6.0 running on port ${PORT}`);
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`SentinelX Professional v6.0 running on port ${PORT} [All Interfaces]`);
   });
 }).catch(err => {
   console.error('Core Database connection failed:', err);
