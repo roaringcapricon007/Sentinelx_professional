@@ -374,11 +374,28 @@ async function handleRegister(formRef, name, email, password) {
         tempRegData = { name, email, password };
         document.getElementById('register-inputs').style.display = 'none';
         document.getElementById('otp-verification').style.display = 'block';
-        showToast("Quantum-OTP broadcasted to email.", "info");
+        showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
         btn.disabled = false;
         btn.innerText = "Request Access Code";
     }, 800);
 }
+
+async function resendOTP() {
+    const btn = event.target.closest('button');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Re-broadcasting...';
+
+    showToast("Generating new 6-digit sequence...", "info");
+
+    setTimeout(() => {
+        showToast("New OTP sent successfully to your email.", "success");
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }, 1500);
+}
+
+window.resendOTP = resendOTP;
 
 async function verifyOTP() {
     const otpInput = document.getElementById('otp-input').value;
@@ -391,7 +408,9 @@ async function verifyOTP() {
 
     // MOCK OTP: 777888
     if (otpInput !== '777888' && otpInput !== '123456') {
-        showToast("OTP Signature mismatch. Access Denied.", "error");
+        showToast("INVALID OTP: Signature mismatch. Access Denied.", "error");
+        document.getElementById('otp-input').classList.add('shake');
+        setTimeout(() => document.getElementById('otp-input').classList.remove('shake'), 500);
         return;
     }
 

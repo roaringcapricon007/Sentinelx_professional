@@ -173,10 +173,17 @@
               style="text-align: center; font-size: 1.5rem; letter-spacing: 12px; font-family: var(--font-mono);">
           </div>
           <button type="button" class="btn-primary" onclick="verifyOTP()"
-            style="background: #00ff88; color: black; border: none;">Verify & Proceed</button>
-          <p style="margin-top: 15px; font-size: 0.75rem; cursor: pointer; color: var(--secondary);"
-            onclick="resetRegister()">Back to details</p>
+            style="background: #00ff88; color: black; border: none; width: 100%;">Verify & Proceed</button>
+
+          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+            <button type="button" class="btn-primary" onclick="resendOTP()"
+              style="background: transparent; border: 1px solid var(--secondary); color: var(--secondary); font-size: 0.8rem; padding: 8px;">
+              <i class="fas fa-redo"></i> Resend OTP
+            </button>
+            <p style="font-size: 0.75rem; cursor: pointer; color: #666;" onclick="resetRegister()">Back to details</p>
+          </div>
         </div>
+
       </form>
 
       <!-- Security Layer: Scan UI -->
