@@ -16,6 +16,16 @@ const state = {
     }
 };
 
+/**
+ * --- PRIVILEGE ESCALATION CHECK ---
+ * Verifies if current user has engineering clearance for advanced controls.
+ */
+function isAdmin() {
+    if (!state.user || !state.user.role) return false;
+    const role = state.user.role.toLowerCase();
+    return role === 'admin' || role === 'super_admin';
+}
+
 let currentReportType = null;
 
 // Apply theme on load
@@ -371,14 +381,18 @@ async function handleRegister(formRef, name, email, password) {
 
     // Simulation: Send OTP
     setTimeout(() => {
+        const mockOTP = "777888"; // Currently fixed for local intelligence phase
         tempRegData = { name, email, password };
         document.getElementById('register-inputs').style.display = 'none';
         document.getElementById('otp-verification').style.display = 'block';
-        showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
+
+        // Show the OTP in the system message for real-time testing
+        showToast(`[SYSTEM] OTP: ${mockOTP} - Broadcasted to ${email}.`, "success");
         btn.disabled = false;
         btn.innerText = "Request Access Code";
     }, 800);
 }
+
 
 async function resendOTP() {
     const btn = event.target.closest('button');
@@ -389,11 +403,13 @@ async function resendOTP() {
     showToast("Generating new 6-digit sequence...", "info");
 
     setTimeout(() => {
-        showToast("New OTP sent successfully to your email.", "success");
+        const mockOTP = "777888";
+        showToast(`[SYSTEM] NEW OTP: ${mockOTP} - Resent successfully.`, "success");
         btn.disabled = false;
         btn.innerHTML = originalText;
     }, 1500);
 }
+
 
 window.resendOTP = resendOTP;
 
@@ -2361,6 +2377,7 @@ function renderPulse() {
 
     const pps = (Math.random() * 5 + 10).toFixed(1);
     const sessions = Math.floor(Math.random() * 200 + 700);
+    const adminPerm = isAdmin();
 
     view.innerHTML = `
     <div class="pulse-container fade-in">
@@ -2440,7 +2457,10 @@ function renderPulse() {
                         </div>
                     </div>
                 </div>
-                <button class="btn-primary" style="width: 100%; margin-top: 30px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055;" onclick="showToast('Protocol-9 Lockdown Engaged', 'error')">Global Lockdown</button>
+                <button class="btn-primary" style="width: 100%; margin-top: 30px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055; ${!adminPerm ? 'opacity:0.3; cursor:not-allowed;' : ''}" 
+                    onclick="${adminPerm ? "showToast('Protocol-9 Lockdown Engaged', 'error')" : "showToast('Admin Access Required', 'warning')"}"
+                    ${!adminPerm ? 'title="Restricted Control"' : ''}>Global Lockdown</button>
+                ${!adminPerm ? '<p style="font-size:0.7rem; color:var(--text-muted); text-align:center; margin-top:10px;"><i class="fas fa-lock"></i> Advanced Controls: Admins Only</p>' : ''}
             </div>
         </div>
     </div>
@@ -2479,6 +2499,8 @@ function renderAilab() {
 
     if (view.getAttribute('data-rendered') === 'true' && view.innerHTML.includes('Orchestrator')) return;
 
+    const adminPerm = isAdmin();
+
     view.innerHTML = `
     <div class="ailab-container fade-in">
         <!-- OPERATIONAL DIRECTIVE -->
@@ -2501,32 +2523,39 @@ function renderAilab() {
                     <div class="card-title font-transformers">Neural Engine Orchestrator v6.5</div>
                      <div class="stat-pill" style="background: rgba(0, 212, 255, 0.1); color: var(--primary);">NATIVE-TRANSFORMER</div>
                 </div>
-                <p style="color: var(--text-muted); margin-top: 10px;">Manage, train, and deploy local intelligence models for autonomous infrastructure recovery. Integrated with PRIME_AI Python Core.</p>
+                <p style="color: var(--text-muted); margin-top: 10px; margin-bottom: 25px;">Manage, train, and deploy local intelligence models for autonomous infrastructure recovery. Integrated with PRIME_AI Python Core.</p>
             </div>
 
             <div class="card glass-card" style="padding: 25px; text-align: center;">
                 <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-microchip"></i></div>
                 <h3 class="font-transformers">Model Parameters</h3>
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current Weights: 1.2B (Optimized)</p>
-                <button class="btn-primary" style="width:100%" onclick="syncAIWeights(this)">Sync Weights</button>
+                <button class="btn-primary" style="width:100% ${!adminPerm ? '; opacity:0.5; cursor:not-allowed;' : ''}" 
+                    onclick="${adminPerm ? 'syncAIWeights(this)' : "showToast('Admin Access Required', 'warning')"}"
+                    ${!adminPerm ? 'title="Restricted Control"' : ''}>Sync Weights</button>
             </div>
 
             <div class="card glass-card" style="padding: 25px; text-align: center;">
                 <div style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-database"></i></div>
                 <h3 class="font-transformers">Neural Corpus</h3>
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Total unique events: 142.5k</p>
-                <button class="btn-primary" style="width:100%" onclick="showToast('Expanding training set from Audit Vault...', 'info')">Extend Corpus</button>
+                <button class="btn-primary" style="width:100% ${!adminPerm ? '; opacity:0.5; cursor:not-allowed;' : ''}" 
+                    onclick="${adminPerm ? "showToast('Expanding training set from Audit Vault...', 'info')" : "showToast('Admin Access Required', 'warning')"}"
+                    ${!adminPerm ? 'title="Restricted Control"' : ''}>Extend Corpus</button>
             </div>
 
             <div class="card glass-card" style="padding: 25px; text-align: center;">
                 <div style="font-size: 2.5rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-brain"></i></div>
                 <h3 class="font-transformers">Triage Accuracy</h3>
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current confidence score: 98.2%</p>
-                <button class="btn-primary" style="width:100%; background: #00ff88; color: black;" onclick="retrainAIModel(this)">Trigger Retraining</button>
+                <button class="btn-primary" style="width:100%; background: #00ff88; color: black; ${!adminPerm ? 'opacity:0.5; cursor:not-allowed;' : ''}" 
+                    onclick="${adminPerm ? 'retrainAIModel(this)' : "showToast('Admin Access Required', 'warning')"}"
+                    ${!adminPerm ? 'title="Restricted Control"' : ''}>Trigger Retraining</button>
             </div>
         </div>
+        ${!adminPerm ? '<div style="margin-top:20px; padding:15px; background:rgba(255,165,0,0.05); border-radius:10px; border:1px solid rgba(255,165,0,0.2); text-align:center;"><p style="color:orange; font-size:0.8rem;"><i class="fas fa-user-shield"></i> Information: Viewing in READ-ONLY mode. Advanced training controls require Admin Clearance.</p></div>' : ''}
     </div>
-`;
+    `;
     view.setAttribute('data-rendered', 'true');
 }
 
@@ -2682,6 +2711,8 @@ async function renderAutomation() {
         tools = await res.json();
     } catch (e) { console.error("Failed to load tools", e); }
 
+    const adminPerm = isAdmin();
+
     view.innerHTML = `
     <div class="automation-container fade-in">
         <!-- OPERATIONAL DIRECTIVE -->
@@ -2711,12 +2742,14 @@ async function renderAutomation() {
                 
                 <div style="display: flex; gap: 15px; align-items: flex-end;">
                     <div style="flex: 1;">
-                        <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Directives Repository</label>
+                        <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Directives Repository ${!adminPerm ? '(Read Only)' : ''}</label>
                         <select id="testing-tool-select" class="form-input" style="width: 100%; margin-top: 5px; height: 45px;">
                             ${tools.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
                         </select>
                     </div>
-                    <button class="btn-primary" onclick="executeAutomationTest()" style="height: 45px; padding: 0 30px;">
+                    <button class="btn-primary" onclick="${adminPerm ? 'executeAutomationTest()' : "showToast('Admin Access Required', 'warning')"}" 
+                        style="height: 45px; padding: 0 30px; ${!adminPerm ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                        ${!adminPerm ? 'title="Restricted Control"' : ''}>
                         <i class="fas fa-play"></i> EXECUTE
                     </button>
                 </div>

@@ -102,6 +102,8 @@ const TESTING_TOOLS = {
     }
 };
 
+const { authorize } = require('../middleware/auth.middleware');
+
 router.get('/tools', (req, res) => {
     const list = Object.keys(TESTING_TOOLS).map(key => ({
         id: key,
@@ -111,8 +113,9 @@ router.get('/tools', (req, res) => {
     res.json(list);
 });
 
-router.post('/run', async (req, res) => {
+router.post('/run', authorize(['super_admin', 'admin']), async (req, res) => {
     const { toolId } = req.body;
+
     const tool = TESTING_TOOLS[toolId];
 
     if (!tool) {

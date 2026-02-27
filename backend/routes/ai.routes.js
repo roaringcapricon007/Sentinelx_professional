@@ -23,7 +23,7 @@ router.get('/pulse', authorize(['super_admin', 'admin', 'analyst', 'user']), asy
     }
 });
 
-router.post('/train', authorize(['super_admin']), async (req, res) => {
+router.post('/train', authorize(['super_admin', 'admin']), async (req, res) => {
     try {
         const response = await fetch(`${PYTHON_URL}/ai/train`, { method: 'POST' });
         const data = await response.json();
@@ -33,7 +33,7 @@ router.post('/train', authorize(['super_admin']), async (req, res) => {
     }
 });
 
-router.post('/sync', authorize(['super_admin']), async (req, res) => {
+router.post('/sync', authorize(['super_admin', 'admin']), async (req, res) => {
     try {
         const response = await fetch(`${PYTHON_URL}/ai/sync`, { method: 'POST' });
         const data = await response.json();
@@ -42,6 +42,7 @@ router.post('/sync', authorize(['super_admin']), async (req, res) => {
         res.status(500).json({ error: "AI Service Unreachable" });
     }
 });
+
 
 router.get('/health', async (req, res) => {
     try {
