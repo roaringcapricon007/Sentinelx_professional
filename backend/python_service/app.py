@@ -66,27 +66,34 @@ def chat():
         except Exception as e:
             print(f"Brain Inference Error: {e}")
 
-    # CASE B: Lite Brain Fallback
+    # CASE B: Lite Brain Fallback (Quantum Synthesis Mode)
     if model and vectorizer:
         try:
             features = vectorizer.transform([user_message])
             intent = model.predict(features)[0]
             
             response_map = {
-                'greeting': "NEXUS ONLINE. Greetings, Administrator. Neural link established.",
-                'status': "SYSTEM SCAN: All quantum kernels are operating at peak efficiency. No anomalies detected.",
-                'security': "THREAT MONITOR: Global shield active. Monitoring 142 mesh nodes for zero-day vectors.",
-                'logs': "DATA ARCHIVE: Log repositories are synchronized. Deep analysis suggests 99.9% integrity.",
-                'help': "I can assist with Mesh Topology, Quantum Security, Log Analysis, and System Intelligence.",
-                'unknown': "INSUFFICIENT DATA. Please provide specific command parameters for Nexus processing."
+                'greeting': "NEXUS ONLINE. Greetings, Administrator. Neural link established. I am monitoring global node stability.",
+                'status': "SYSTEM SCAN: All quantum kernels are operating at peak efficiency. Regional latency is nominal (8ms). Local node cluster is STABLE.",
+                'security': "THREAT MONITOR: Global shield active. Monitoring 142 mesh nodes for zero-day vectors. Predictive isolation protocols standby.",
+                'logs': "DATA ARCHIVE: Log repositories are synchronized. Deep analysis suggests 99.9% integrity. No structural anomalies detected in recent telemetry.",
+                'help': "I am PRIME_AI v7.0. I can assist with Mesh Topology, Quantum Security enforcement, Heuristic Log Analysis, and System Intelligence optimization.",
+                'unknown': "QUERY RECEIVED. I am processing your input through the Nexus core... Information synthesis suggests you may be asking about system parameters. Please specify a core command."
             }
+            
+            # Dynamic synthesis for "unknown" to make it feel smarter
+            response = response_map.get(intent, response_map['unknown'])
+            if intent == 'unknown' and len(user_message) > 5:
+                response = f"NEURAL ANALYSIS: Analyzing '{user_message[:20]}...'. My current kernels suggest this relates to {intent if intent != 'unknown' else 'unmapped parameters'}. Please elaborate."
+
             return jsonify({
-                'response': response_map.get(intent, response_map['unknown']),
+                'response': response,
                 'intent': intent,
-                'engine': 'SentinelX-Lite-NLP'
+                'engine': 'SentinelX-Quantum-Synthesis-v7.0'
             })
         except Exception as e:
             print(f"Lite Inference Error: {e}")
+
 
     return jsonify({'response': 'System: AI is currently updating its neural kernels.', 'intent': 'maintenance'})
 

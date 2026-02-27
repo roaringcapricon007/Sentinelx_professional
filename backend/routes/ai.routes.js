@@ -43,4 +43,14 @@ router.post('/sync', authorize(['super_admin']), async (req, res) => {
     }
 });
 
+router.get('/health', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_URL}/health`);
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(503).json({ status: "offline", error: "AI Service Unreachable" });
+    }
+});
+
 module.exports = router;

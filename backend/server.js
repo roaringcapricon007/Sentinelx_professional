@@ -4,6 +4,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 
 require('dotenv').config();
+const cors = require('cors');
 const session = require('express-session');
 const passport = require('passport');
 
@@ -33,6 +34,7 @@ app.set('io', io);
 const chatSocket = require('./sockets/chat.socket');
 chatSocket(io);
 
+app.use(cors());
 app.use(express.json());
 
 // Session Config
@@ -54,6 +56,9 @@ const { User, SystemMetric, LogEntry, Server } = require('./models');
 
 
 // Mount Routes
+const { dbCheck } = require('./middleware/db.middleware');
+app.use('/api', dbCheck); // Ensure DB is healthy for all API calls
+
 app.use('/api/ingest', ingestRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/auth', authRoutes);
@@ -64,6 +69,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/automation', automationRoutes);
 app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/testing', testingRoutes);
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -163,7 +169,14 @@ sequelize.sync({ force: false }).then(async () => {
 
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`SentinelX Professional v6.0 running on port ${PORT} [All Interfaces]`);
+    console.log(`
+    =================================================
+    SentinelX Professional v7.0 ONLINE
+    Mode: Enterprise Neural Core
+    Interface: http://0.0.0.0:${PORT}
+    Status: All Matrix Systems Synchronized
+    =================================================
+    `);
   });
 }).catch(err => {
   console.error('Core Database connection failed:', err);

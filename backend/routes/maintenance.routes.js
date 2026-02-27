@@ -78,4 +78,32 @@ router.post('/clear-cache', async (req, res) => {
     }
 });
 
+// GET /api/maintenance/db-status
+router.get('/db-status', async (req, res) => {
+    try {
+        const stats = await sequelize.query("SELECT count(*) as count FROM sqlite_master WHERE type='table';");
+        const tableCount = stats[0][0].count;
+
+        // Check each core table
+        const tables = ['User', 'SystemMetric', 'LogEntry', 'Server'];
+        const details = {};
+
+        for (const table of tables) {
+            const count = await sequelize.models[table].count();
+            details[table] = count;
+        }
+
+        res.json({
+            status: 'Nominal',
+            engine: 'SQLite 3',
+            tablesInitialized: tableCount,
+            recordMatrix: details,
+            uptime: process.uptime()
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'Error', message: err.message });
+    }
+});
+
 module.exports = router;
+

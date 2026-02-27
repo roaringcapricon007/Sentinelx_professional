@@ -6,6 +6,17 @@ const LinkedInStrategy = require('passport-linkedin-oauth2').Strategy;
 
 const bcrypt = require('bcryptjs');
 const { User } = require('../models');
+const rateLimit = require('express-rate-limit');
+
+// --- Security Layer: Rate Limiting ---
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Limit each IP to 10 login requests per window
+    message: { error: "SECURITY ALERT: Excessive authentication attempts. Neural link throttled." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 
 // --- Helper: Find or Create User in DB ---
 async function findOrCreateUser(profile, provider) {
@@ -152,9 +163,16 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
+        const signature = req.headers['x-neural-handshake'];
+
+        // Layer 2: Signature Handshake
+        if (signature !== 'quantum-v7-authorized') {
+            return res.status(403).json({ error: 'SECURITY BREACH: Invalid Neural Handshake Signature.' });
+        }
+
         if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
         // 1. Authenticate via DB (Real Security)

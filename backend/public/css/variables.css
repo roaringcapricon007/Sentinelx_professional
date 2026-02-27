@@ -147,3 +147,110 @@ body[data-theme="light"],
     --accent: #dc3545 !important;
     --aura-opacity: 0.08 !important;
 }
+
+/* --- Neural Status --- */
+.neural-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(var(--primary-rgb), 0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(var(--primary-rgb), 0.2);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--primary);
+    letter-spacing: 1px;
+    margin-left: 20px;
+}
+
+.pulse-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--primary);
+    animation: pulseNeural 2s infinite;
+}
+
+@keyframes pulseNeural {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 0px var(--primary);
+    }
+
+    50% {
+        transform: scale(1.5);
+        opacity: 0.7;
+        box-shadow: 0 0 10px var(--primary);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 0px var(--primary);
+    }
+}
+
+/* --- Neural Security Layer --- */
+.security-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    color: var(--primary);
+    font-family: var(--font-mono);
+}
+
+.scanner-area {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    border: 1px solid rgba(var(--primary-rgb), 0.3);
+    margin-bottom: 30px;
+}
+
+.scan-line {
+    position: absolute;
+    width: 100%;
+    height: 4px;
+    background: var(--primary);
+    box-shadow: 0 0 15px var(--primary);
+    top: 0;
+    animation: scanning 2s infinite alternate ease-in-out;
+}
+
+@keyframes scanning {
+    from {
+        top: 0;
+    }
+
+    to {
+        top: 100%;
+    }
+}
+
+.security-text {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-align: center;
+    line-height: 1.8;
+}
+
+.security-log {
+    margin-top: 20px;
+    font-size: 0.7rem;
+    color: #00ff88;
+    max-width: 400px;
+    overflow: hidden;
+    height: 60px;
+}

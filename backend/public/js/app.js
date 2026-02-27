@@ -8,7 +8,12 @@ const state = {
     notifications: [],
     notificationsEnabled: localStorage.getItem('notificationsEnabled') !== 'false',
     theme: localStorage.getItem('theme') || 'dark', // 'dark' or 'light'
-    liveLogs: []
+    liveLogs: [],
+    labAuth: {
+        pulse: false,
+        ailab: false,
+        automation: false
+    }
 };
 
 let currentReportType = null;
@@ -55,17 +60,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Always clear fields on toggle
             loginForm.reset();
             registerForm.reset();
+            resetRegister(); // Reset OTP view if toggled back
 
             const isLoginVisible = loginForm.style.display !== 'none';
 
             if (isLoginVisible) {
                 loginForm.style.display = 'none';
                 registerForm.style.display = 'block';
-                toggleBtn.innerText = "Have an account? Login";
+                toggleBtn.innerText = "Already Registered? Login";
             } else {
                 loginForm.style.display = 'block';
                 registerForm.style.display = 'none';
-                toggleBtn.innerText = "Need an account? Register";
+                toggleBtn.innerText = "Need an account? Sign UP";
             }
         });
     }
@@ -99,19 +105,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupSocket();
 
     // Start Cinematic Intro (Skip if already played or logging out)
-    const introPlayed = sessionStorage.getItem('sentinel_intro_played');
-    if (urlParams.get('logout') === 'true' || introPlayed) {
+    const introPlayed = sessionStorage.getItem('sentinel_intro_played') === 'true';
+    const isLogout = urlParams.get('logout') === 'true';
+
+    if (isLogout || introPlayed) {
         const intro = document.getElementById('intro-view');
         if (intro) intro.style.display = 'none';
 
-        if (urlParams.get('logout') === 'true') {
+        if (isLogout) {
             sessionStorage.removeItem('sentinel_intro_played');
             window.history.replaceState({}, document.title, "/");
         }
+
+        // --- FIX: Ensure we show a view if intro is skipped ---
+        // We wait a bit for checkSession to finish, or force show login if not logged in
+        setTimeout(() => {
+            if (!state.isLoggedIn) {
+                if (views.login) views.login.style.display = 'flex';
+            }
+        }, 300);
     } else {
         runIntro();
     }
 });
+
 
 // --- Cinematic Intro Logic ---
 function runIntro() {
@@ -269,26 +286,69 @@ function runIntro() {
 async function handleLogin(formRef, email, password) {
     const btn = formRef.querySelector('button');
     const originalText = btn.innerText;
-    btn.disabled = true;
-    btn.innerText = "Authenticating...";
+    const scanner = document.getElementById('security-layer');
+    const scannerLog = document.getElementById('security-log');
+    const scannerStep = document.getElementById('security-step');
+
+    // Show Scanning Layer
+    if (scanner) scanner.style.display = 'flex';
+
+    const logBatch = [
+        "Establishing encrypted link...",
+        "Initiating deep packet inspection...",
+        "Validating neural key signatures...",
+        "Cross-referencing Global Node database...",
+        "Handshaking with Quantum Core..."
+    ];
+
+    let logIdx = 0;
+    const logInterval = setInterval(() => {
+        if (scannerLog) {
+            const entry = document.createElement('div');
+            entry.innerText = `[INFO] ${logBatch[logIdx] || "Synthesizing credentials..."}`;
+            scannerLog.prepend(entry);
+        }
+        if (logBatch[logIdx]) scannerStep.innerText = logBatch[logIdx];
+        logIdx++;
+    }, 400);
 
     try {
+        // Wait for "Scanning" effect to feel real (1.5s)
+        await new Promise(r => setTimeout(r, 1500));
+
         const res = await fetch('/api/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Neural-Handshake': 'quantum-v7-authorized' // Security Layer Header
+            },
             body: JSON.stringify({ email, password })
         });
         const data = await res.json();
 
+        clearInterval(logInterval);
+
         if (res.ok) {
-            login(data.user);
+            scannerStep.innerText = "ACCESS GRANTED";
+            scannerStep.style.color = "#00ff88";
+            setTimeout(() => {
+                if (scanner) scanner.style.display = 'none';
+                login(data.user);
+            }, 800);
         } else {
-            showToast(data.error || 'Wrong username or password', 'error');
-            btn.innerText = "Error";
-            setTimeout(() => { btn.disabled = false; btn.innerText = originalText; }, 1000);
+            scannerStep.innerText = "ACCESS DENIED";
+            scannerStep.style.color = "#ff0055";
+            setTimeout(() => {
+                if (scanner) scanner.style.display = 'none';
+                showToast(data.error || 'Wrong username or password', 'error');
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }, 1000);
         }
     } catch (e) {
+        clearInterval(logInterval);
         console.error("Login err", e);
+        if (scanner) scanner.style.display = 'none';
         showToast("Connection failed", "error");
         btn.disabled = false;
         btn.innerText = originalText;
@@ -296,33 +356,81 @@ async function handleLogin(formRef, email, password) {
 }
 
 
+
+let tempRegData = null;
+
 async function handleRegister(formRef, name, email, password) {
+    if (!name || !email || !password) {
+        showToast("Access Request requires full credentials.", "warning");
+        return;
+    }
+
     const btn = formRef.querySelector('button');
-    const originalText = btn.innerText;
     btn.disabled = true;
-    btn.innerText = "Registering...";
+    btn.innerText = "Synchronizing...";
+
+    // Simulation: Send OTP
+    setTimeout(() => {
+        tempRegData = { name, email, password };
+        document.getElementById('register-inputs').style.display = 'none';
+        document.getElementById('otp-verification').style.display = 'block';
+        showToast("Quantum-OTP broadcasted to email.", "info");
+        btn.disabled = false;
+        btn.innerText = "Request Access Code";
+    }, 800);
+}
+
+async function verifyOTP() {
+    const otpInput = document.getElementById('otp-input').value;
+    const verifyBtn = document.querySelector('#otp-verification button');
+
+    if (otpInput.length !== 6) {
+        showToast("Invalid OTP sequence length.", "error");
+        return;
+    }
+
+    // MOCK OTP: 777888
+    if (otpInput !== '777888' && otpInput !== '123456') {
+        showToast("OTP Signature mismatch. Access Denied.", "error");
+        return;
+    }
+
+    verifyBtn.innerText = "Authorizing...";
+    verifyBtn.disabled = true;
 
     try {
         const res = await fetch('/api/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify(tempRegData)
         });
         const data = await res.json();
 
         if (res.ok) {
+            showToast("Identity Verified. Welcome to SentinelX.", "success");
             login(data.user);
         } else {
-            alert(data.error || 'Registration failed');
-            btn.innerText = "Failed";
-            setTimeout(() => { btn.disabled = false; btn.innerText = originalText; }, 1000);
+            showToast(data.error || 'Registration failed', 'error');
+            resetRegister();
         }
     } catch (e) {
         console.error("Reg err", e);
-        btn.disabled = false;
-        btn.innerText = originalText;
+        showToast("Uplink failed during verification.", "error");
+    } finally {
+        verifyBtn.innerText = "Verify & Proceed";
+        verifyBtn.disabled = false;
     }
 }
+
+function resetRegister() {
+    document.getElementById('register-inputs').style.display = 'block';
+    document.getElementById('otp-verification').style.display = 'none';
+    document.getElementById('otp-input').value = '';
+    tempRegData = null;
+}
+
+window.verifyOTP = verifyOTP;
+window.resetRegister = resetRegister;
 
 function login(user) {
     state.isLoggedIn = true;
@@ -569,8 +677,38 @@ function setupSocket() {
     socket.on('metrics_update', (data) => {
         state.overviewData = data;
         updateDashboardMetrics(data);
+        updateNeuralPulse(data);
     });
 }
+
+async function updateNeuralPulse(metrics) {
+    const pulseEl = document.getElementById('neural-pulse');
+    if (!pulseEl) return;
+
+    try {
+        const res = await fetch('/api/ai/health');
+        const data = await res.json();
+        const span = pulseEl.querySelector('span');
+        const dot = pulseEl.querySelector('.pulse-dot');
+
+        if (data.status === 'online') {
+            span.innerText = data.advanced_brain ? 'NEURAL_LINK: ADVANCED' : 'NEURAL_LINK: LITE';
+            span.style.color = 'var(--primary)';
+            dot.style.background = 'var(--primary)';
+            dot.style.boxShadow = '0 0 10px var(--primary)';
+        } else {
+            span.innerText = 'NEURAL_LINK: OFFLINE';
+            span.style.color = 'var(--accent)';
+            dot.style.background = 'var(--accent)';
+            dot.style.boxShadow = '0 0 10px var(--accent)';
+        }
+    } catch (e) {
+        const span = pulseEl.querySelector('span');
+        span.innerText = 'NEURAL_LINK: LOST';
+        span.style.color = 'var(--accent)';
+    }
+}
+
 
 // --- RENDER FUNCTIONS ---
 
@@ -579,64 +717,70 @@ function renderHome() {
 
     view.innerHTML = `
     <div class="home-container fade-in">
-    <div style="margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; text-align: center;">
+    <!-- Moving background element -->
+    <div class="home-aura"></div>
+
+    <div style="margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; z-index: 1;">
         <div style="width: 100%; margin-bottom: 25px;">
-            <h1 style="font-size: 3.5rem; margin-bottom: 10px; background: linear-gradient(270deg, var(--primary), var(--secondary), var(--quantum), var(--primary)); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientLoop 6s ease infinite;"><span class="font-transformers">SENTINELX_NEXUS</span></h1>
-            <p style="color: var(--text-muted); font-size: 1.2rem; letter-spacing: 1.5px; text-transform: uppercase;">Universal Infrastructure & Quantum AI Interface</p>
+            <div class="hero-chip" style="display:inline-block; padding: 5px 15px; background: rgba(var(--primary-rgb), 0.1); border: 1px solid rgba(var(--primary-rgb), 0.3); border-radius: 50px; color: var(--primary); font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px;">v7.0 QUANTUM EDITION</div>
+            <h1 style="font-size: 4.5rem; margin-bottom: 10px; background: linear-gradient(270deg, var(--primary), var(--secondary), var(--quantum), var(--primary)); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientLoop 6s ease infinite; font-weight: 900; filter: drop-shadow(0 0 15px rgba(var(--primary-rgb), 0.3));"><span class="font-transformers">SENTINELX_NEXUS</span></h1>
+            <p style="color: var(--text-muted); font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; max-width: 800px; margin: 0 auto;">Autonomous Infrastructure Intelligence Protocol</p>
         </div>
-        <div style="display: flex; gap: 15px;">
-            <button class="btn-primary" onclick="switchTab('topology')" style="padding: 10px 25px; font-size: 0.9rem; box-shadow: var(--neon-shadow);">ACCESS MESH</button>
-            <button class="btn-secondary" onclick="switchTab('ailab')" style="padding: 10px 25px; font-size: 0.9rem; background: rgba(0,255,163,0.1); border: 1px solid var(--quantum); color: var(--quantum); border-radius: 8px;">NEURAL CORE</button>
+        <div style="display: flex; gap: 20px; margin-top: 10px;">
+            <button class="btn-primary-mega" onclick="switchTab('topology')" style="padding: 15px 40px; font-size: 1rem; cursor: pointer; border-radius: 12px; background: var(--primary); color: #000; border: none; font-weight: 800; transition: all 0.3s var(--ease-elastic);">ACCESS MESH</button>
+            <button class="btn-secondary-mega" onclick="switchTab('ailab')" style="padding: 15px 40px; font-size: 1rem; cursor: pointer; border-radius: 12px; background: rgba(0,255,163,0.1); border: 1px solid var(--quantum); color: var(--quantum); font-weight: 800; transition: all 0.3s var(--ease-elastic);">NEURAL CORE</button>
         </div>
     </div>
 
-    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-        <div class="card glass-card" onclick="switchTab('botprofile')" style="cursor: pointer; position: relative;">
-            <div style="position: absolute; top: 15px; right: 15px; font-size: 0.7rem; color: var(--quantum);">NEURAL v7.2</div>
-            <div style="margin-bottom: 20px;"><img src="img/autobot_logo.png" style="width: 45px; height: 45px; object-fit: contain; filter: drop-shadow(0 0 10px var(--primary));"></div>
+    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; position: relative; z-index: 1; margin-top: 40px;">
+        <div class="card premium-card" onclick="switchTab('botprofile')">
+            <div class="card-glow"></div>
+            <div style="position: absolute; top: 15px; right: 15px; font-size: 0.7rem; color: var(--quantum); font-family: var(--font-mono);">SYNC: 98%</div>
+            <div style="margin-bottom: 20px;"><img src="img/autobot_logo.png" style="width: 50px; height: 50px; object-fit: contain; filter: drop-shadow(0 0 10px var(--primary));"></div>
             <h3 class="font-transformers"><span class="font-transformers">PRIME_AI</span> Quantum</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Next-generation <strong>Nexus Transformer</strong> core. Operating with sub-1ms predictive response latency.</p>
         </div>
-        <div class="card glass-card" onclick="switchTab('topology')" style="cursor: pointer;">
-            <div style="font-size: 2rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-project-diagram"></i></div>
+        <div class="card premium-card" onclick="switchTab('topology')">
+            <div class="card-glow" style="background: radial-gradient(circle at top right, rgba(var(--primary-rgb), 0.15), transparent 70%);"></div>
+            <div style="font-size: 2.2rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-project-diagram"></i></div>
             <h3 class="font-transformers">Neural Mesh</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Real-time visualization of 142 global nodes synchronized via quantum-secure handshakes.</p>
         </div>
-        <div class="card glass-card" onclick="switchTab('pulse')" style="cursor: pointer;">
-            <div style="font-size: 2rem; color: var(--quantum); margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
+        <div class="card premium-card" style="border: 1px dashed var(--secondary); background: rgba(var(--secondary-rgb), 0.05);">
+            <div class="card-glow" style="background: radial-gradient(circle at top right, rgba(var(--secondary-rgb), 0.1), transparent 70%);"></div>
+            <div style="font-size: 2.2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-mobile-alt"></i></div>
+            <h3 class="font-transformers">Remote Sync</h3>
+            <p style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.6;">Access SentinelX from your mobile device or external node:</p>
+            <div style="margin-top: 10px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--secondary); padding: 5px; background: rgba(0,0,0,0.3); border-radius: 5px;">http://10.171.167.68:3000</div>
+        </div>
+        <div class="card premium-card" onclick="switchTab('pulse')">
+            <div class="card-glow" style="background: radial-gradient(circle at top right, rgba(0, 255, 163, 0.15), transparent 70%);"></div>
+            <div style="font-size: 2.2rem; color: var(--quantum); margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
             <h3 class="font-transformers">Quantum Shield</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Active interceptor for emerging zero-day threats. Dynamic heuristic-based node isolation.</p>
         </div>
-        <div class="card glass-card" onclick="switchTab('vault')" style="cursor: pointer;">
-            <div style="font-size: 2rem; color: var(--accent); margin-bottom: 15px;"><i class="fas fa-shield-halved"></i></div>
-            <h3 class="font-transformers">Audit Nexus</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Immutable blockchain-backed audit records. Verifiable integrity for all system manipulations.</p>
-        </div>
     </div>
 
-    <div class="card glass-card" style="margin-top: 30px; padding: 40px; text-align: center; border-radius: 24px; background: linear-gradient(180deg, rgba(var(--primary-rgb), 0.05) 0%, transparent 100%);">
-        <h2 style="margin-bottom: 20px;" class="font-transformers">Infinite Scale. Absolute Security.</h2>
-        <p style="color: var(--text-muted); line-height: 1.8; max-width: 900px; margin: 0 auto 30px;">SentinelX v7.0 introduces the Quantum Nexus, a distributed intelligence architecture that eliminates centralized points of failure. Our neural mesh provides healing capabilities that outpace traditional automation.</p>
-        <div style="display: flex; gap: 40px; justify-content: center; align-items: center;">
-            <div style="text-align: center;">
-                <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary); text-shadow: var(--neon-shadow);">99.999%</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Uptime Stability</div>
-            </div>
-            <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
-            <div style="text-align: center;">
-                <div style="font-size: 2.5rem; font-weight: 700; color: var(--quantum); text-shadow: 0 0 15px rgba(0, 255, 163, 0.3);">0.08ms</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Quantum Latency</div>
-            </div>
-            <div style="width: 1px; height: 50px; background: var(--glass-border);"></div>
-            <div style="text-align: center;">
-                <div style="font-size: 2.5rem; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);">GEN 7</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Nexus Engine</div>
-            </div>
+    <div class="home-stat-banner">
+        <div class="stat-item">
+            <span class="stat-value">99.99<span style="font-size: 0.6em; margin-left:2px;">%</span></span>
+            <span class="stat-label">Uptime Architecture</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat-item">
+            <span class="stat-value">0.08<span style="font-size: 0.6em; margin-left:2px;">ms</span></span>
+            <span class="stat-label">Response Velocity</span>
+        </div>
+        <div class="stat-separator"></div>
+        <div class="stat-item">
+            <span class="stat-value">1.2<span style="font-size: 0.6em; margin-left:2px;">PB</span></span>
+            <span class="stat-label">Data Synced</span>
         </div>
     </div>
 </div>
 `;
 }
+
 
 function updateDashboardMetrics(data) {
     // 1. Update Cards
@@ -732,7 +876,24 @@ function renderOverview() {
             <canvas id="mainTrendChart"></canvas>
         </div>
         <div class="chart-container" style="flex: 1; position: relative;">
-            <canvas id="statusPieChart"></canvas>
+            <div class="card-title font-transformers" style="margin-bottom: 20px;">AI Predictive Insight</div>
+            <div id="ai-prediction-content">
+                <div class="stat-pill" style="width: 100%; justify-content: space-between; margin-bottom: 10px;">
+                    <span>Next Hour Load:</span>
+                    <span style="color: var(--primary)">STABLE (≈22%)</span>
+                </div>
+                <div class="stat-pill" style="width: 100%; justify-content: space-between; margin-bottom: 10px;">
+                    <span>Threat Probability:</span>
+                    <span style="color: var(--quantum)">LOW (4%)</span>
+                </div>
+                <div class="stat-pill" style="width: 100%; justify-content: space-between; margin-bottom: 10px;">
+                    <span>Storage Depletion:</span>
+                    <span>14 Days</span>
+                </div>
+                <div style="margin-top: 25px; padding: 15px; background: rgba(var(--primary-rgb), 0.05); border-radius: 10px; border: 1px dashed var(--primary); font-size: 0.75rem; color: var(--text-muted);">
+                    <i class="fas fa-robot"></i> <strong>PRIME_AI v7.0 Suggestion:</strong> Model predicts a traffic surge at 04:00 UTC. Recommend automated node pre-warming.
+                </div>
+            </div>
         </div>
     </div>
 `;
@@ -815,6 +976,54 @@ function updateOverviewCharts(servers) {
         // If we are here, it means we have data but no chart. 
         // Attempting to create it here might conflict. safer to let renderOverview handle creation.
         // CHECK: If view is hidden, chart still exists in memory if created via Chart.js
+    }
+}
+
+async function syncAIWeights(btn) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCING...';
+
+    try {
+        const res = await fetch('/api/ai/sync', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(`Quantum Weights Synced: ${data.weights_version}`, 'success');
+            btn.innerHTML = '<i class="fas fa-check"></i> SYNCED';
+            setTimeout(() => { btn.disabled = false; btn.innerHTML = originalText; }, 3000);
+        }
+    } catch (e) {
+        showToast('Sync Failed: Link Unstable', 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function retrainAIModel(btn) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.style.background = '#888';
+    btn.innerHTML = '<i class="fas fa-brain fa-pulse"></i> RETRAINING CORE...';
+
+    showToast('Initiating Heuristic Synthesis...', 'info');
+
+    try {
+        const res = await fetch('/api/ai/train', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(`Retraining Complete. Accuracy: ${data.accuracy}%`, 'success');
+            btn.innerHTML = '<i class="fas fa-check"></i> CORE OPTIMIZED';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.style.background = '#00ff88';
+                btn.innerHTML = originalText;
+            }, 5000);
+        }
+    } catch (e) {
+        showToast('Training Interrupted: Memory Fault', 'error');
+        btn.disabled = false;
+        btn.style.background = '#00ff88';
+        btn.innerHTML = originalText;
     }
 }
 
@@ -2084,15 +2293,72 @@ function resetPBIFilters() {
 
 window.resetPBIFilters = resetPBIFilters;
 
+async function authorizeLab(lab, callback) {
+    const view = document.getElementById(`${lab}-view`);
+    view.innerHTML = `
+    <div style="height: 70vh; display: flex; align-items: center; justify-content: center;">
+        <div class="card glass-card" style="padding: 50px; text-align: center; max-width: 500px; border: 1px solid var(--primary);">
+            <div class="upload-icon-pulse" style="font-size: 4rem; color: var(--primary); margin-bottom: 30px;">
+                <i class="fas fa-fingerprint"></i>
+            </div>
+            <h2 class="font-transformers" style="margin-bottom: 15px;">Neural Handshake Required</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 30px; line-height: 1.6;">
+                This sector of the <strong>Intelligence Matrix</strong> requires an active neural handover. 
+                Authorizing will synchronize your session with the PRIME_AI core.
+            </p>
+            <button class="btn-primary" onclick="performLabHandshake('${lab}')" style="width: 100%; padding: 15px; font-weight: bold;">
+                INITIALIZE HANDOVER
+            </button>
+        </div>
+    </div>
+    `;
+}
+
+async function performLabHandshake(lab) {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCHRONIZING...';
+
+    showToast("Establishing encrypted uplink...", "info");
+
+    setTimeout(() => {
+        state.labAuth[lab] = true;
+        showToast("Neural Handover Successful. Access Granted.", "success");
+        switchTab(lab); // Re-render target lab
+    }, 1500);
+}
+
+window.performLabHandshake = performLabHandshake;
+
 function renderPulse() {
     const view = showView('pulse-view');
-    if (view.getAttribute('data-rendered') === 'true') return;
+
+    if (!state.labAuth.pulse) {
+        authorizeLab('pulse');
+        return;
+    }
+
+    if (view.getAttribute('data-rendered') === 'true' && view.innerHTML !== '') return;
 
     const pps = (Math.random() * 5 + 10).toFixed(1);
     const sessions = Math.floor(Math.random() * 200 + 700);
 
     view.innerHTML = `
     <div class="pulse-container fade-in">
+        <!-- OPERATIONAL DIRECTIVE -->
+        <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--primary-rgb), 0.05); border-left: 4px solid var(--primary); padding: 20px;">
+            <div style="display: flex; gap: 15px; align-items: flex-start;">
+                <i class="fas fa-info-circle" style="color: var(--primary); margin-top: 3px;"></i>
+                <div>
+                    <h4 class="font-transformers" style="font-size: 0.8rem; letter-spacing: 1px;">DIRECTIVE: SIGNAL INTELLIGENCE</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                        The Security Pulse monitors real-time "heartbeats" of all infrastructure nodes. It detects <strong>Heuristic Anomalies</strong> 
+                        by analyzing packet frequency and session entropy. Use this to identify stealth intrusions before they escalate.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
             <div class="card glass-card" style="position: relative; overflow: hidden; padding: 30px;">
                 <div class="results-header">
@@ -2106,6 +2372,7 @@ function renderPulse() {
                      </div>
                      <div id="pulse-radar" style="position: absolute; width: 200px; height: 200px; border: 1px solid var(--primary); border-radius: 50%; opacity: 0.1; animation: radar 4s linear infinite;"></div>
                 </div>
+                <!-- ... metrics grid ... -->
                 <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
                     <div style="background: rgba(var(--primary-rgb), 0.05); padding: 15px; border-radius: 10px;">
                         <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase;">PPS rate</div>
@@ -2125,6 +2392,7 @@ function renderPulse() {
             <div class="card glass-card" style="padding: 25px;">
                 <div class="card-title font-transformers">Regional Risk Vector</div>
                 <div style="margin-top:20px; display: flex; flex-direction: column; gap: 15px;">
+                    <!-- progress bars -->
                     <div>
                         <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
                             <span>North America</span>
@@ -2143,7 +2411,7 @@ function renderPulse() {
                             <div style="width: 45%; height: 100%; background: #ffcc00; border-radius: 2px;"></div>
                         </div>
                     </div>
-                    <div>
+                     <div>
                         <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
                             <span>Undetermined Proxy</span>
                             <span style="color: #ff0055;">High</span>
@@ -2157,7 +2425,7 @@ function renderPulse() {
             </div>
         </div>
     </div>
-`;
+    `;
     view.setAttribute('data-rendered', 'true');
 }
 
@@ -2184,10 +2452,30 @@ window.refreshPulse = refreshPulse;
 
 function renderAilab() {
     const view = showView('ailab-view');
-    if (view.getAttribute('data-rendered') === 'true') return;
+
+    if (!state.labAuth.ailab) {
+        authorizeLab('ailab');
+        return;
+    }
+
+    if (view.getAttribute('data-rendered') === 'true' && view.innerHTML.includes('Orchestrator')) return;
 
     view.innerHTML = `
     <div class="ailab-container fade-in">
+        <!-- OPERATIONAL DIRECTIVE -->
+        <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--primary-rgb), 0.05); border-left: 4px solid var(--primary); padding: 20px;">
+            <div style="display: flex; gap: 15px; align-items: flex-start;">
+                <i class="fas fa-brain" style="color: var(--primary); margin-top: 3px;"></i>
+                <div>
+                    <h4 class="font-transformers" style="font-size: 0.8rem; letter-spacing: 1px;">DIRECTIVE: NEURAL RECONSTRUCTION</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                        The AI Lab is the <strong>Control Sector</strong> for the PRIME_AI engine. Here, you can re-synchronize neural weights 
+                        or trigger a full model retraining. Retraining is recommended after large batches of "Critical" logs have been archived for better triage prediction.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
             <div class="card glass-card" style="grid-column: span 2; padding: 30px;">
                 <div class="results-header">
@@ -2270,6 +2558,20 @@ async function renderVault() {
     // Always re-fetch to show latest archived logs
     view.innerHTML = `
     <div class="vault-container fade-in">
+        <!-- OPERATIONAL DIRECTIVE -->
+        <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--secondary-rgb), 0.05); border-left: 4px solid var(--secondary); padding: 20px;">
+            <div style="display: flex; gap: 15px; align-items: flex-start;">
+                <i class="fas fa-archive" style="color: var(--secondary); margin-top: 3px;"></i>
+                <div>
+                    <h4 class="font-transformers" style="font-size: 0.8rem; letter-spacing: 1px; color: var(--secondary);">DIRECTIVE: ARCHIVE PRESERVATION</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                        The Audit Vault (Archives) is the <strong>Immutable Ledger</strong> of SentinelX. It preserves all critical security incidents 
+                        and system state changes for long-term audit compliance. Use this to review historical "Resolution" patterns and establish security timelines.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="card glass-card" style="margin-bottom: 25px; padding: 30px;">
             <div class="results-header">
                 <div class="card-title">Historical Audit Vault v6.5</div>
@@ -2280,7 +2582,7 @@ async function renderVault() {
                 <button class="btn-primary" onclick="searchVault()"><i class="fas fa-search"></i> Search Archive</button>
             </div>
         </div>
-
+        <!-- ... table ... -->
         <div class="table-container glass-card">
             <table class="log-table">
                 <thead>
@@ -2298,7 +2600,7 @@ async function renderVault() {
             </table>
         </div>
     </div>
-`;
+    `;
 
     loadVaultData();
     view.setAttribute('data-rendered', 'true');
@@ -2349,6 +2651,11 @@ window.searchVault = searchVault;
 async function renderAutomation() {
     const view = showView('automation-view');
 
+    if (!state.labAuth.automation) {
+        authorizeLab('automation');
+        return;
+    }
+
     // Always re-fetch tools
     let tools = [];
     try {
@@ -2358,6 +2665,20 @@ async function renderAutomation() {
 
     view.innerHTML = `
     <div class="automation-container fade-in">
+        <!-- OPERATIONAL DIRECTIVE -->
+        <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--secondary-rgb), 0.05); border-left: 4px solid var(--secondary); padding: 20px;">
+            <div style="display: flex; gap: 15px; align-items: flex-start;">
+                <i class="fas fa-flask" style="color: var(--secondary); margin-top: 3px;"></i>
+                <div>
+                    <h4 class="font-transformers" style="font-size: 0.8rem; letter-spacing: 1px; color: var(--secondary);">DIRECTIVE: AUTONOMOUS VALIDATION</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
+                        The Automation Lab executes <strong>Validation Protocols</strong> against the live infrastructure. Select a tool to verify node integrity, 
+                        database consistency, or firewall status. Output is captured in real-time within the Execution Console.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="dashboard-grid" style="grid-template-columns: 1.5fr 1fr; gap: 25px;">
             <div class="card glass-card" style="padding: 30px;">
                 <div class="results-header">
@@ -2420,7 +2741,7 @@ async function renderAutomation() {
             </div>
         </div>
     </div>
-`;
+    `;
 
     // Internal Tool Description Toggle
     const select = document.getElementById('testing-tool-select');

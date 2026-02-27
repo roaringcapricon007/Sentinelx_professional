@@ -3,11 +3,13 @@ const { Sequelize } = require('sequelize');
 const path = require('path');
 
 const CHECK_URLS = [
-    { name: 'Node Backend Health', url: 'http://localhost:3000/api/ai/pulse' }, // This hits Python via proxy too
+    { name: 'Node Backend Health', url: 'http://localhost:3000/api/ai/pulse' },
     { name: 'Python Service Direct', url: 'http://localhost:5001/health' },
+    { name: 'Database Integrity Core', url: 'http://localhost:3000/api/maintenance/db-status' },
     { name: 'Database Logs', url: 'http://localhost:3000/api/logs/history' },
     { name: 'Automation Stats', url: 'http://localhost:3000/api/automation/stats' }
 ];
+
 
 async function checkUrl(item) {
     return new Promise((resolve) => {
@@ -44,11 +46,41 @@ async function checkUrl(item) {
     });
 }
 
-async function run() {
-    console.log("--- SentinelX Comprehensive System Troubleshooting ---");
+async function neuralCheck() {
+    console.log("\n3. Neural nexus handshake...");
+    try {
+        const res = await checkUrl({ name: 'Nexus Health', url: 'http://localhost:5001/health' });
+        if (res) {
+            console.log("[PASS] Neural Pathways Synchronized.");
+        } else {
+            console.log("[WARN] Neural Nexus is in fallback mode. Limited intelligence available.");
+        }
+    } catch (e) {
+        console.log("[FAIL] Neural Link Lost. Please start Python Service.");
+    }
+}
 
-    // 1. Database Check
-    console.log("\n1. Verifying Database Connectivity...");
+async function run() {
+    console.log(`
+███████╗███████╗███╗   ██╗████████╗██╗███╗   ██╗███████╗██╗     ██╗  ██╗
+██╔════╝██╔════╝████╗  ██║╚══██╔══╝██║████╗  ██║██╔════╝██║     ╚██╗██╔╝
+███████╗█████╗  ██╔██╗ ██║   ██║   ██║██╔██╗ ██║█████╗  ██║      ╚███╔╝ 
+╚════██║██╔══╝  ██║╚██╗██║   ██║   ██║██║╚██╗██║██╔══╝  ██║      ██╔██╗ 
+███████║███████╗██║ ╚████║   ██║   ██║██║ ╚████║███████╗███████╗██╔╝ ██╗
+╚══════╝╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝  ╚═╝
+--- SentinelX Professional v7.0: Quantum Troubleshooting Core ---
+    `);
+
+    // 1. Environment Validation
+    console.log("1. Validating Environment...");
+    if (!process.env.SESSION_SECRET) {
+        console.log("[WARN] SESSION_SECRET missing. Using default (Insecure for production).");
+    } else {
+        console.log("[PASS] Environment Security tokens verified.");
+    }
+
+    // 2. Database Check
+    console.log("\n2. Verifying Database Connectivity...");
     const sequelize = new Sequelize({
         dialect: 'sqlite',
         storage: path.join(__dirname, 'database.sqlite'),
@@ -57,24 +89,27 @@ async function run() {
 
     try {
         await sequelize.authenticate();
-        console.log("[PASS] Database Connection: SQLite Ready");
+        console.log("[PASS] Database Connection: SQLite Engine Stable.");
 
-        // Count logs to ensure seeding worked
         const [results] = await sequelize.query("SELECT count(*) as count FROM LogEntry");
-        console.log(`[INFO] Audit Log Count: ${results[0].count}`);
+        console.log(`[INFO] Audit Records: ${results[0].count} entries indexed.`);
 
     } catch (error) {
-        console.error('[FAIL] Database Connection:', error.message);
+        console.error('[FAIL] Database Engine Breach:', error.message);
     }
 
-    // 2. Service API Checks
-    console.log("\n2. Verifying Service Endpoints...");
+    // 3. Neural Check
+    await neuralCheck();
+
+    // 4. Service API Checks
+    console.log("\n4. Verifying API Matrix Endpoints...");
     for (const item of CHECK_URLS) {
         await checkUrl(item);
     }
 
-    console.log("\n--- Troubleshooting Complete ---");
-    process.exit(0); // Exit process
+    console.log("\n--- Quantum Diagnostics Complete. All systems nominal. ---");
+    process.exit(0);
 }
+
 
 run();

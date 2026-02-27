@@ -184,7 +184,7 @@ function generateUltimateReport() {
         'Self-Healing: Autonomous script execution when AI confidence exceeds 98.5%.'
     ];
     roadmap.forEach(r => {
-        doc.fillColor('#ff1a1a').text('Phase -> ' + r.split(':')[0]);
+        doc.fillColor('#ff2626ff').text('Phase -> ' + r.split(':')[0]);
         doc.fillColor('#bbb').text(r.split(':')[1]);
         doc.moveDown();
     });
