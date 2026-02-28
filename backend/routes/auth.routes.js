@@ -278,18 +278,10 @@ router.post('/login', loginLimiter, async (req, res) => {
         let user = await User.findOne({ where: { email } });
 
         if (!user) {
-            // "store the credentials in database once if they login"
-            // Auto-register Client if not found
-            const hashedPassword = await bcrypt.hash(password, 4);
-            user = await User.create({
-                name: email.split('@')[0], // Generate a name from email
-                email,
-                password: hashedPassword,
-                role: 'user',
-                provider: 'local'
-            });
-            console.log(`New client auto-registered: ${email}`);
+            // ENFORCING OTP FLOW: No auto-registration on login.
+            return res.status(401).json({ error: 'Identity not found. Registration & OTP verification required.' });
         } else {
+
             // Existing user - check credentials
             if (user.provider !== 'local') return res.status(401).json({ error: 'Wrong username or password' });
 
