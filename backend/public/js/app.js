@@ -379,36 +379,69 @@ async function handleRegister(formRef, name, email, password) {
     btn.disabled = true;
     btn.innerText = "Synchronizing...";
 
-    // Simulation: Send OTP
-    setTimeout(() => {
-        const mockOTP = "777888"; // Currently fixed for local intelligence phase
-        tempRegData = { name, email, password };
-        document.getElementById('register-inputs').style.display = 'none';
-        document.getElementById('otp-verification').style.display = 'block';
+    try {
+        const res = await fetch('/api/auth/request-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
 
-        // Show the OTP in the system message for real-time testing
-        showToast(`[SYSTEM] OTP: ${mockOTP} - Broadcasted to ${email}.`, "success");
+        if (res.ok) {
+            tempRegData = { name, email, password };
+            document.getElementById('register-inputs').style.display = 'none';
+            document.getElementById('otp-verification').style.display = 'block';
+
+            if (data.mode === 'simulation') {
+                showToast(`[SYSTEM] OTP: ${data.otp} - Broadcasted to ${email}.`, "success");
+            } else {
+                showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
+            }
+        } else {
+            showToast(data.error || "Handshake failed.", "error");
+        }
+    } catch (e) {
+        console.error("Reg Error", e);
+        showToast("Uplink failed during synchronization.", "error");
+    } finally {
         btn.disabled = false;
         btn.innerText = "Request Access Code";
-    }, 800);
+    }
 }
 
-
 async function resendOTP() {
+    if (!tempRegData) return;
+
     const btn = event.target.closest('button');
     const originalText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Re-broadcasting...';
 
-    showToast("Generating new 6-digit sequence...", "info");
+    try {
+        const res = await fetch('/api/auth/request-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(tempRegData)
+        });
+        const data = await res.json();
 
-    setTimeout(() => {
-        const mockOTP = "777888";
-        showToast(`[SYSTEM] NEW OTP: ${mockOTP} - Resent successfully.`, "success");
+        if (res.ok) {
+            if (data.mode === 'simulation') {
+                showToast(`[SYSTEM] NEW OTP: ${data.otp} - Resent successfully.`, "success");
+            } else {
+                showToast("New OTP sent successfully to your email.", "success");
+            }
+        } else {
+            showToast(data.error || "Resend failed.", "error");
+        }
+    } catch (e) {
+        showToast("Re-broadcast failed.", "error");
+    } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
-    }, 1500);
+    }
 }
+
 
 
 window.resendOTP = resendOTP;
@@ -422,22 +455,14 @@ async function verifyOTP() {
         return;
     }
 
-    // MOCK OTP: 777888
-    if (otpInput !== '777888' && otpInput !== '123456') {
-        showToast("INVALID OTP: Signature mismatch. Access Denied.", "error");
-        document.getElementById('otp-input').classList.add('shake');
-        setTimeout(() => document.getElementById('otp-input').classList.remove('shake'), 500);
-        return;
-    }
-
     verifyBtn.innerText = "Authorizing...";
     verifyBtn.disabled = true;
 
     try {
-        const res = await fetch('/api/auth/register', {
+        const res = await fetch('/api/auth/verify-registration', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(tempRegData)
+            body: JSON.stringify({ email: tempRegData.email, otp: otpInput })
         });
         const data = await res.json();
 
@@ -446,7 +471,8 @@ async function verifyOTP() {
             login(data.user);
         } else {
             showToast(data.error || 'Registration failed', 'error');
-            resetRegister();
+            document.getElementById('otp-input').classList.add('shake');
+            setTimeout(() => document.getElementById('otp-input').classList.remove('shake'), 500);
         }
     } catch (e) {
         console.error("Reg err", e);

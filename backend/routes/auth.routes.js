@@ -7,6 +7,36 @@ const LinkedInStrategy = require('passport-linkedin-oauth2').Strategy;
 const bcrypt = require('bcryptjs');
 const { User } = require('../models');
 const rateLimit = require('express-rate-limit');
+const nodemailer = require('nodemailer');
+
+// --- Email Transporter Cache ---
+let transporterCache = null;
+
+function getTransporter() {
+    if (transporterCache) return transporterCache;
+
+    // Check for real SMTP credentials in .env
+    const host = process.env.EMAIL_HOST;
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+
+    if (host && user && pass) {
+        transporterCache = nodemailer.createTransport({
+            host: host,
+            port: process.env.EMAIL_PORT || 587,
+            secure: false, // true for 465, false for other ports
+            auth: {
+                user: user,
+                pass: pass
+            }
+        });
+        console.log("--- EMAIL TRANSPORT: LIVE SMTP ---");
+    } else {
+        // Fallback or Test/Development (Simulated in terminal)
+        console.warn("--- EMAIL TRANSPORT: SIMULATED (No Credentials) ---");
+    }
+    return transporterCache;
+}
 
 // --- Security Layer: Rate Limiting ---
 const loginLimiter = rateLimit({
@@ -136,16 +166,82 @@ router.get('/me', async (req, res) => {
 
 // --- Local Auth Routes ---
 
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
+// --- Real-time OTP Store (In-Memory for current deployment session) ---
+const otpStore = {};
+
+// POST /api/auth/request-otp
+router.post('/request-otp', async (req, res) => {
     try {
         const { name, email, password } = req.body;
-        if (!name || !email || !password) return res.status(400).json({ error: 'All fields required' });
+        if (!name || !email || !password) return res.status(400).json({ error: 'Identity details required' });
 
-        const existingUser = await User.findOne({ where: { email } });
-        if (existingUser) return res.status(400).json({ error: 'Email already exists' });
+        // Check if user already exists
+        const existing = await User.findOne({ where: { email } });
+        if (existing) return res.status(400).json({ error: 'This email is already registered.' });
 
-        const hashedPassword = await bcrypt.hash(password, 4);
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Store temporarily in memory (hashed/secured for 10 minutes)
+        otpStore[email] = {
+            otp,
+            data: { name, email, password },
+            expires: Date.now() + 10 * 60 * 1000 // 10 mins
+        };
+
+        const transport = getTransporter();
+        if (transport) {
+            // Live Send
+            await transport.sendMail({
+                from: `"SentinelX Security" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: "QUANTUM OTP: Neural Handshake Verification",
+                text: `Your 6-digit access code for SentinelX Professional is: ${otp}`,
+                html: `
+                    <div style="background:#04060b; color:#fff; padding:40px; border-radius:15px; font-family:sans-serif;">
+                        <h2 style="color:#00f2ff; letter-spacing:2px;">SENTINELX ACCESS CODE</h2>
+                        <p style="color:#888;">Verification sequence required for identity synchronization.</p>
+                        <div style="background:rgba(0,242,255,0.1); border:1px solid #00f2ff; padding:20px; font-size:2rem; text-align:center; letter-spacing:10px; color:#00f2ff; font-weight:bold;">
+                            ${otp}
+                        </div>
+                        <p style="font-size:0.8rem; color:#444; margin-top:30px;">This code will expire in 10 minutes. If you did not request this, please secure your uplink immediately.</p>
+                    </div>
+                `
+            });
+            res.json({ message: 'OTP broadcasted successfully.', mode: 'live' });
+        } else {
+            // Simulated Send (For local testing/dev)
+            console.log("\x1b[36m%s\x1b[0m", `[SIMULATED EMAIL] To: ${email} | OTP: ${otp}`);
+            res.json({
+                message: 'Local Simulation: OTP generated.',
+                mode: 'simulation',
+                otp: otp // Only send back for simulation to allow testing
+            });
+        }
+    } catch (err) {
+        console.error("OTP Error:", err);
+        res.status(500).json({ error: 'Failed to initiate handshake sequence.' });
+    }
+});
+
+// POST /api/auth/verify-registration
+router.post('/verify-registration', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const record = otpStore[email];
+
+        if (!record || record.expires < Date.now()) {
+            return res.status(400).json({ error: 'OTP session expired. Please re-request.' });
+        }
+
+        if (record.otp !== otp) {
+            return res.status(400).json({ error: 'OTP Signature mismatch. Access denied.' });
+        }
+
+        // OTP Valid - Register User
+        const { name, password } = record.data;
+        const hashedPassword = await bcrypt.hash(password, 8);
+
         const user = await User.create({
             name,
             email,
@@ -154,11 +250,14 @@ router.post('/register', async (req, res) => {
             provider: 'local'
         });
 
+        // Clear record
+        delete otpStore[email];
+
         req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role };
-        res.json({ message: 'Registration successful', user: req.session.user });
+        res.json({ message: 'Identity synchronized. Welcome to SentinelX.', user: req.session.user });
     } catch (err) {
-        console.error("Register Error:", err);
-        res.status(500).json({ error: 'Registration failed' });
+        console.error("Verification Error:", err);
+        res.status(500).json({ error: 'Handshake verification failed.' });
     }
 });
 
