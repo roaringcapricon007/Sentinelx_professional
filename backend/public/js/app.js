@@ -100,13 +100,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (registerForm) {
         registerForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const inputs = registerForm.querySelectorAll('input');
-            const name = inputs[0].value;
-            const email = inputs[1].value;
-            const password = inputs[2].value;
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
             handleRegister(registerForm, name, email, password);
         });
     }
+
 
     // Initialize Header Actions
     initHeaderActions();
@@ -367,11 +367,12 @@ async function handleLogin(formRef, email, password) {
 
 
 
-let tempRegData = null;
+// --- SECURE REGISTRATION ENGINE (REBUILT) ---
+let regSessionData = null;
 
 async function handleRegister(formRef, name, email, password) {
     if (!name || !email || !password) {
-        showToast("Access Request requires full credentials.", "warning");
+        showToast("Identity sync requires full credentials.", "warning");
         return;
     }
 
@@ -388,21 +389,23 @@ async function handleRegister(formRef, name, email, password) {
         const data = await res.json();
 
         if (res.ok) {
-            tempRegData = { name, email, password };
+            regSessionData = { name, email, password };
+
+            // Force interface swap
             document.getElementById('register-inputs').style.display = 'none';
             document.getElementById('otp-verification').style.display = 'block';
 
             if (data.mode === 'simulation') {
-                showToast(`[SYSTEM] OTP: ${data.otp} - Broadcasted to ${email}.`, "success");
+                showToast(`[SYSTEM] LOCAL OTP: ${data.otp}`, "success");
             } else {
                 showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
             }
         } else {
-            showToast(data.error || "Handshake failed.", "error");
+            showToast(data.error || "Handshake rejected.", "error");
         }
     } catch (e) {
-        console.error("Reg Error", e);
-        showToast("Uplink failed during synchronization.", "error");
+        console.error("Auth System Error:", e);
+        showToast("Uplink failed during authentication handshake.", "error");
     } finally {
         btn.disabled = false;
         btn.innerText = "Request Access Code";
@@ -410,39 +413,24 @@ async function handleRegister(formRef, name, email, password) {
 }
 
 async function resendOTP() {
-    if (!tempRegData) return;
-
-    const btn = event.target.closest('button');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Re-broadcasting...';
-
-    try {
-        const res = await fetch('/api/auth/request-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(tempRegData)
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-            if (data.mode === 'simulation') {
-                showToast(`[SYSTEM] NEW OTP: ${data.otp} - Resent successfully.`, "success");
-            } else {
-                showToast("New OTP sent successfully to your email.", "success");
-            }
+    if (!regSessionData) return;
+    showToast("Re-broadcasting sequence...", "info");
+    const res = await fetch('/api/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(regSessionData)
+    });
+    const data = await res.json();
+    if (res.ok) {
+        if (data.mode === 'simulation') {
+            showToast(`[NEW] LOCAL OTP: ${data.otp}`, "success");
         } else {
-            showToast(data.error || "Resend failed.", "error");
+            showToast("New OTP sent to email.", "success");
         }
-    } catch (e) {
-        showToast("Re-broadcast failed.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
+    } else {
+        showToast(data.error || "Broadcast failed", "error");
     }
 }
-
-
 
 window.resendOTP = resendOTP;
 
@@ -450,10 +438,7 @@ async function verifyOTP() {
     const otpInput = document.getElementById('otp-input').value;
     const verifyBtn = document.querySelector('#otp-verification button');
 
-    if (otpInput.length !== 6) {
-        showToast("Invalid OTP sequence length.", "error");
-        return;
-    }
+    if (otpInput.length !== 6) return showToast("Sequence length mismatch.", "error");
 
     verifyBtn.innerText = "Authorizing...";
     verifyBtn.disabled = true;
@@ -462,21 +447,18 @@ async function verifyOTP() {
         const res = await fetch('/api/auth/verify-registration', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: tempRegData.email, otp: otpInput })
+            body: JSON.stringify({ email: regSessionData.email, otp: otpInput })
         });
         const data = await res.json();
 
         if (res.ok) {
-            showToast("Identity Verified. Welcome to SentinelX.", "success");
+            showToast("Verified. Initializing platform access...", "success");
             login(data.user);
         } else {
-            showToast(data.error || 'Registration failed', 'error');
-            document.getElementById('otp-input').classList.add('shake');
-            setTimeout(() => document.getElementById('otp-input').classList.remove('shake'), 500);
+            showToast(data.error || "Handshake rejected.", "error");
         }
     } catch (e) {
-        console.error("Reg err", e);
-        showToast("Uplink failed during verification.", "error");
+        showToast("Verification synchronization lost.", "error");
     } finally {
         verifyBtn.innerText = "Verify & Proceed";
         verifyBtn.disabled = false;
@@ -486,8 +468,7 @@ async function verifyOTP() {
 function resetRegister() {
     document.getElementById('register-inputs').style.display = 'block';
     document.getElementById('otp-verification').style.display = 'none';
-    document.getElementById('otp-input').value = '';
-    tempRegData = null;
+    regSessionData = null;
 }
 
 window.verifyOTP = verifyOTP;
