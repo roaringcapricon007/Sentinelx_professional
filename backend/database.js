@@ -2,14 +2,34 @@ const { Sequelize } = require('sequelize');
 const path = require('path');
 require('dotenv').config();
 
-const sequelize = new Sequelize({
+const isRemote = !!process.env.DB_HOST;
+
+const sequelizeConfig = isRemote ? {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 5432,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    dialect: process.env.DB_DIALECT || 'postgres',
+    logging: false,
+    dialectOptions: {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false
+        }
+    }
+} : {
     dialect: 'sqlite',
     storage: path.join(__dirname, 'database.sqlite'),
-    logging: false, // Set to console.log for deep debugging
+    logging: false
+};
+
+const sequelize = new Sequelize({
+    ...sequelizeConfig,
     pool: {
-        max: 5,
+        max: 10,
         min: 0,
-        acquire: 30000,
+        acquire: 60000,
         idle: 10000
     },
     define: {
@@ -27,8 +47,8 @@ async function connectDB(retries = 5) {
         try {
             await sequelize.authenticate();
             console.log('--- DATABASE HANDSHAKE SUCCESSFUL ---');
-            console.log('Dialect: SQLite Engine');
-            console.log('Node: Internal Matrix Storage');
+            console.log(`Mode: ${isRemote ? 'Enterprise Cloud-Sync' : 'Local Matrix Storage'}`);
+            console.log(`Engine: ${sequelize.getDialect().toUpperCase()}`);
             return true;
         } catch (err) {
             retries -= 1;
