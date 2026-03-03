@@ -740,6 +740,9 @@ function switchTab(tab) {
     } else if (tab === 'botprofile') {
         if (pageTitle) pageTitle.innerText = 'PRIME_AI Profile';
         renderBotProfile();
+    } else if (tab === 'timeline') {
+        if (pageTitle) pageTitle.innerText = 'Security Timeline';
+        renderTimeline();
     } else if (tab === 'powerbi') {
         if (pageTitle) pageTitle.innerText = 'BI Charts';
         renderPowerBI();
@@ -1042,23 +1045,9 @@ function renderOverview() {
             <canvas id="mainTrendChart"></canvas>
         </div>
         <div class="chart-container" style="flex: 1; position: relative;">
-            <div class="card-title font-transformers" style="margin-bottom: 20px;">AI Predictive Insight</div>
+            <div class="card-title font-transformers" style="margin-bottom: 20px;"><i class="fas fa-crystal-ball"></i> AI Predictive Insight</div>
             <div id="ai-prediction-content">
-                <div class="stat-pill" style="width: 100%; justify-content: space-between; margin-bottom: 10px;">
-                    <span>Next Hour Load:</span>
-                    <span style="color: var(--primary)">STABLE (≈22%)</span>
-                </div>
-                <div class="stat-pill" style="width: 100%; justify-content: space-between; margin-bottom: 10px;">
-                    <span>Threat Probability:</span>
-                    <span style="color: var(--quantum)">LOW (4%)</span>
-                </div>
-                <div class="stat-pill" style="width: 100%; justify-content: space-between; margin-bottom: 10px;">
-                    <span>Storage Depletion:</span>
-                    <span>14 Days</span>
-                </div>
-                <div style="margin-top: 25px; padding: 15px; background: rgba(var(--primary-rgb), 0.05); border-radius: 10px; border: 1px dashed var(--primary); font-size: 0.75rem; color: var(--text-muted);">
-                    <i class="fas fa-robot"></i> <strong>PRIME_AI v7.0 Suggestion:</strong> Model predicts a traffic surge at 04:00 UTC. Recommend automated node pre-warming.
-                </div>
+                <div style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Analyzing trend vectors...</div>
             </div>
         </div>
     </div>
@@ -1112,6 +1101,40 @@ function renderOverview() {
             }
 
         } catch (e) { console.error("Chart load failed", e); }
+
+        // --- Live Predictive Analysis (Step 10) ---
+        try {
+            const predRes = await fetch('/api/metrics/predict');
+            const predData = await predRes.json();
+            const predBox = document.getElementById('ai-prediction-content');
+            if (predBox && predData.predictions) {
+                if (predData.predictions.length === 0) {
+                    predBox.innerHTML = `
+                        <div style="padding: 15px; background: rgba(var(--primary-rgb), 0.05); border-radius: 10px; border: 1px dashed var(--primary); font-size: 0.8rem; color: var(--text-muted);">
+                            <i class="fas fa-robot"></i> <strong>PRIME_AI:</strong> Gathering trend data... Predictions will appear after 5+ metric snapshots.
+                        </div>`;
+                } else {
+                    predBox.innerHTML = predData.predictions.map(p => {
+                        const iconMap = { 'CRITICAL': 'fas fa-skull-crossbones', 'WARNING': 'fas fa-exclamation-triangle', 'WATCH': 'fas fa-eye', 'OK': 'fas fa-check-circle' };
+                        const colorMap = { 'CRITICAL': '#ff0055', 'WARNING': '#ffcc00', 'WATCH': '#00d4ff', 'OK': '#00ff88' };
+                        const bgMap = { 'CRITICAL': 'rgba(255,0,85,0.1)', 'WARNING': 'rgba(255,204,0,0.1)', 'WATCH': 'rgba(0,212,255,0.1)', 'OK': 'rgba(0,255,136,0.1)' };
+                        const color = colorMap[p.severity] || '#888';
+                        const bg = bgMap[p.severity] || 'rgba(255,255,255,0.05)';
+                        const icon = iconMap[p.severity] || 'fas fa-info-circle';
+                        return `
+                        <div style="padding: 12px; background: ${bg}; border-left: 3px solid ${color}; border-radius: 8px; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                                <i class="${icon}" style="color: ${color};"></i>
+                                <strong style="color: ${color}; font-size: 0.85rem;">${p.metric}</strong>
+                                <span style="margin-left: auto; font-size: 0.75rem; color: var(--text-muted);">Current: ${p.current}%</span>
+                            </div>
+                            <div style="font-size: 0.82rem; color: var(--text-muted);">${p.prediction}</div>
+                            <div style="font-size: 0.7rem; margin-top: 5px; color: #555;">Trend: ${p.trend} (slope: ${p.slope})</div>
+                        </div>`;
+                    }).join('');
+                }
+            }
+        } catch (e) { console.log('Prediction fetch skipped'); }
     }, 100);
 }
 
@@ -1342,7 +1365,6 @@ async function updateAnalysisTable(viewContainer) {
     const tbody = viewContainer.querySelector('#logTableBody');
     if (!tbody) return;
 
-    // If an uploaded analysis report is active, render that
     if (analysisActive) {
         const issues = state.analysisData.issues || [];
         const pill = viewContainer.querySelector('#log-count-pill');
@@ -1360,7 +1382,6 @@ async function updateAnalysisTable(viewContainer) {
         return;
     }
 
-    // Fetch from DB by status tab
     try {
         const res = await fetch(`/api/logs/history?status=${alertTab}`);
         if (!res.ok) throw new Error('Not authorized');
@@ -1377,49 +1398,60 @@ async function updateAnalysisTable(viewContainer) {
         tbody.innerHTML = logs.map(log => {
             const sev = (log.severity || 'INFO').toUpperCase();
             const riskColor = log.riskScore > 40 ? '#ff0055' : log.riskScore > 15 ? '#ffcc00' : '#00ff88';
-            const attempts = log.attempts > 1 ? `<span style="color:#ff0055; font-weight:bold;">${log.attempts}x</span>` : '1';
-            const actionBtn = alertTab === 'ACTIVE'
-                ? `<button onclick="resolveAlert(${log.id}, this)" style="background: rgba(0,255,136,0.1); border: 1px solid #00ff88; color: #00ff88; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; white-space: nowrap;"><i class="fas fa-check"></i> Resolve</button>`
+            const attempts = log.attempts > 1 ? `<span style="color:#ff0055; font-weight:bold; display:block; font-size: 1.1rem; margin-top:5px;">${log.attempts}x ATTEMPTS</span>` : '<span style="color:var(--text-muted)">1st Event</span>';
+
+            const hasLocation = log.ip && log.ip.includes('(');
+            const locationChip = hasLocation ? `<span class="stat-pill" style="font-size: 0.65rem; background: rgba(var(--primary-rgb),0.05); color: var(--primary);"><i class="fas fa-map-marker-alt"></i> ${log.ip.split('(')[1].replace(')', '')}</span>` : '';
+
+            const resolveBtn = alertTab === 'ACTIVE'
+                ? `<button onclick="resolveAlert(${log.id}, this)" class="btn-primary" style="padding: 4px 10px; font-size: 0.7rem; width:100%; margin-bottom: 5px;"><i class="fas fa-check"></i> RESOLVE</button>`
                 : `<span style="color: #00ff88; font-size: 0.8rem;"><i class="fas fa-check-circle"></i> Done</span>`;
 
-            const impactHtml = log.impact ? `<div style="font-size:0.75rem; color: #ffcc00; margin-top: 4px;"><i class="fas fa-exclamation-triangle"></i> ${log.impact}</div>` : '';
+            // ENTERPRISE ACTION BUTTONS (Step 7)
+            const blockBtn = (alertTab === 'ACTIVE' && log.ip && !log.ip.includes('LOCAL'))
+                ? `<button onclick="blockIP('${log.ip}', this)" style="background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; width:100%; margin-bottom: 5px;"><i class="fas fa-shield-virus"></i> BLOCK IP</button>`
+                : '';
+
+            const suspendBtn = (alertTab === 'ACTIVE' && (log.message || '').includes('@'))
+                ? `<button onclick="suspendUserFromAlert('${log.message}', this)" style="background: rgba(255,204,0,0.1); border: 1px solid #ffcc00; color: #ffcc00; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; width:100%;"><i class="fas fa-user-slash"></i> SUSPEND</button>`
+                : '';
 
             return `
-            <tr id="log-row-${log.id}">
+            <tr id="log-row-${log.id}" class="fade-in">
                 <td><span class="badge-severity ${sev}">${sev}</span></td>
                 <td>
-                    <div style="font-size: 0.85rem;">${log.device || 'Unknown Node'}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">${log.ip || '-'}</div>
+                    <div style="font-size: 0.85rem; font-weight:700;">${log.device || 'Unknown Node'}</div>
+                    <div style="font-size: 0.77rem; color: var(--text-muted); font-family: var(--font-mono); margin: 3px 0;">${log.ip || '-'}</div>
+                    ${locationChip}
                 </td>
                 <td style="text-align:center;">${attempts}</td>
-                <td><span style="font-weight: 700; color: ${riskColor};">${log.riskScore || 0}</span></td>
-                <td style="font-size:0.8rem; color:#888; white-space: nowrap;">${new Date(log.timestamp || log.createdAt).toLocaleTimeString()}</td>
-                <td style="font-family: 'Space Mono', monospace; font-size: 0.8rem; max-width: 300px;">
-                    <div>${(log.message || '').substring(0, 100)}${log.message && log.message.length > 100 ? '...' : ''}</div>
-                    ${impactHtml}
+                <td>
+                    <div style="font-weight: 900; color: ${riskColor}; font-size: 1.1rem; text-shadow: 0 0 10px ${riskColor}33;">${log.riskScore || 0}</div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted);">Points</div>
                 </td>
-                <td>${actionBtn}</td>
+                <td style="font-size:0.8rem; color:#888; white-space: nowrap;">${new Date(log.timestamp || log.createdAt).toLocaleTimeString()}</td>
+                <td style="font-family: 'Space Mono', monospace; font-size: 0.8rem; max-width: 350px;">
+                    <div style="color: #fff; line-height: 1.3;">${log.message || ''}</div>
+                    <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 2px solid var(--primary);">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--primary); letter-spacing: 1px; font-weight:800; margin-bottom: 4px;">Human Explanation</div>
+                        <div style="font-size:0.82rem; color: var(--text-muted);">${formatSuggestion(log.suggestion)}</div>
+                    </div>
+                </td>
+                <td style="width: 120px;">
+                    ${resolveBtn}
+                    ${blockBtn}
+                    ${suspendBtn}
+                </td>
             </tr>`;
         }).join('');
     } catch (e) {
-        // Fallback to in-memory state.liveLogs when not authenticated
         const logs = (state.liveLogs || []).filter(l => (l.status || 'ACTIVE') === alertTab);
         const pill = viewContainer.querySelector('#log-count-pill');
         if (pill) pill.innerText = `${logs.length} Events`;
         if (logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Waiting for events...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Unauthorized: Login as Admin to view Enterprise Alerts.</td></tr>';
             return;
         }
-        tbody.innerHTML = logs.map(log => `
-        <tr id="log-row-${log.id || Math.random()}">
-            <td><span class="badge-severity ${(log.severity || 'INFO').toUpperCase()}">${(log.severity || 'INFO').toUpperCase()}</span></td>
-            <td>${log.device || 'System'}</td>
-            <td>1</td>
-            <td>+${log.riskScore || 5}</td>
-            <td style="font-size:0.8rem; color:#888">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Just now'}</td>
-            <td style="font-size: 0.8rem;">${log.message || ''}</td>
-            <td>-</td>
-        </tr>`).join('');
     }
 }
 
@@ -1446,16 +1478,64 @@ async function resolveAlert(logId, btn) {
 }
 window.resolveAlert = resolveAlert;
 
+async function blockIP(ip, btn) {
+    if (!ip || ip.includes('LOCAL')) return;
+    const cleanIp = ip.split(' ')[0];
+    btn.disabled = true;
+    showToast(`Initiating Protocol: FW-SHIELD on ${cleanIp}...`, 'info');
+    try {
+        const res = await fetch('/api/logs/block-ip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ip: cleanIp })
+        });
+        const data = await res.json();
+        showToast(data.message, 'success');
+        btn.innerHTML = '<i class="fas fa-shield-virus"></i> BLOCKED';
+    } catch (e) {
+        showToast("System Link Fault", 'error');
+        btn.disabled = false;
+    }
+}
+
+async function suspendUserFromAlert(msg, btn) {
+    // Attempt to extract email if present in message
+    const emailMatch = msg.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    if (!emailMatch) {
+        showToast("No User Identity (Email) detected in log payload", "warning");
+        return;
+    }
+    const email = emailMatch[0];
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/logs/disable-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            showToast(data.message, 'success');
+            btn.innerHTML = '<i class="fas fa-user-slash"></i> SUSPENDED';
+        } else {
+            showToast(data.error, 'error');
+            btn.disabled = false;
+        }
+    } catch (e) {
+        showToast("Neural Handshake Failure", 'error');
+        btn.disabled = false;
+    }
+}
+
+window.blockIP = blockIP;
+window.suspendUserFromAlert = suspendUserFromAlert;
+
 function formatSuggestion(text) {
     if (!text) return 'Analyzing...';
-    if (text.includes('QUANTUM ACTION:')) {
-        return text.replace('QUANTUM ACTION:', '<span style="color:var(--quantum); font-weight:bold; text-shadow: 0 0 10px var(--quantum)">QUANTUM ACTION:</span>');
-    }
-    if (text.includes('AI Action:')) {
-        return text.replace('AI Action:', '<span style="color:#00ff88; font-weight:bold; text-shadow: 0 0 10px rgba(0,255,136,0.3)">AI ACTION:</span>');
-    }
-    if (text.includes('AI Analysis:')) {
-        return text.replace('AI Analysis:', '<span style="color:#00d4ff; font-weight:bold;">AI ANALYSIS:</span>');
+    // Simplified for non-technical users
+    if (text.includes('Why:')) {
+        const parts = text.split('Why:');
+        return `<strong>${parts[0]}</strong> <br><span style="font-size:0.75rem; color:var(--text-muted)">Reason: ${parts[1]}</span>`;
     }
     return text;
 }
@@ -1511,18 +1591,66 @@ async function renderInfrastructure() {
     }
 }
 
+/**
+ * Enterprise Timeline Narrative v7.5
+ */
+async function renderTimeline() {
+    const view = showView('timeline-view');
+    view.innerHTML = `
+    <div class="timeline-container fade-in">
+        <div class="card glass-card" style="margin-bottom: 30px; border-left: 4px solid var(--primary); background: rgba(var(--primary-rgb), 0.05); padding: 20px;">
+             <h4 class="font-transformers"><i class="fas fa-history"></i> Chronological Security Narrative</h4>
+             <p style="font-size:0.85rem; color:var(--text-muted); margin-top:5px;">Follow the step-by-step evolution of incidents detected by SentinelX.</p>
+        </div>
+        <div id="narrative-content" style="padding-left: 30px; position: relative; border-left: 1px dashed rgba(255,255,255,0.1); margin-left: 15px;">
+             <div style="padding: 40px; text-align:center; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Reading neural history...</div>
+        </div>
+    </div>
+    `;
+
+    try {
+        const res = await fetch('/api/logs/timeline');
+        const logs = await res.json();
+        const narrativeBody = document.getElementById('narrative-content');
+
+        if (!logs.length) {
+            narrativeBody.innerHTML = '<div style="color:var(--text-muted);">No timeline events recorded in this session.</div>';
+            return;
+        }
+
+        narrativeBody.innerHTML = logs.map((log, idx) => {
+            const time = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const date = new Date(log.timestamp).toLocaleDateString();
+            const color = log.severity === 'CRITICAL' ? '#ff0055' : log.severity === 'ERROR' ? '#ffcc00' : 'var(--primary)';
+
+            return `
+            <div class="timeline-item" style="position: relative; margin-bottom: 40px;">
+                <div class="timeline-dot" style="position: absolute; left: -36px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: ${color}; box-shadow: 0 0 10px ${color};"></div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">${date} | ${time}</div>
+                <div class="card glass-card" style="margin-top: 10px; padding: 15px; max-width: 600px; border: 1px solid rgba(255,255,255,0.05);">
+                    <div style="font-weight: 700; color: ${color}; margin-bottom: 5px;">${log.severity} Alert: ${log.device || 'SYSTEM'}</div>
+                    <div style="font-size: 0.85rem;">${log.message}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px; font-style: italic;"><i class="fas fa-lightbulb"></i> AI Explanation: ${log.suggestion || 'Routine operation captured.'}</div>
+                </div>
+            </div>
+            `;
+        }).join('');
+
+    } catch (e) {
+        showToast("Narrative Read Failed", "error");
+    }
+}
+
 function renderInfraTable(servers, viewContainer) {
-    // If viewContainer not passed (called from socket), find it
     if (!viewContainer) {
         viewContainer = document.getElementById('infrastructure-view');
-        // If view doesn't exist yet, we can't update it. 
         if (!viewContainer) return;
     }
 
     const tbody = viewContainer.querySelector('#infra-table-body');
     const countPill = viewContainer.querySelector('#infra-count');
 
-    if (countPill) countPill.innerHTML = `< i class="fas fa-network-wired" ></i > ${servers.length} Nodes Active`;
+    if (countPill) countPill.innerHTML = `<i class="fas fa-network-wired"></i> ${servers.length} Nodes Active`;
 
     if (!tbody) return;
 
@@ -1531,7 +1659,7 @@ function renderInfraTable(servers, viewContainer) {
         rows = '<tr><td colspan="5" style="text-align:center; padding: 20px;">No servers registered. Send heartbeats to /api/ingest to see data here.</td></tr>';
     } else {
         rows = servers.map(s => `
-    <tr >
+    <tr>
             <td><span style="color:${getStatusColor(s.status)}">●</span> ${capitalize(s.status)}</td>
             <td>${s.hostname}</td>
             <td>${s.ipAddress}</td>

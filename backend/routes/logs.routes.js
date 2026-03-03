@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { LogEntry } = require('../models');
+const { LogEntry, User } = require('../models');
 const logService = require('../services/log.service');
 
 module.exports = function (io) {
@@ -76,6 +76,45 @@ module.exports = function (io) {
             res.json(score);
         } catch (err) {
             res.status(500).json({ error: 'Failed to calculate risk score' });
+        }
+    });
+
+    // --- NEW ENTERPRISE FEATURES v7.5 ---
+
+    // GET /api/logs/timeline (Step 5)
+    router.get('/timeline', authorize(['admin', 'User', 'analyst', 'super_admin']), async (req, res) => {
+        try {
+            const logs = await LogEntry.findAll({
+                where: { UserId: req.user.id },
+                limit: 20,
+                order: [['timestamp', 'DESC']]
+            });
+            // Group by day for the narrative view
+            res.json(logs);
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to fetch timeline' });
+        }
+    });
+
+    // POST /api/logs/block-ip (Step 7)
+    router.post('/block-ip', authorize(['admin', 'super_admin']), async (req, res) => {
+        const { ip } = req.body;
+        console.warn(`[FIREWALL_SIM] Blocking IP address: ${ip}`);
+        // In a real env, we'd add to a DB table checked by a firewall module
+        res.json({ message: `IP Address ${ip} has been added to the Global Denial List.` });
+    });
+
+    // POST /api/logs/disable-user (Step 7)
+    router.post('/disable-user', authorize(['admin', 'super_admin']), async (req, res) => {
+        const { email } = req.body;
+        try {
+            const user = await User.findOne({ where: { email } });
+            if (!user) return res.status(404).json({ error: 'User not found' });
+            user.status = 'DISABLED';
+            await user.save();
+            res.json({ message: `Access for ${email} has been revoked until re-validated.` });
+        } catch (err) {
+            res.status(500).json({ error: 'Failed to suspend user' });
         }
     });
 

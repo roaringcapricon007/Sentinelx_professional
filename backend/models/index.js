@@ -11,7 +11,9 @@ const User = sequelize.define('User', {
     preferences: {
         type: DataTypes.JSON,
         defaultValue: { darkMode: true, notifications: true }
-    }
+    },
+    // Security Status (Step 7)
+    status: { type: DataTypes.STRING, defaultValue: 'ENABLED' } // ENABLED, DISABLED, LOCKED
 });
 
 // --- System Metric Model (For Persistent Charts) ---
@@ -40,7 +42,7 @@ const LogEntry = sequelize.define('LogEntry', {
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
 
     // Advanced Enterprise Fields
-    status: { type: DataTypes.ENUM('ACTIVE', 'RESOLVED'), defaultValue: 'ACTIVE' },
+    status: { type: DataTypes.STRING, defaultValue: 'ACTIVE' }, // ACTIVE or RESOLVED
     attempts: { type: DataTypes.INTEGER, defaultValue: 1 },
     ip: { type: DataTypes.STRING, allowNull: true },
     riskScore: { type: DataTypes.INTEGER, defaultValue: 0 },
