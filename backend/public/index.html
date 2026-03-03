@@ -156,28 +156,29 @@
           <button type="button" class="btn-primary" onclick="handleForgotPassword()">Request Reset Code</button>
         </div>
 
-        <!-- Step 2: OTP -->
-        <div id="fp-otp-step" style="display: none; text-align: center;">
-          <p style="font-size: 0.8rem; color: #888; margin-bottom: 15px;">Enter the security sequence sent to your
-            inbox.</p>
-          <div class="form-group">
-            <input type="text" id="fp-otp" class="form-input" maxlength="6" placeholder="000000"
-              style="text-align: center; font-size: 1.5rem; letter-spacing: 12px;">
-          </div>
-          <button type="button" class="btn-primary" onclick="verifyResetOTP()">Verify Identity</button>
-        </div>
+        <!-- Unified Step 2: OTP + New Password -->
+        <div id="fp-recovery-step" style="display: none;">
+          <p style="font-size: 0.8rem; color: #888; margin-bottom: 20px; text-align: center;">Enter your Reset Code and
+            New Password below.</p>
 
-        <!-- Step 3: New Password -->
-        <div id="fp-new-pass-step" style="display: none;">
           <div class="form-group">
-            <label>New Password</label>
-            <input type="password" id="fp-new-pass" class="form-input" placeholder="********" required>
+            <label>Reset OTP</label>
+            <input type="text" id="fp-otp" class="form-input" maxlength="6" placeholder="000000"
+              style="text-align: center; font-size: 1.2rem; letter-spacing: 5px;">
           </div>
+
+          <div class="form-group" style="margin-top: 15px;">
+            <label>New Password</label>
+            <input type="password" id="fp-new-pass" class="form-input" placeholder="Create new password" required>
+          </div>
+
           <div class="form-group">
             <label>Confirm New Password</label>
-            <input type="password" id="fp-confirm-pass" class="form-input" placeholder="********" required>
+            <input type="password" id="fp-confirm-pass" class="form-input" placeholder="Confirm new password" required>
           </div>
-          <button type="button" class="btn-primary" onclick="resetPassword()">Update Credentials</button>
+
+          <button type="button" class="btn-primary" onclick="resetPasswordFull()" style="margin-top: 10px;">Update
+            credentials & Login</button>
         </div>
 
         <div style="margin-top: 20px; text-align: center;">
@@ -361,15 +362,19 @@
 
             <!-- Profile Dropdown (The "Column") -->
             <div class="profile-dropdown" id="profile-dropdown">
-              <div class="dropdown-header-info">
-                <div class="avatar large"
-                  style="background: transparent; border: 1px solid rgba(var(--primary-rgb), 0.3);">
-                  <img src="img/autobot_logo.png" style="width: 40px; height: 40px; object-fit: contain;">
+              <div class="dropdown-header-info"
+                style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; position: relative;">
+
+                <!-- Logo repositioned to top-left -->
+                <div class="avatar"
+                  style="position: absolute; top: 12px; left: 15px; background: rgba(var(--primary-rgb), 0.1); border: 1px solid var(--primary); width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 12px var(--primary-glow);">
+                  <img src="img/autobot_logo.png" style="width: 22px; height: 22px; object-fit: contain;">
                 </div>
-                <div class="info-text">
-                  <h4 id="user-profile-name">Sentinel Super Admin</h4>
-                  <span id="user-profile-email">Superadmin@SentinelX.com</span>
-                </div>
+
+                <h4 id="user-profile-name"
+                  style="margin-bottom: 6px; font-size: 1.25rem; color: #fff; font-weight: 700;">Sentinel User</h4>
+                <span id="user-profile-email"
+                  style="font-size: 0.85rem; color: var(--text-muted); word-break: break-all; max-width: 300px;">user@sentinelx.com</span>
               </div>
               <div class="dropdown-items">
                 <a href="#" onclick="switchTab('profile')"><i class="fas fa-user-circle"></i> Profile</a>

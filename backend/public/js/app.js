@@ -415,15 +415,15 @@ async function handleRegister(formRef, name, email, password) {
 
     const runJourney = async () => {
         logMsg("1️⃣ Requesting Secure Access to Gmail SMTP...");
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 400));
         logMsg("2️⃣ DNS Magic: Querying MX Records for gmail.com...");
-        await new Promise(r => setTimeout(r, 800));
-        logMsg("3️⃣ TLS Encryption Handshake Protocol (AES-256)...");
         await new Promise(r => setTimeout(r, 600));
+        logMsg("3️⃣ TLS Encryption Handshake Protocol (AES-256)...");
+        await new Promise(r => setTimeout(r, 400));
         logMsg("4️⃣ SMTP Delivery Truck 🚚: Transferring payload...");
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 800));
         logMsg("5️⃣ Gmail Server Accept: 250 OK - Handshake Complete.");
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 300));
         logMsg("6️⃣ Dispatching through Global Postal Empire 🔐.");
     };
 
@@ -445,6 +445,7 @@ async function handleRegister(formRef, name, email, password) {
         const data = await res.json();
 
         if (res.ok) {
+            console.log("[AUTH] Handshake SUCCESS:", data);
             logMsg(`Identity verification successful.`);
             logMsg(`OTP broadcast sequence initiated.`);
             regSessionData = { name, email, password };
@@ -474,29 +475,31 @@ async function handleRegister(formRef, name, email, password) {
                 } else {
                     showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
                 }
-            }, 800); // Faster, more responsive transition
+            }, 400); // Optimized for responsiveness
         } else {
+            console.warn("[AUTH] Handshake REJECTED:", data);
             logMsg(`Handshake rejected: ${data.message || data.error}`);
-            setTimeout(() => {
-                if (scanner) scanner.style.display = 'none';
-                showToast(data.message || data.error || "Handshake rejected.", "error");
+            // Dismiss scanner immediately on error
+            if (scanner) scanner.style.display = 'none';
 
-                // --- REDIRECT LOGIC ---
-                if (data.error === 'ALREADY_REGISTERED') {
-                    const loginForm = document.getElementById('login-form');
-                    const registerForm = document.getElementById('register-form');
-                    const toggleBtn = document.getElementById('toggle-auth');
-                    if (registerForm) registerForm.style.display = 'none';
-                    if (loginForm) {
-                        loginForm.style.display = 'block';
-                        loginForm.querySelector('input[type="email"]').value = email;
-                    }
-                    if (toggleBtn) toggleBtn.innerText = "Need an account? Sign UP";
+            showToast(data.message || data.error || "Handshake rejected.", "error");
+
+            // --- REDIRECT LOGIC ---
+            if (data.error === 'ALREADY_REGISTERED') {
+                const loginForm = document.getElementById('login-form');
+                const registerForm = document.getElementById('register-form');
+                const toggleBtn = document.getElementById('toggle-auth');
+                if (registerForm) registerForm.style.display = 'none';
+                if (loginForm) {
+                    loginForm.style.display = 'block';
+                    loginForm.querySelector('input[type="email"]').value = email;
+                    loginForm.querySelector('input[type="password"]').focus();
                 }
+                if (toggleBtn) toggleBtn.innerText = "Need an account? Sign UP";
+            }
 
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }, 1000);
+            btn.disabled = false;
+            btn.innerText = originalText;
         }
     } catch (e) {
         console.error("Auth System Error:", e);
@@ -586,7 +589,7 @@ function login(user) {
 
     if (topName) topName.innerText = user.name || 'Sentinel User';
     if (dropName) dropName.innerText = user.name || 'Sentinel User';
-    if (dropEmail) dropEmail.innerText = user.email || (user.name ? `${user.name}@sentinelx.com` : 'user@sentinelx.com');
+    if (dropEmail) dropEmail.innerText = user.email || 'user@sentinelx.com';
 
     // Apply Role-Based Access Handover
     applyRolePermissions(user.role);
@@ -596,7 +599,7 @@ function login(user) {
     if (chatbot) chatbot.style.display = 'flex';
 
     // Restore last active tab or default to home
-    const lastTab = localStorage.getItem('last_tab') || 'home';
+    const lastTab = localStorage.getItem('last_tab') || 'overview';
     switchTab(lastTab);
 }
 
@@ -660,14 +663,12 @@ async function checkSession() {
 }
 
 function logout() {
+    console.log("[AUTH] Initiating Logout sequence...");
     window.location.href = '/api/auth/logout';
 }
 
 function fillDemo() {
-    const emailInput = document.querySelector('#login-form input[type="email"]');
-    const passInput = document.querySelector('#login-form input[type="password"]');
-    if (emailInput) emailInput.value = "Superadmin@SentinelX.com";
-    if (passInput) passInput.value = "12345SuperAdmin!";
+    // Demo fill behavior disabled for generalized authentication flow constraints requested by user.
 }
 
 
@@ -3665,78 +3666,139 @@ async function handleForgotPassword() {
     const email = document.getElementById('fp-email').value;
     if (!email) return showToast("Enter your email address.", "warning");
 
+    const btn = document.querySelector('#fp-email-step button');
+    const originalText = btn.innerText;
+    const scanner = document.getElementById('security-layer');
+    const scannerStep = document.getElementById('security-step');
+    const scannerLog = document.getElementById('security-log');
+
+    btn.disabled = true;
+    btn.innerText = "Dispatching...";
+
+    if (scanner) scanner.style.display = 'flex';
+    if (scannerLog) scannerLog.innerHTML = "";
+    if (scannerStep) scannerStep.innerText = "INITIATING IDENTITY RECOVERY...";
+
+    const logMsg = (msg) => {
+        if (scannerLog) {
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            scannerLog.appendChild(div);
+            scannerLog.scrollTop = scannerLog.scrollHeight;
+        }
+    };
+
+    const runJourney = async () => {
+        logMsg("🔍 Locating identity in SentinelX Core...");
+        await new Promise(r => setTimeout(r, 600));
+        logMsg("🔐 Securing SMTP Broadcast channel...");
+        await new Promise(r => setTimeout(r, 800));
+        logMsg("📡 Broadcasting 6-digit Neural Key...");
+    };
+
     try {
+        runJourney();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+
         const res = await fetch('/api/auth/forgot-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
         const data = await res.json();
 
         if (res.ok) {
-            if (data.mode === 'simulation') showToast(`[RESET OTP]: ${data.otp}`, "success");
-            else showToast("Reset sequence sent to email.", "info");
+            logMsg("✅ Recovery sequence dispatched successfully.");
+            setTimeout(() => {
+                if (scanner) scanner.style.display = 'none';
+                if (data.mode === 'simulation') showToast(`[RESET OTP]: ${data.otp}`, "success");
+                else showToast("Reset sequence sent to email.", "info");
 
-            document.getElementById('fp-email-step').style.display = 'none';
-            document.getElementById('fp-otp-step').style.display = 'block';
+                document.getElementById('fp-email-step').style.display = 'none';
+                document.getElementById('fp-recovery-step').style.display = 'block';
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }, 800);
         } else {
+            if (scanner) scanner.style.display = 'none';
             showToast(data.error || "Recovery initiation failed.", "error");
+            btn.disabled = false;
+            btn.innerText = originalText;
         }
-    } catch (e) { showToast("Connection failed.", "error"); }
+    } catch (e) {
+        if (scanner) scanner.style.display = 'none';
+        showToast("Connection failed or timed out.", "error");
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
 }
 
-async function verifyResetOTP() {
+async function resetPasswordFull() {
     const email = document.getElementById('fp-email').value;
     const otp = document.getElementById('fp-otp').value;
-    if (otp.length < 6) return showToast("Enter full 6-digit sequence.", "warning");
+    const password = document.getElementById('fp-new-pass').value;
+    const confirm = document.getElementById('fp-confirm-pass').value;
+
+    if (!otp || otp.length < 6) return showToast("Enter full 6-digit Reset Code.", "warning");
+    if (!password || password.length < 4) return showToast("Password must be at least 4 characters.", "warning");
+    if (password !== confirm) return showToast("New passwords do not match.", "error");
+
+    const btn = document.querySelector('#fp-recovery-step button');
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Synchronizing...";
 
     try {
-        const res = await fetch('/api/auth/verify-reset-otp', {
+        // Step 1: Verify OTP
+        const verifyRes = await fetch('/api/auth/verify-reset-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, otp })
         });
-        if (res.ok) {
-            showToast("Identity verified.", "success");
-            document.getElementById('fp-otp-step').style.display = 'none';
-            document.getElementById('fp-new-pass-step').style.display = 'block';
-        } else {
-            showToast("Invalid sequence.", "error");
+
+        if (!verifyRes.ok) {
+            showToast("Invalid Reset Code.", "error");
+            btn.disabled = false;
+            btn.innerText = originalText;
+            return;
         }
-    } catch (e) { showToast("Verification aborted.", "error"); }
-}
 
-async function resetPassword() {
-    const email = document.getElementById('fp-email').value;
-    const password = document.getElementById('fp-new-pass').value;
-    const confirm = document.getElementById('fp-confirm-pass').value;
-
-    if (!password || password.length < 4) return showToast("Password too weak.", "warning");
-    if (password !== confirm) return showToast("Passwords do not match.", "error");
-
-    try {
-        const res = await fetch('/api/auth/reset-password', {
+        // Step 2: Reset Password
+        const resetRes = await fetch('/api/auth/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
-        const data = await res.json();
 
-        if (res.ok) {
+        const data = await resetRes.json();
+
+        if (resetRes.ok) {
             showToast("Credentials updated successfully.", "success");
-            login(data.user); // Automatically log in
+            setTimeout(() => {
+                returnToLogin();
+                const loginEmail = document.querySelector('#login-form input[type="email"]');
+                if (loginEmail) loginEmail.value = email;
+            }, 1000);
         } else {
-            showToast("Update failed.", "error");
+            showToast(data.message || data.error || "Update protocol failed.", "error");
+            btn.disabled = false;
+            btn.innerText = originalText;
         }
-    } catch (e) { showToast("Update error.", "error"); }
+    } catch (e) {
+        showToast("Update error. Connection lost.", "error");
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
 }
 
 function returnToLogin() {
     document.getElementById('forgot-password-form').style.display = 'none';
     document.getElementById('forgot-password-form').reset();
     document.getElementById('fp-email-step').style.display = 'block';
-    document.getElementById('fp-otp-step').style.display = 'none';
-    document.getElementById('fp-new-pass-step').style.display = 'none';
+    document.getElementById('fp-recovery-step').style.display = 'none';
 
     document.getElementById('login-form').style.display = 'block';
     const toggleBtn = document.getElementById('toggle-auth');

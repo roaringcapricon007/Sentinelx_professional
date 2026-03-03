@@ -14,7 +14,7 @@ let transporterCache = null;
 async function getTransporter() {
     if (transporterCache) return transporterCache;
     const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
+    const pass = process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : null;
 
     if (user && pass && user.includes('@')) {
         try {
@@ -220,14 +220,22 @@ router.post('/verify-registration', async (req, res) => {
         if (entry.otp !== otp) return res.status(400).json({ error: 'Invalid' });
 
         const { name, password } = entry.userData;
+        // Case 1: Saving registered user with hashed password
         const hashedPassword = await bcrypt.hash(password, 10);
-        // Granting 'super_admin' status to all registered users for absolute sovereignty as requested
-        const user = await User.create({ name, email, password: hashedPassword, role: 'super_admin', provider: 'local' });
+        const user = await User.create({
+            name,
+            email,
+            password: hashedPassword, // Verified: hashed before storage
+            role: 'super_admin',
+            provider: 'local'
+        });
 
+        console.log(`[AUTH] Identity PERSISTED: ${email} registered successfully.`);
         delete otpStore[email];
         req.session.user = user;
         req.session.save(() => res.json({ success: true, user }));
     } catch (err) {
+        console.error("[AUTH] Registration Commit Failed:", err);
         res.status(500).json({ error: 'Verification failed' });
     }
 });
@@ -276,30 +284,41 @@ router.post('/verify-reset-otp', (req, res) => {
 });
 
 router.post('/reset-password', async (req, res) => {
-    const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ error: 'Identity not found.' });
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ where: { email } });
+        if (!user) return res.status(404).json({ error: 'Identity not found.' });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    user.password = hashedPassword;
-    await user.save();
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user.password = hashedPassword;
+        await user.save();
 
-    delete otpStore[email];
-    req.session.user = user;
-    req.session.save(() => res.json({ success: true, user }));
+        console.log(`[AUTH] Credentials REFRESHED for ${email}. Redirecting to Login Handshake.`);
+        delete otpStore[email];
+        res.json({ success: true, message: 'Password updated. Please log in.' });
+    } catch (err) {
+        console.error("[AUTH] Reset commit failed:", err);
+        res.status(500).json({ error: 'Update failed' });
+    }
 });
 
-// Login Handshake
+// Login Handshake (Enforcing Case 1)
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(401).json({ error: 'Identity not found.' });
+    try {
+        const user = await User.findOne({ where: { email } });
+        if (!user) return res.status(401).json({ error: 'NOT_FOUND', message: 'Identity not found. Please register first.' });
 
-    const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ error: 'PASSWORD_INCORRECT', message: 'Password not correct. Please try again.' });
+        const ok = await bcrypt.compare(password, user.password);
+        if (!ok) return res.status(401).json({ error: 'PASSWORD_INCORRECT', message: 'Password not correct. Please try again.' });
 
-    req.session.user = user;
-    req.session.save(() => res.json({ success: true, user }));
+        console.log(`[AUTH] Access GRANTED for ${email}`);
+        req.session.user = user;
+        req.session.save(() => res.json({ success: true, user }));
+    } catch (err) {
+        console.error("[AUTH] Login Handshake FATAL:", err);
+        res.status(500).json({ error: 'Acess handshake failed' });
+    }
 });
 
 module.exports = router;

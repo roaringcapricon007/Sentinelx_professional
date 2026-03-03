@@ -22,8 +22,13 @@ const SystemMetric = sequelize.define('SystemMetric', {
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     UserId: {
         type: DataTypes.INTEGER,
-        references: { model: 'Users', key: 'id' }
+        references: { model: 'User', key: 'id' }
     }
+}, {
+    indexes: [
+        { fields: ['timestamp'] },
+        { fields: ['UserId'] }
+    ]
 });
 
 // --- Log Entry Model (For Log Analysis History) ---
@@ -35,8 +40,14 @@ const LogEntry = sequelize.define('LogEntry', {
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     UserId: {
         type: DataTypes.INTEGER,
-        references: { model: 'Users', key: 'id' }
+        references: { model: 'User', key: 'id' }
     }
+}, {
+    indexes: [
+        { fields: ['timestamp'] },
+        { fields: ['severity'] },
+        { fields: ['UserId'] }
+    ]
 });
 
 // --- Server Model (For Infrastructure Status) ---
@@ -49,7 +60,7 @@ const Server = sequelize.define('Server', {
     lastSeen: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     UserId: {
         type: DataTypes.INTEGER,
-        references: { model: 'Users', key: 'id' }
+        references: { model: 'User', key: 'id' }
     }
 }, {
     indexes: [
@@ -68,8 +79,6 @@ LogEntry.belongsTo(User, { foreignKey: 'UserId' });
 User.hasMany(Server, { foreignKey: 'UserId' });
 Server.belongsTo(User, { foreignKey: 'UserId' });
 
-// Add indexing to SystemMetric and LogEntry for fast time-series queries
-SystemMetric.options.indexes = [{ fields: ['timestamp'] }, { fields: ['UserId'] }];
-LogEntry.options.indexes = [{ fields: ['timestamp'] }, { fields: ['severity'] }, { fields: ['UserId'] }];
+// Associations established correctly above
 
 module.exports = { User, SystemMetric, LogEntry, Server };

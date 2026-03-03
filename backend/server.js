@@ -74,7 +74,7 @@ app.use('/api/testing', testingRoutes);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Start Server with DB Sync
-sequelize.sync({ alter: true }).then(async () => {
+sequelize.sync({ force: false }).then(async () => {
   console.log('Database connected and synced');
 
   // --- ENTERPRISE ROLE SEEDING ---
@@ -99,29 +99,34 @@ sequelize.sync({ alter: true }).then(async () => {
     }
   }
 
+  console.log('--- ADMIN_IDENTITY_STATUS:', admin ? `ID:${admin.id}` : 'NOT_FOUND');
 
-  // Seed Servers for Infrastructure view (Associated with Admin)
-  const serverCount = await Server.count();
-  if (serverCount === 0 && admin) {
-    await Server.bulkCreate([
-      { hostname: 'PROD-AWS-01', ipAddress: '10.0.0.45', region: 'US-East', status: 'online', load: 12, UserId: admin.id },
-      { hostname: 'PROD-AWS-02', ipAddress: '10.0.0.46', region: 'US-East', status: 'online', load: 45, UserId: admin.id },
-      { hostname: 'DB-CLUSTER-01', ipAddress: '10.0.1.10', region: 'EU-West', status: 'warning', load: 88, UserId: admin.id },
-      { hostname: 'BACKUP-NODE', ipAddress: '192.168.1.15', region: 'Local', status: 'offline', load: 0, UserId: admin.id }
-    ]);
-    console.log('Infrastructure servers seeded for Super Admin');
-  }
+  try {
+    // Seed Servers for Infrastructure view (Associated with Admin)
+    const serverCount = await Server.count();
+    if (serverCount === 0 && admin) {
+      await Server.bulkCreate([
+        { hostname: 'PROD-AWS-01', ipAddress: '10.0.0.45', region: 'US-East', status: 'online', load: 12, UserId: admin.id },
+        { hostname: 'PROD-AWS-02', ipAddress: '10.0.0.46', region: 'US-East', status: 'online', load: 45, UserId: admin.id },
+        { hostname: 'DB-CLUSTER-01', ipAddress: '10.0.1.10', region: 'EU-West', status: 'warning', load: 88, UserId: admin.id },
+        { hostname: 'BACKUP-NODE', ipAddress: '192.168.1.15', region: 'Local', status: 'offline', load: 0, UserId: admin.id }
+      ]);
+      console.log('Infrastructure servers seeded for Super Admin');
+    }
 
-  // Seed Logs for Audit Vault (Associated with Admin)
-  const logCount = await LogEntry.count();
-  if (logCount === 0 && admin) {
-    await LogEntry.bulkCreate([
-      { device: 'Firewall-01', severity: 'WARN', message: 'Port 22 attempted access from 192.168.1.105', suggestion: 'Ban IP', timestamp: new Date(), UserId: admin.id },
-      { device: 'Auth-Server', severity: 'ERROR', message: 'Multiple failed login attempts for root', suggestion: 'Lock account', timestamp: new Date(Date.now() - 86400000), UserId: admin.id },
-      { device: 'Web-Gateway', severity: 'INFO', message: 'SSL Certificate renewed', suggestion: 'None', timestamp: new Date(Date.now() - 172800000), UserId: admin.id },
-      { device: 'Database-Cluster', severity: 'WARN', message: 'Slow query detected on UserTable', suggestion: 'Optimize Index', timestamp: new Date(Date.now() - 259200000), UserId: admin.id }
-    ]);
-    console.log('Audit logs seeded for Super Admin');
+    // Seed Logs for Audit Vault (Associated with Admin)
+    const logCount = await LogEntry.count();
+    if (logCount === 0 && admin) {
+      await LogEntry.bulkCreate([
+        { device: 'Firewall-01', severity: 'WARN', message: 'Port 22 attempted access from 192.168.1.105', suggestion: 'Ban IP', timestamp: new Date(), UserId: admin.id },
+        { device: 'Auth-Server', severity: 'ERROR', message: 'Multiple failed login attempts for root', suggestion: 'Lock account', timestamp: new Date(Date.now() - 86400000), UserId: admin.id },
+        { device: 'Web-Gateway', severity: 'INFO', message: 'SSL Certificate renewed', suggestion: 'None', timestamp: new Date(Date.now() - 172800000), UserId: admin.id },
+        { device: 'Database-Cluster', severity: 'WARN', message: 'Slow query detected on UserTable', suggestion: 'Optimize Index', timestamp: new Date(Date.now() - 259200000), UserId: admin.id }
+      ]);
+      console.log('Audit logs seeded for Super Admin');
+    }
+  } catch (seedErr) {
+    console.warn('Seed Error (Safe to ignore if columns populated):', seedErr.message);
   }
 
 
