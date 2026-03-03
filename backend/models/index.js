@@ -31,13 +31,22 @@ const SystemMetric = sequelize.define('SystemMetric', {
     ]
 });
 
-// --- Log Entry Model (For Log Analysis History) ---
+// --- Log Entry Model (Enterprise Alerting Engine) ---
 const LogEntry = sequelize.define('LogEntry', {
-    severity: { type: DataTypes.STRING },
+    severity: { type: DataTypes.STRING, defaultValue: 'INFO' }, // INFO, WARN, ERROR, CRITICAL
     device: { type: DataTypes.STRING },
     message: { type: DataTypes.TEXT },
     suggestion: { type: DataTypes.TEXT },
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+
+    // Advanced Enterprise Fields
+    status: { type: DataTypes.ENUM('ACTIVE', 'RESOLVED'), defaultValue: 'ACTIVE' },
+    attempts: { type: DataTypes.INTEGER, defaultValue: 1 },
+    ip: { type: DataTypes.STRING, allowNull: true },
+    riskScore: { type: DataTypes.INTEGER, defaultValue: 0 },
+    impact: { type: DataTypes.TEXT, allowNull: true },
+    recommendations: { type: DataTypes.JSON, defaultValue: [] },
+
     UserId: {
         type: DataTypes.INTEGER,
         references: { model: 'User', key: 'id' }
@@ -46,6 +55,8 @@ const LogEntry = sequelize.define('LogEntry', {
     indexes: [
         { fields: ['timestamp'] },
         { fields: ['severity'] },
+        { fields: ['status'] },
+        { fields: ['ip'] },
         { fields: ['UserId'] }
     ]
 });

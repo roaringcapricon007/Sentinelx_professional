@@ -601,6 +601,9 @@ function login(user) {
     // Restore last active tab or default to home
     const lastTab = localStorage.getItem('last_tab') || 'overview';
     switchTab(lastTab);
+
+    // Initialize Risk Score Banner
+    setTimeout(() => refreshRiskScore(), 1000);
 }
 
 function applyRolePermissions(role) {
@@ -806,8 +809,8 @@ function setupSocket() {
         if (state.liveLogs.length > 50) state.liveLogs.pop();
 
         // Show toast for critical
-        if (log.severity === 'critical' || log.severity === 'high') {
-            showToast(`Security Alert from ${log.device}: ${log.message}`, 'error');
+        if (log.severity === 'CRITICAL' || log.severity === 'ERROR') {
+            showToast(`🚨 Alert [${log.severity}] from ${log.device || 'Unknown Node'}: ${(log.message || '').substring(0, 80)}`, 'error');
         }
 
         // Update Log Table if it's currently rendered
@@ -815,6 +818,26 @@ function setupSocket() {
         if (analysisView) {
             updateAnalysisTable(analysisView);
         }
+
+        // Refresh risk score banner
+        refreshRiskScore();
+    });
+
+    socket.on('log_resolved', (logId) => {
+        // Remove from live logs (active list)
+        if (state.liveLogs) {
+            state.liveLogs = state.liveLogs.filter(l => l.id !== logId);
+        }
+        // Remove row from DOM if visible
+        const row = document.getElementById(`log-row-${logId}`);
+        if (row) {
+            row.style.transition = 'opacity 0.4s, transform 0.4s';
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(30px)';
+            setTimeout(() => row.remove(), 400);
+        }
+        showToast('✅ Alert marked as Resolved', 'success');
+        refreshRiskScore();
     });
 
     socket.on('metrics_update', (data) => {
@@ -1195,30 +1218,20 @@ function optimizeSystem() {
     }, 2000);
 }
 
+// --- Enterprise Alert Tab State ---
+let alertTab = 'ACTIVE'; // 'ACTIVE' or 'RESOLVED'
+
 function renderAnalysis() {
     const view = showView('analysis-view');
-    const logs = state.liveLogs || [];
     const analysisActive = !!state.analysisData;
 
-    // If analysis is active (report loaded), we might want to refresh to show it
-    // But for stream, we can just update.
-    // Simplify: ALWAYS re-render table rows if necessary, but keep structure.
-
-    // For now, let's keep the structure static if possible.
     if (view.getAttribute('data-rendered') === 'true' && !analysisActive) {
-        // If just live logs, we rely on sockets to update the table.
-        // But if we switched tabs, we might want to ensure the table is current.
-        // The socket listener calls renderAnalysis() which would re-render everything under old logic.
-        // Under new logic, socket listener should just update table.
-        // Let's refactor socket listener too?
-        // OPTION 2: Re-render inner content for Analysis as it's data-heavy list?
-        // Or better: update the table content specifically.
         updateAnalysisTable(view);
         return;
     }
 
     view.innerHTML = `
-    <div class="analysis-container" >
+    <div class="analysis-container">
         <!--Header & Upload-->
         <div class="dashboard-grid" style="grid-template-columns: 1.5fr 2fr; gap: 20px; margin-bottom: 30px;">
             <div class="upload-zone" id="drop-zone" onclick="document.getElementById('fileInput').click()" style="height: auto; padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -1236,7 +1249,7 @@ function renderAnalysis() {
                     <div class="stat-pill pulse-dot" style="background: rgba(var(--primary-rgb), 0.1);"><i class="fas fa-satellite-dish"></i> Streaming</div>
                 </div>
                 <div style="margin-top: 15px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
-                    Monitoring <strong>${state.infraData ? state.infraData.length : 0} active nodes</strong> in real-time. 
+                    Monitoring <strong>${state.infraData ? state.infraData.length : 0} active nodes</strong> in real-time.
                     PRIME_AI is actively screening for anomalies, brute-force attempts, and unauthorized region access.
                 </div>
             </div>
@@ -1248,37 +1261,45 @@ function renderAnalysis() {
                 <div class="stat-pill font-transformers" style="background: var(--primary); color:black; font-weight: bold; padding: 8px 16px;">AI Analysis Report</div>
                 <button class="btn-secondary" onclick="clearAnalysis()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer;">Close Report</button>
              </div>
-             
-             <!-- Enhanced Charts (Bigger & Clearer) -->
              <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 50px; height: 380px;">
                 <div class="chart-container glass-card" style="padding: 25px;"><canvas id="deviceChart"></canvas></div>
                 <div class="chart-container glass-card" style="padding: 25px;"><canvas id="severityChart"></canvas></div>
             </div>
         </div>
 
-        <!--Live / Mixed Table-->
-    <div class="table-container glass-card" style="margin-top: 20px;">
-        <div class="results-header" style="padding: 20px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 0;">
-            <div class="card-title font-transformers" style="font-size: 1.1rem; color: var(--text-main);"><i class="fas fa-list-alt" style="margin-right: 10px; color: var(--primary);"></i> ${analysisActive ? 'Detailed Audit Logs' : 'Live Event Stream'}</div>
-            <div class="stat-pill" id="log-count-pill" style="background: rgba(255,255,255,0.05);">${analysisActive ? state.analysisData.issues.length : logs.length} Events Logged</div>
+        <!-- Enterprise Alert Table with Tabs -->
+        <div class="table-container glass-card" style="margin-top: 20px;">
+            <div style="padding: 20px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <!-- Tabs -->
+                <div style="display: flex; gap: 8px;">
+                    <button id="tab-btn-active" onclick="switchAlertTab('ACTIVE')" style="padding: 6px 18px; border-radius: 20px; border: 1px solid var(--primary); background: rgba(var(--primary-rgb),0.15); color: var(--primary); cursor: pointer; font-size: 0.8rem; font-weight: 700; transition: all 0.2s;">
+                        <i class="fas fa-exclamation-triangle"></i> Active Alerts
+                    </button>
+                    <button id="tab-btn-resolved" onclick="switchAlertTab('RESOLVED')" style="padding: 6px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; font-weight: 700; transition: all 0.2s;">
+                        <i class="fas fa-check-circle"></i> Resolved
+                    </button>
+                </div>
+                <div class="stat-pill" id="log-count-pill" style="background: rgba(255,255,255,0.05);">Loading...</div>
+            </div>
+            <div style="padding: 0 10px;">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Device / IP</th>
+                            <th>Attempts</th>
+                            <th>Risk Score</th>
+                            <th>Time</th>
+                            <th>Message & Impact</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody">
+                        <tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Loading alerts...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div style="padding: 0 10px;">
-            <table class="log-table">
-                <thead>
-                    <tr>
-                        <th>Severity</th>
-                        <th>Device</th>
-                        <th>Time</th>
-                        <th>Message</th>
-                        <th>AI Recommendation</th>
-                    </tr>
-                </thead>
-                <tbody id="logTableBody">
-                    <!-- Content filled by updateAnalysisTable -->
-                </tbody>
-            </table>
-        </div>
-    </div>
     </div>
     `;
 
@@ -1290,33 +1311,140 @@ function renderAnalysis() {
     }
 }
 
-function updateAnalysisTable(viewContainer) {
-    const logs = state.liveLogs || [];
+function switchAlertTab(tab) {
+    alertTab = tab;
+    const activeBtn = document.getElementById('tab-btn-active');
+    const resolvedBtn = document.getElementById('tab-btn-resolved');
+    if (activeBtn && resolvedBtn) {
+        if (tab === 'ACTIVE') {
+            activeBtn.style.background = 'rgba(var(--primary-rgb),0.15)';
+            activeBtn.style.color = 'var(--primary)';
+            activeBtn.style.borderColor = 'var(--primary)';
+            resolvedBtn.style.background = 'transparent';
+            resolvedBtn.style.color = 'var(--text-muted)';
+            resolvedBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+        } else {
+            resolvedBtn.style.background = 'rgba(0,255,136,0.1)';
+            resolvedBtn.style.color = '#00ff88';
+            resolvedBtn.style.borderColor = '#00ff88';
+            activeBtn.style.background = 'transparent';
+            activeBtn.style.color = 'var(--text-muted)';
+            activeBtn.style.borderColor = 'rgba(255,255,255,0.1)';
+        }
+    }
+    const view = document.getElementById('analysis-view');
+    if (view) updateAnalysisTable(view);
+}
+window.switchAlertTab = switchAlertTab;
+
+async function updateAnalysisTable(viewContainer) {
     const analysisActive = !!state.analysisData;
     const tbody = viewContainer.querySelector('#logTableBody');
     if (!tbody) return;
 
-    // Update Pill
-    const pill = viewContainer.querySelector('#log-count-pill');
-    if (pill) pill.innerText = `${analysisActive ? state.analysisData.issues.length : logs.length} Events`;
-
-    const dataToRender = analysisActive ? state.analysisData.issues : logs;
-
-    if (!analysisActive && logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px; color: #666;">Waiting for events...</td></tr>';
+    // If an uploaded analysis report is active, render that
+    if (analysisActive) {
+        const issues = state.analysisData.issues || [];
+        const pill = viewContainer.querySelector('#log-count-pill');
+        if (pill) pill.innerText = `${issues.length} Events`;
+        tbody.innerHTML = issues.map(log => `
+        <tr>
+            <td><span class="badge-severity ${log.severity}">${log.severity}</span></td>
+            <td>${log.device || 'System'}</td>
+            <td>1</td>
+            <td><span style="color: var(--primary);">+${log.riskScore || 5}</span></td>
+            <td style="font-size:0.8rem; color:#888">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Just now'}</td>
+            <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${log.message}</td>
+            <td>-</td>
+        </tr>`).join('');
         return;
     }
 
-    tbody.innerHTML = dataToRender.map(log => `
-    <tr >
-        <td><span class="badge-severity ${log.severity}">${log.severity}</span></td>
-        <td>${log.device}</td>
-        <td style="font-size:0.8rem; color:#888">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Just now'}</td>
-        <td style="font-family: 'Space Mono', monospace; font-size: 0.85rem;">${log.message}</td>
-        <td><i class="fas fa-magic" style="color:var(--primary); margin-right:5px"></i> ${formatSuggestion(log.suggestion)}</td>
-    </tr>
-    `).join('');
+    // Fetch from DB by status tab
+    try {
+        const res = await fetch(`/api/logs/history?status=${alertTab}`);
+        if (!res.ok) throw new Error('Not authorized');
+        const logs = await res.json();
+
+        const pill = viewContainer.querySelector('#log-count-pill');
+        if (pill) pill.innerText = `${logs.length} ${alertTab === 'ACTIVE' ? 'Active Alerts' : 'Resolved Alerts'}`;
+
+        if (logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-${alertTab === 'ACTIVE' ? 'shield-alt' : 'check-circle'}"></i> No ${alertTab.toLowerCase()} alerts found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = logs.map(log => {
+            const sev = (log.severity || 'INFO').toUpperCase();
+            const riskColor = log.riskScore > 40 ? '#ff0055' : log.riskScore > 15 ? '#ffcc00' : '#00ff88';
+            const attempts = log.attempts > 1 ? `<span style="color:#ff0055; font-weight:bold;">${log.attempts}x</span>` : '1';
+            const actionBtn = alertTab === 'ACTIVE'
+                ? `<button onclick="resolveAlert(${log.id}, this)" style="background: rgba(0,255,136,0.1); border: 1px solid #00ff88; color: #00ff88; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; white-space: nowrap;"><i class="fas fa-check"></i> Resolve</button>`
+                : `<span style="color: #00ff88; font-size: 0.8rem;"><i class="fas fa-check-circle"></i> Done</span>`;
+
+            const impactHtml = log.impact ? `<div style="font-size:0.75rem; color: #ffcc00; margin-top: 4px;"><i class="fas fa-exclamation-triangle"></i> ${log.impact}</div>` : '';
+
+            return `
+            <tr id="log-row-${log.id}">
+                <td><span class="badge-severity ${sev}">${sev}</span></td>
+                <td>
+                    <div style="font-size: 0.85rem;">${log.device || 'Unknown Node'}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">${log.ip || '-'}</div>
+                </td>
+                <td style="text-align:center;">${attempts}</td>
+                <td><span style="font-weight: 700; color: ${riskColor};">${log.riskScore || 0}</span></td>
+                <td style="font-size:0.8rem; color:#888; white-space: nowrap;">${new Date(log.timestamp || log.createdAt).toLocaleTimeString()}</td>
+                <td style="font-family: 'Space Mono', monospace; font-size: 0.8rem; max-width: 300px;">
+                    <div>${(log.message || '').substring(0, 100)}${log.message && log.message.length > 100 ? '...' : ''}</div>
+                    ${impactHtml}
+                </td>
+                <td>${actionBtn}</td>
+            </tr>`;
+        }).join('');
+    } catch (e) {
+        // Fallback to in-memory state.liveLogs when not authenticated
+        const logs = (state.liveLogs || []).filter(l => (l.status || 'ACTIVE') === alertTab);
+        const pill = viewContainer.querySelector('#log-count-pill');
+        if (pill) pill.innerText = `${logs.length} Events`;
+        if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Waiting for events...</td></tr>';
+            return;
+        }
+        tbody.innerHTML = logs.map(log => `
+        <tr id="log-row-${log.id || Math.random()}">
+            <td><span class="badge-severity ${(log.severity || 'INFO').toUpperCase()}">${(log.severity || 'INFO').toUpperCase()}</span></td>
+            <td>${log.device || 'System'}</td>
+            <td>1</td>
+            <td>+${log.riskScore || 5}</td>
+            <td style="font-size:0.8rem; color:#888">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Just now'}</td>
+            <td style="font-size: 0.8rem;">${log.message || ''}</td>
+            <td>-</td>
+        </tr>`).join('');
+    }
 }
+
+async function resolveAlert(logId, btn) {
+    if (!logId) return;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        const res = await fetch(`/api/logs/resolve/${logId}`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+            // Socket will handle UI update via 'log_resolved' event
+            showToast(`✅ Alert #${logId} resolved`, 'success');
+        } else {
+            showToast(data.error || 'Failed to resolve', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Resolve';
+        }
+    } catch (e) {
+        showToast('Connection error', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-check"></i> Resolve';
+    }
+}
+window.resolveAlert = resolveAlert;
 
 function formatSuggestion(text) {
     if (!text) return 'Analyzing...';
@@ -2780,12 +2908,14 @@ async function renderVault() {
 
 async function loadVaultData(filter = '') {
     const tbody = document.getElementById('vault-table-body');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Accessing Neural Archives...</td></tr>';
     try {
-        const res = await fetch('/api/logs/history');
+        const res = await fetch('/api/logs/history?status=RESOLVED');
+        if (!res.ok) throw new Error('Not authorized');
         const logs = await res.json();
 
         if (!logs || logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No archived incidents found in database.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);"><i class="fas fa-archive"></i> No resolved incidents found in the Archive.</td></tr>';
             return;
         }
 
@@ -2795,22 +2925,32 @@ async function loadVaultData(filter = '') {
             (log.message && log.message.toLowerCase().includes(filter.toLowerCase()))
         );
 
-        tbody.innerHTML = filtered.map(log => `
-        <tr class="fade-in">
-            <td><span style="font-family: 'Space Mono'; color: var(--primary);">#VX-${log.id.toString().padStart(3, '0')}</span></td>
-            <td>${new Date(log.timestamp || log.createdAt).toLocaleDateString()} ${new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-            <td>${log.device || 'System'} Alert</td>
-            <td><span class="stat-pill" style="background: rgba(0, 255, 136, 0.1); color: #00ff88;">Resolved</span></td>
-            <td><button onclick="showToast('Loading incident #${log.id} details...', 'info')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;"><i class="fas fa-eye"></i></button></td>
-        </tr>
-    `).join('');
+        tbody.innerHTML = filtered.map(log => {
+            const riskColor = (log.riskScore || 0) > 40 ? '#ff0055' : (log.riskScore || 0) > 15 ? '#ffcc00' : '#00ff88';
+            return `
+            <tr class="fade-in">
+                <td><span style="font-family: 'Space Mono'; color: var(--primary);">#VX-${String(log.id).padStart(3, '0')}</span></td>
+                <td style="font-size: 0.8rem;">${new Date(log.timestamp || log.createdAt).toLocaleDateString()} ${new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                <td>
+                    <div>${log.device || 'System'}</div>
+                    <div style="font-size:0.75rem; color: var(--text-muted);">${log.ip || ''}</div>
+                </td>
+                <td>
+                    <span class="stat-pill" style="background: rgba(0,255,136,0.1); color: #00ff88;"><i class="fas fa-check-circle"></i> Resolved</span>
+                    <div style="font-size:0.75rem; margin-top: 4px; color: ${riskColor};">Risk: ${log.riskScore || 0} pts</div>
+                </td>
+                <td>
+                    <button onclick="showToast('Incident: ${(log.message || '').substring(0, 60).replace(/'/g, '')}', 'info')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;" title="${(log.message || '').replace(/"/g, '')}"><i class="fas fa-eye"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
 
         if (filtered.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">No records match your query.</td></tr>';
         }
 
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: #ff0055;">Failed to connect to Archive Core.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: #ff0055;"><i class="fas fa-unlink"></i> Archive Core Offline — Login as Admin to access vault.</td></tr>';
     }
 }
 
@@ -2819,6 +2959,39 @@ function searchVault() {
     loadVaultData(term);
 }
 window.searchVault = searchVault;
+
+// --- Enterprise Risk Score Banner (Step 4) ---
+async function refreshRiskScore() {
+    try {
+        const res = await fetch('/api/logs/risk-score');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        let badge = document.getElementById('risk-score-badge');
+        if (!badge) {
+            // Inject badge into topbar if not there
+            const userActions = document.querySelector('.user-actions');
+            if (!userActions) return;
+            badge = document.createElement('div');
+            badge.id = 'risk-score-badge';
+            badge.style.cssText = 'display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; cursor: default; transition: all 0.5s; border: 1px solid;';
+            userActions.insertBefore(badge, userActions.firstChild);
+        }
+
+        const score = data.percentage || 0;
+        const color = data.color === 'red' ? '#ff0055' : data.color === 'yellow' ? '#ffcc00' : '#00ff88';
+        const label = data.color === 'red' ? 'CRITICAL' : data.color === 'yellow' ? 'VIGILANT' : 'OPTIMIZED';
+
+        badge.style.background = `rgba(${data.color === 'red' ? '255,0,85' : data.color === 'yellow' ? '255,204,0' : '0,255,136'},0.1)`;
+        badge.style.borderColor = color;
+        badge.style.color = color;
+        badge.style.boxShadow = data.color === 'red' ? `0 0 12px rgba(255,0,85,0.3)` : 'none';
+        badge.innerHTML = `<i class="fas fa-shield-alt"></i> Risk: ${score}% <span style="font-size:0.7rem; opacity:0.8;">${label}</span>`;
+    } catch (e) {
+        // Silent fail — not logged in
+    }
+}
+window.refreshRiskScore = refreshRiskScore;
 
 async function renderAutomation() {
     const view = showView('automation-view');
