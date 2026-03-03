@@ -74,7 +74,7 @@ app.use('/api/testing', testingRoutes);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Start Server with DB Sync
-sequelize.sync({ force: false }).then(async () => {
+sequelize.sync({ alter: true }).then(async () => {
   console.log('Database connected and synced');
 
   // --- ENTERPRISE ROLE SEEDING ---
@@ -83,11 +83,12 @@ sequelize.sync({ force: false }).then(async () => {
   ];
 
   const bcrypt = require('bcryptjs');
+  let admin = null;
   for (const r of roles) {
-    const exists = await User.count({ where: { email: r.email } });
-    if (exists === 0) {
+    admin = await User.findOne({ where: { email: r.email } });
+    if (!admin) {
       const hashedPassword = await bcrypt.hash(r.pass, 4);
-      await User.create({
+      admin = await User.create({
         name: r.name,
         email: r.email,
         password: hashedPassword,
@@ -99,28 +100,28 @@ sequelize.sync({ force: false }).then(async () => {
   }
 
 
-  // Seed Servers for Infrastructure view
+  // Seed Servers for Infrastructure view (Associated with Admin)
   const serverCount = await Server.count();
-  if (serverCount === 0) {
+  if (serverCount === 0 && admin) {
     await Server.bulkCreate([
-      { hostname: 'PROD-AWS-01', ipAddress: '10.0.0.45', region: 'US-East', status: 'online', load: 12 },
-      { hostname: 'PROD-AWS-02', ipAddress: '10.0.0.46', region: 'US-East', status: 'online', load: 45 },
-      { hostname: 'DB-CLUSTER-01', ipAddress: '10.0.1.10', region: 'EU-West', status: 'warning', load: 88 },
-      { hostname: 'BACKUP-NODE', ipAddress: '192.168.1.15', region: 'Local', status: 'offline', load: 0 }
+      { hostname: 'PROD-AWS-01', ipAddress: '10.0.0.45', region: 'US-East', status: 'online', load: 12, UserId: admin.id },
+      { hostname: 'PROD-AWS-02', ipAddress: '10.0.0.46', region: 'US-East', status: 'online', load: 45, UserId: admin.id },
+      { hostname: 'DB-CLUSTER-01', ipAddress: '10.0.1.10', region: 'EU-West', status: 'warning', load: 88, UserId: admin.id },
+      { hostname: 'BACKUP-NODE', ipAddress: '192.168.1.15', region: 'Local', status: 'offline', load: 0, UserId: admin.id }
     ]);
-    console.log('Infrastructure servers seeded');
+    console.log('Infrastructure servers seeded for Super Admin');
   }
 
-  // Seed Logs for Audit Vault
+  // Seed Logs for Audit Vault (Associated with Admin)
   const logCount = await LogEntry.count();
-  if (logCount === 0) {
+  if (logCount === 0 && admin) {
     await LogEntry.bulkCreate([
-      { device: 'Firewall-01', severity: 'WARN', message: 'Port 22 attempted access from 192.168.1.105', suggestion: 'Ban IP', timestamp: new Date() },
-      { device: 'Auth-Server', severity: 'ERROR', message: 'Multiple failed login attempts for root', suggestion: 'Lock account', timestamp: new Date(Date.now() - 86400000) },
-      { device: 'Web-Gateway', severity: 'INFO', message: 'SSL Certificate renewed', suggestion: 'None', timestamp: new Date(Date.now() - 172800000) },
-      { device: 'Database-Cluster', severity: 'WARN', message: 'Slow query detected on UserTable', suggestion: 'Optimize Index', timestamp: new Date(Date.now() - 259200000) }
+      { device: 'Firewall-01', severity: 'WARN', message: 'Port 22 attempted access from 192.168.1.105', suggestion: 'Ban IP', timestamp: new Date(), UserId: admin.id },
+      { device: 'Auth-Server', severity: 'ERROR', message: 'Multiple failed login attempts for root', suggestion: 'Lock account', timestamp: new Date(Date.now() - 86400000), UserId: admin.id },
+      { device: 'Web-Gateway', severity: 'INFO', message: 'SSL Certificate renewed', suggestion: 'None', timestamp: new Date(Date.now() - 172800000), UserId: admin.id },
+      { device: 'Database-Cluster', severity: 'WARN', message: 'Slow query detected on UserTable', suggestion: 'Optimize Index', timestamp: new Date(Date.now() - 259200000), UserId: admin.id }
     ]);
-    console.log('Audit logs seeded');
+    console.log('Audit logs seeded for Super Admin');
   }
 
 
@@ -146,21 +147,27 @@ sequelize.sync({ force: false }).then(async () => {
       // 1. Broadcast UI Updates
       io.emit('metrics_update', data);
 
-      // 2. Persist "Holding Values" to DB
-      SystemMetric.create({
-        cpuLoad: data.cpuLoad,
-        memoryUsage: data.memoryUsage,
-        networkTraffic: data.networkRx + data.networkTx
-      }).catch(err => console.error('Metric persist failed:', err));
+      // 2. Persist "Holding Values" to DB (Filtered for Admin demo context)
+      if (admin) {
+        SystemMetric.create({
+          cpuLoad: data.cpuLoad,
+          memoryUsage: data.memoryUsage,
+          networkTraffic: data.networkRx + data.networkTx,
+          UserId: admin.id
+        }).catch(err => console.error('Metric persist failed:', err));
 
-      // 3. Update Infrastructure Loads randomly for visual flow
-      await Server.update(
-        { load: parseFloat((Math.random() * 80).toFixed(1)), lastSeen: new Date() },
-        { where: { status: 'online' } }
-      );
+        // 3. Update Infrastructure Loads randomly
+        await Server.update(
+          { load: parseFloat((Math.random() * 80).toFixed(1)), lastSeen: new Date() },
+          { where: { status: 'online', UserId: admin.id } }
+        );
 
-      const allServers = await Server.findAll({ order: [['hostname', 'ASC']] });
-      io.emit('infrastructure_update', allServers);
+        const allServers = await Server.findAll({
+          where: { UserId: admin.id },
+          order: [['hostname', 'ASC']]
+        });
+        io.emit('infrastructure_update', allServers);
+      }
 
     } catch (e) {
       console.error('Core Telementry Error:', e);

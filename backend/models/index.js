@@ -19,7 +19,11 @@ const SystemMetric = sequelize.define('SystemMetric', {
     cpuLoad: { type: DataTypes.FLOAT },
     memoryUsage: { type: DataTypes.FLOAT },
     networkTraffic: { type: DataTypes.FLOAT },
-    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    UserId: {
+        type: DataTypes.INTEGER,
+        references: { model: 'Users', key: 'id' }
+    }
 });
 
 // --- Log Entry Model (For Log Analysis History) ---
@@ -28,7 +32,11 @@ const LogEntry = sequelize.define('LogEntry', {
     device: { type: DataTypes.STRING },
     message: { type: DataTypes.TEXT },
     suggestion: { type: DataTypes.TEXT },
-    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    UserId: {
+        type: DataTypes.INTEGER,
+        references: { model: 'Users', key: 'id' }
+    }
 });
 
 // --- Server Model (For Infrastructure Status) ---
@@ -38,7 +46,11 @@ const Server = sequelize.define('Server', {
     region: { type: DataTypes.STRING },
     status: { type: DataTypes.ENUM('online', 'offline', 'warning'), defaultValue: 'online' },
     load: { type: DataTypes.FLOAT, defaultValue: 0.0 },
-    lastSeen: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+    lastSeen: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    UserId: {
+        type: DataTypes.INTEGER,
+        references: { model: 'Users', key: 'id' }
+    }
 }, {
     indexes: [
         { fields: ['hostname'] },
@@ -46,12 +58,18 @@ const Server = sequelize.define('Server', {
     ]
 });
 
-// Add indexing to SystemMetric and LogEntry for fast time-series queries
-SystemMetric.addHook('afterInit', () => { /* Handled by sync indexes */ });
-LogEntry.addHook('afterInit', () => { /* Handled by sync indexes */ });
+// --- ASSOCIATIONS (Privacy Layer) ---
+User.hasMany(SystemMetric, { foreignKey: 'UserId' });
+SystemMetric.belongsTo(User, { foreignKey: 'UserId' });
 
-// Re-defining with explicit indexes for volume
-SystemMetric.options.indexes = [{ fields: ['timestamp'] }];
-LogEntry.options.indexes = [{ fields: ['timestamp'] }, { fields: ['severity'] }];
+User.hasMany(LogEntry, { foreignKey: 'UserId' });
+LogEntry.belongsTo(User, { foreignKey: 'UserId' });
+
+User.hasMany(Server, { foreignKey: 'UserId' });
+Server.belongsTo(User, { foreignKey: 'UserId' });
+
+// Add indexing to SystemMetric and LogEntry for fast time-series queries
+SystemMetric.options.indexes = [{ fields: ['timestamp'] }, { fields: ['UserId'] }];
+LogEntry.options.indexes = [{ fields: ['timestamp'] }, { fields: ['severity'] }, { fields: ['UserId'] }];
 
 module.exports = { User, SystemMetric, LogEntry, Server };

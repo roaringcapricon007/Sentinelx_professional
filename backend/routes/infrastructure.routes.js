@@ -8,6 +8,7 @@ module.exports = function (io) {
     router.get('/', authorize(['super_admin', 'admin', 'analyst']), async (req, res) => {
         try {
             const servers = await Server.findAll({
+                where: { UserId: req.user.id },
                 order: [['hostname', 'ASC']]
             });
             res.json(servers);
@@ -32,12 +33,17 @@ module.exports = function (io) {
                 region,
                 status,
                 load,
-                lastSeen: new Date()
+                lastSeen: new Date(),
+                UserId: req.user.id
             });
 
-            // Real-time Update
-            const allServers = await Server.findAll({ order: [['hostname', 'ASC']] });
+            // Real-time Update (Filtered by user)
+            const allServers = await Server.findAll({
+                where: { UserId: req.user.id },
+                order: [['hostname', 'ASC']]
+            });
             if (io) {
+                // Ideally use rooms: io.to(`user_${req.user.id}`).emit(...)
                 io.emit('infrastructure_update', allServers);
             }
 

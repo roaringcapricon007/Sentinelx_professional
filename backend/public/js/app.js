@@ -7,7 +7,7 @@ const state = {
     overviewData: null,
     notifications: [],
     notificationsEnabled: localStorage.getItem('notificationsEnabled') !== 'false',
-    theme: localStorage.getItem('theme') || 'dark', // 'dark' or 'light'
+    theme: 'dark', // FORCED DARK DEFAULT AS REQUESTED
     liveLogs: [],
     labAuth: {
         pulse: false,
@@ -15,6 +15,10 @@ const state = {
         automation: false
     }
 };
+
+// Guarantee Dark Mode immediately
+localStorage.setItem('theme', 'dark');
+document.documentElement.setAttribute('data-theme', 'dark');
 
 /**
  * --- PRIVILEGE ESCALATION CHECK ---
@@ -27,9 +31,7 @@ function isAdmin() {
 }
 
 let currentReportType = null;
-
-// Apply theme on load
-document.documentElement.setAttribute('data-theme', state.theme);
+let regSessionData = null; // Store for verification context
 
 
 
@@ -87,6 +89,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
 
+    const forgotPassLink = document.getElementById('forgot-password-link');
+    const fpForm = document.getElementById('forgot-password-form');
+
+    if (forgotPassLink && loginForm && fpForm) {
+        forgotPassLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginForm.style.display = 'none';
+            fpForm.style.display = 'block';
+            toggleBtn.style.display = 'none'; // Hide sign up toggle during recovery
+        });
+    }
+
     if (loginForm) {
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -110,6 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize Header Actions
     initHeaderActions();
+
 
     // Initialize Socket Listeners
     setupSocket();
@@ -350,7 +365,7 @@ async function handleLogin(formRef, email, password) {
             scannerStep.style.color = "#ff0055";
             setTimeout(() => {
                 if (scanner) scanner.style.display = 'none';
-                showToast(data.error || 'Wrong username or password', 'error');
+                showToast(data.message || data.error || 'Wrong username or password', 'error');
                 btn.disabled = false;
                 btn.innerText = originalText;
             }, 1000);
@@ -368,7 +383,6 @@ async function handleLogin(formRef, email, password) {
 
 
 // --- SECURE REGISTRATION ENGINE (REBUILT) ---
-let regSessionData = null;
 
 async function handleRegister(formRef, name, email, password) {
     if (!name || !email || !password) {
@@ -377,38 +391,122 @@ async function handleRegister(formRef, name, email, password) {
     }
 
     const btn = formRef.querySelector('button');
+    const originalText = btn.innerText;
+    const scanner = document.getElementById('security-layer');
+    const scannerStep = document.getElementById('security-step');
+    const scannerLog = document.getElementById('security-log');
+
     btn.disabled = true;
     btn.innerText = "Synchronizing...";
 
+    // Activate Security Scan for cinematic effect
+    if (scanner) scanner.style.display = 'flex';
+    if (scannerLog) scannerLog.innerHTML = "";
+    if (scannerStep) scannerStep.innerText = "AUTHENTICATING NEURAL SIGNATURE...";
+
+    const logMsg = (msg) => {
+        if (scannerLog) {
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            scannerLog.appendChild(div);
+            scannerLog.scrollTop = scannerLog.scrollHeight;
+        }
+    };
+
+    const runJourney = async () => {
+        logMsg("1️⃣ Requesting Secure Access to Gmail SMTP...");
+        await new Promise(r => setTimeout(r, 600));
+        logMsg("2️⃣ DNS Magic: Querying MX Records for gmail.com...");
+        await new Promise(r => setTimeout(r, 800));
+        logMsg("3️⃣ TLS Encryption Handshake Protocol (AES-256)...");
+        await new Promise(r => setTimeout(r, 600));
+        logMsg("4️⃣ SMTP Delivery Truck 🚚: Transferring payload...");
+        await new Promise(r => setTimeout(r, 1000));
+        logMsg("5️⃣ Gmail Server Accept: 250 OK - Handshake Complete.");
+        await new Promise(r => setTimeout(r, 500));
+        logMsg("6️⃣ Dispatching through Global Postal Empire 🔐.");
+    };
+
     try {
+        // Start cinematic journey parallel to the fetch
+        runJourney();
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for complex SMTP handshakes
+
         const res = await fetch('/api/auth/request-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify({ name, email, password }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
+
         const data = await res.json();
 
         if (res.ok) {
+            logMsg(`Identity verification successful.`);
+            logMsg(`OTP broadcast sequence initiated.`);
             regSessionData = { name, email, password };
 
-            // Force interface swap
-            document.getElementById('register-inputs').style.display = 'none';
-            document.getElementById('otp-verification').style.display = 'block';
+            // Start transition sequence immediately
+            console.log("[AUTH] Finalizing handshake. Swapping interface...");
 
-            if (data.mode === 'simulation') {
-                showToast(`[SYSTEM] LOCAL OTP: ${data.otp}`, "success");
-            } else {
-                showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
-            }
+            setTimeout(() => {
+                // Ensure scanner is dismissed
+                if (scanner) scanner.style.display = 'none';
+
+                // FORCE INTERFACE SWAP (No nested timeout)
+                const regInputs = document.getElementById('register-inputs');
+                const otpLayer = document.getElementById('otp-verification');
+
+                if (regInputs) regInputs.style.display = 'none';
+                if (otpLayer) {
+                    otpLayer.style.display = 'block';
+                    // Scroll to otp input for better UX
+                    const otpInput = document.getElementById('otp-input');
+                    if (otpInput) otpInput.focus();
+                }
+
+                if (data.mode === 'simulation') {
+                    showToast(`[SYSTEM] LOCAL OTP: ${data.otp}`, "success");
+                    logMsg(`Simulation OTP obtained: ${data.otp}`);
+                } else {
+                    showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
+                }
+            }, 800); // Faster, more responsive transition
         } else {
-            showToast(data.error || "Handshake rejected.", "error");
+            logMsg(`Handshake rejected: ${data.message || data.error}`);
+            setTimeout(() => {
+                if (scanner) scanner.style.display = 'none';
+                showToast(data.message || data.error || "Handshake rejected.", "error");
+
+                // --- REDIRECT LOGIC ---
+                if (data.error === 'ALREADY_REGISTERED') {
+                    const loginForm = document.getElementById('login-form');
+                    const registerForm = document.getElementById('register-form');
+                    const toggleBtn = document.getElementById('toggle-auth');
+                    if (registerForm) registerForm.style.display = 'none';
+                    if (loginForm) {
+                        loginForm.style.display = 'block';
+                        loginForm.querySelector('input[type="email"]').value = email;
+                    }
+                    if (toggleBtn) toggleBtn.innerText = "Need an account? Sign UP";
+                }
+
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }, 1000);
         }
     } catch (e) {
         console.error("Auth System Error:", e);
-        showToast("Uplink failed during authentication handshake.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Request Access Code";
+        logMsg(`CRITICAL: Uplink terminated unexpectedly.`);
+        setTimeout(() => {
+            if (scanner) scanner.style.display = 'none';
+            showToast("Uplink failed during authentication handshake.", "error");
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }, 1500);
     }
 }
 
@@ -481,12 +579,14 @@ function login(user) {
     if (views.login) views.login.style.display = 'none';
     if (views.dashboard) views.dashboard.style.display = 'flex';
 
-    // Update Profile UI
-    const avatar = document.querySelector('.avatar');
-    if (avatar) avatar.innerText = user.name ? user.name.substring(0, 2).toUpperCase() : 'US';
+    // Update Profile UI (Primary Topbar + Dropdown)
+    const topName = document.getElementById('topbar-user-name');
+    const dropName = document.getElementById('user-profile-name');
+    const dropEmail = document.getElementById('user-profile-email');
 
-    const nameSpan = document.querySelector('.user-profile span');
-    if (nameSpan) nameSpan.innerText = user.name || 'User';
+    if (topName) topName.innerText = user.name || 'Sentinel User';
+    if (dropName) dropName.innerText = user.name || 'Sentinel User';
+    if (dropEmail) dropEmail.innerText = user.email || (user.name ? `${user.name}@sentinelx.com` : 'user@sentinelx.com');
 
     // Apply Role-Based Access Handover
     applyRolePermissions(user.role);
@@ -1953,6 +2053,9 @@ function renderReports() {
                         Download Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
                     </button>
                     <div class="report-dropdown-menu">
+                        <a href="javascript:void(0)" onclick="generateReportDirect('security', 'excel')">
+                            <i class="fas fa-file-excel" style="color: #217346;"></i> Excel Spreadsheet
+                        </a>
                         <a href="javascript:void(0)" onclick="generateReportDirect('security', 'pdf')">
                             <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Optimized
                         </a>
@@ -2002,6 +2105,19 @@ function renderPowerBI() {
                 <div class="pbi-tab active" data-tab="overview">Overview</div>
                 <div class="pbi-tab" data-tab="resource">Resource Details</div>
                 <div class="pbi-tab" data-tab="security">Security Trends</div>
+            </div>
+            <div class="report-download-group" style="margin-left: auto; margin-right: 15px;">
+                <button class="btn-primary" style="padding: 6px 15px; font-size: 0.8rem; background: #f2c811; color: #000; border: none;">
+                    Export Data <i class="fas fa-download" style="margin-left:8px"></i>
+                </button>
+                <div class="report-dropdown-menu" style="right: 0; left: auto; transform: none; width: 160px;">
+                    <a href="javascript:void(0)" onclick="generateReportDirect('powerbi', 'pbix')">
+                        <i class="fas fa-file-code" style="color: #f2c811;"></i> .PBIX Format
+                    </a>
+                    <a href="javascript:void(0)" onclick="generateReportDirect('powerbi', 'csv')">
+                        <i class="fas fa-file-csv" style="color: #00ff88;"></i> .CSV Dataset
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -3319,6 +3435,10 @@ async function generateReport(format) {
             const res = await fetch('/api/metrics/history');
             data = await res.json();
             title = "Performance Trends";
+        } else if (targetType === 'powerbi') {
+            const res = await fetch('/api/metrics/history'); // Use metrics for BI demo
+            data = await res.json();
+            title = "PowerBI Intelligence Dataset";
         }
 
         // --- Data Validation ---
@@ -3336,8 +3456,12 @@ async function generateReport(format) {
 
         if (format === 'pdf') {
             generatePDF(title, data, targetType);
-        } else {
+        } else if (format === 'excel') {
             generateExcel(title, data, targetType);
+        } else if (format === 'pbix') {
+            generatePBIX(title, data);
+        } else if (format === 'csv') {
+            generateCSV(title, data, targetType);
         }
 
         // Close modal after successful generation trigger
@@ -3376,10 +3500,10 @@ function generatePDF(title, data, type) {
         body = data.map(d => [d.hostname, d.ipAddress, d.region, d.status, d.load]);
     } else if (type === 'security') {
         head = [['Severity', 'Device', 'Message', 'Time']];
-        body = data.map(d => [d.severity, d.device, d.message, new Date(d.createdAt || d.timestamp).toLocaleTimeString()]);
-    } else if (type === 'performance') {
+        body = data.map(d => [d.severity, d.device, d.message, new Date(d.createdAt || d.timestamp).toLocaleString()]);
+    } else if (type === 'performance' || type === 'powerbi') {
         head = [['Time', 'CPU (%)', 'Mem (%)', 'Net Traffic']];
-        body = data.map(d => [new Date(d.createdAt || d.timestamp).toLocaleTimeString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]);
+        body = data.map(d => [new Date(d.createdAt || d.timestamp).toLocaleString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]);
     }
 
     // Check for AutoTable
@@ -3422,7 +3546,10 @@ function generateExcel(title, data, type) {
     if (type === 'availability') {
         ws_data.push(['Hostname', 'IP Address', 'Region', 'Status', 'Load (%)']);
         data.forEach(d => ws_data.push([d.hostname, d.ipAddress, d.region, d.status, d.load]));
-    } else if (type === 'performance') {
+    } else if (type === 'security') {
+        ws_data.push(['Severity', 'Device', 'Message', 'Timestamp', 'Suggestion']);
+        data.forEach(d => ws_data.push([d.severity, d.device, d.message, d.createdAt, d.suggestion]));
+    } else if (type === 'performance' || type === 'powerbi') {
         ws_data.push(['Timestamp', 'CPU Load (%)', 'Memory Usage (%)', 'Network Traffic (KB/s)']);
         data.forEach(d => ws_data.push([
             new Date(d.createdAt || d.timestamp).toLocaleString(),
@@ -3440,6 +3567,41 @@ function generateExcel(title, data, type) {
     utils.book_append_sheet(wb, ws, "Report");
     writeFile(wb, `${type}_report_${Date.now()}.xlsx`);
     showToast("Excel Downloaded Successfully", "success");
+}
+
+function generateCSV(title, data, type) {
+    if (!window.XLSX) return showToast("Library Error", "error");
+    const { utils, writeFile } = window.XLSX;
+
+    // Convert to sheet then to CSV
+    let ws_data = [];
+    if (type === 'powerbi') {
+        ws_data.push(['Timestamp', 'CPU_Load', 'Memory_Usage', 'Network_Traffic']);
+        data.forEach(d => ws_data.push([new Date(d.createdAt).toISOString(), d.cpuLoad, d.memoryUsage, d.networkTraffic]));
+    } else {
+        data.forEach(d => ws_data.push(Object.values(d)));
+    }
+
+    const ws = utils.aoa_to_sheet(ws_data);
+    writeFile({ SheetNames: ['data'], Sheets: { 'data': ws } }, `${type}_data_${Date.now()}.csv`, { bookType: 'csv' });
+    showToast("CSV Downloaded Successfully", "success");
+}
+
+function generatePBIX(title, data) {
+    // Generate a mock PBIX (binary bubble representing a JSON structure)
+    const mockPbiContent = JSON.stringify({
+        version: "v1.0-SentinelX",
+        timestamp: new Date().toISOString(),
+        dataset: data,
+        directive: "Import this JSON into PowerBI Desktop via Get Data > JSON"
+    });
+    const blob = new Blob([mockPbiContent], { type: 'application/octet-stream' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sentinelx_intelligence_${Date.now()}.pbix`;
+    a.click();
+    showToast("PBIX Template Downloaded", "success");
 }
 
 function renderBotProfile() {
@@ -3495,4 +3657,88 @@ function renderBotProfile() {
     </div>
 `;
     view.setAttribute('data-rendered', 'true');
+}
+
+
+// --- FORGOT PASSWORD ENGINE ---
+async function handleForgotPassword() {
+    const email = document.getElementById('fp-email').value;
+    if (!email) return showToast("Enter your email address.", "warning");
+
+    try {
+        const res = await fetch('/api/auth/forgot-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            if (data.mode === 'simulation') showToast(`[RESET OTP]: ${data.otp}`, "success");
+            else showToast("Reset sequence sent to email.", "info");
+
+            document.getElementById('fp-email-step').style.display = 'none';
+            document.getElementById('fp-otp-step').style.display = 'block';
+        } else {
+            showToast(data.error || "Recovery initiation failed.", "error");
+        }
+    } catch (e) { showToast("Connection failed.", "error"); }
+}
+
+async function verifyResetOTP() {
+    const email = document.getElementById('fp-email').value;
+    const otp = document.getElementById('fp-otp').value;
+    if (otp.length < 6) return showToast("Enter full 6-digit sequence.", "warning");
+
+    try {
+        const res = await fetch('/api/auth/verify-reset-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, otp })
+        });
+        if (res.ok) {
+            showToast("Identity verified.", "success");
+            document.getElementById('fp-otp-step').style.display = 'none';
+            document.getElementById('fp-new-pass-step').style.display = 'block';
+        } else {
+            showToast("Invalid sequence.", "error");
+        }
+    } catch (e) { showToast("Verification aborted.", "error"); }
+}
+
+async function resetPassword() {
+    const email = document.getElementById('fp-email').value;
+    const password = document.getElementById('fp-new-pass').value;
+    const confirm = document.getElementById('fp-confirm-pass').value;
+
+    if (!password || password.length < 4) return showToast("Password too weak.", "warning");
+    if (password !== confirm) return showToast("Passwords do not match.", "error");
+
+    try {
+        const res = await fetch('/api/auth/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            showToast("Credentials updated successfully.", "success");
+            login(data.user); // Automatically log in
+        } else {
+            showToast("Update failed.", "error");
+        }
+    } catch (e) { showToast("Update error.", "error"); }
+}
+
+function returnToLogin() {
+    document.getElementById('forgot-password-form').style.display = 'none';
+    document.getElementById('forgot-password-form').reset();
+    document.getElementById('fp-email-step').style.display = 'block';
+    document.getElementById('fp-otp-step').style.display = 'none';
+    document.getElementById('fp-new-pass-step').style.display = 'none';
+
+    document.getElementById('login-form').style.display = 'block';
+    const toggleBtn = document.getElementById('toggle-auth');
+    if (toggleBtn) toggleBtn.style.display = 'inline-block';
 }

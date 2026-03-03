@@ -816,7 +816,7 @@
 .dropdown-header-info {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
     padding-bottom: 15px;
     border-bottom: 1px solid var(--glass-border);
     margin-bottom: 15px;

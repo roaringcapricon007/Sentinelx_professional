@@ -5,9 +5,10 @@ module.exports = function (io) {
     const { authorize } = require('../middleware/auth.middleware');
 
     // GET /api/logs/history
-    router.get('/history', authorize(['admin', 'user']), async (req, res) => {
+    router.get('/history', authorize(['admin', 'User']), async (req, res) => {
         try {
             const logs = await LogEntry.findAll({
+                where: { UserId: req.user.id },
                 limit: 50,
                 order: [['createdAt', 'DESC']]
             });
@@ -22,16 +23,17 @@ module.exports = function (io) {
         try {
             const { severity, device, message, suggestion } = req.body;
 
-            // Save to DB
+            // Save to DB (Filtered by current user context)
             const newLog = await LogEntry.create({
                 severity,
                 device,
                 message,
                 suggestion,
-                timestamp: new Date()
+                timestamp: new Date(),
+                UserId: req.user.id
             });
 
-            // Real-time Emit
+            // Real-time Emit (Consider scoping to rooms)
             if (io) {
                 io.emit('new_log', newLog);
             }

@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const si = require('systeminformation');
 const { SystemMetric } = require('../models');
+const { authorize } = require('../middleware/auth.middleware');
 
 // GET /api/metrics/realtime
 // Returns live system stats
-router.get('/realtime', async (req, res) => {
+router.get('/realtime', authorize(['super_admin', 'admin', 'analyst', 'User']), async (req, res) => {
     try {
         const [cpu, mem, network] = await Promise.all([
             si.currentLoad(),
@@ -22,11 +23,12 @@ router.get('/realtime', async (req, res) => {
             timestamp: new Date()
         };
 
-        // Persist to DB for historical charts (Fire and Forget)
+        // Persist to DB for historical charts (Filtered by authenticated user)
         SystemMetric.create({
             cpuLoad: data.cpuLoad,
             memoryUsage: data.memoryUsage,
-            networkTraffic: data.networkRx + data.networkTx
+            networkTraffic: data.networkRx + data.networkTx,
+            UserId: req.user.id
         }).catch(err => console.error('Metric save error:', err));
 
         res.json(data);
@@ -37,10 +39,11 @@ router.get('/realtime', async (req, res) => {
 });
 
 // GET /api/metrics/history
-// Returns last 50 data points for charts
-router.get('/history', async (req, res) => {
+// Returns last 50 data points for charts (Partitioned by user)
+router.get('/history', authorize(['super_admin', 'admin', 'analyst', 'User']), async (req, res) => {
     try {
         const history = await SystemMetric.findAll({
+            where: { UserId: req.user.id },
             limit: 50,
             order: [['createdAt', 'DESC']]
         });
