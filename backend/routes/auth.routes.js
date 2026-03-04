@@ -18,23 +18,23 @@ async function getTransporter() {
 
     if (user && pass && user.includes('@')) {
         try {
-            console.log(`[SMTP] Initializing Global Postal Empire via service: 'gmail'`);
+            console.log(`[SMTP] Initializing Global Postal Empire [${user}]...`);
             const transporter = nodemailer.createTransport({
                 service: 'gmail',
                 auth: { user, pass }
             });
 
-            await transporter.verify();
+            // Strict 5s timeout on verification to prevent hanging
+            const verifyPromise = transporter.verify();
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP_TIMEOUT')), 5000));
+
+            await Promise.race([verifyPromise, timeoutPromise]);
+
             transporterCache = transporter;
             console.log("\x1b[32m%s\x1b[0m", `[SERVER] GLOBAL POSTAL EMPIRE: [CONNECTED]`);
-            console.log(`[HANDSHAKE] Handshake Successful. Broadcast Protocol Active.`);
             return transporterCache;
         } catch (e) {
-            console.error("\x1b[31m%s\x1b[0m", `[SERVER] HANDSHAKE FAILED: ${e.message}`);
-            if (e.code === 'EAUTH') {
-                console.error("[TIP] 1. Verify 2-Step Verification is ENABLED on your Google Account.");
-                console.error("[TIP] 2. Ensure 'lrre akkl fjor ilsh' is exactly entered (with/without spaces).");
-            }
+            console.error("\x1b[31m%s\x1b[0m", `[SERVER] SMTP HANDSHAKE FAILED: ${e.message}`);
             transporterCache = null;
         }
     } else {
@@ -252,7 +252,8 @@ router.post('/forgot-password', async (req, res) => {
     const mailer = await getTransporter();
     if (mailer) {
         try {
-            await mailer.sendMail({
+            console.log(`[AUTH] Dispatching Reset OTP via Master Core to ${email}...`);
+            const mailPromise = mailer.sendMail({
                 from: `"SentinelX" <no-reply@SentinelX.com>`,
                 to: email,
                 subject: `SentinelX Reset Code: ${otp}`,
@@ -269,10 +270,21 @@ router.post('/forgot-password', async (req, res) => {
                     </div>
                 `
             });
-            return res.json({ success: true, message: 'Reset OTP broadcasted.' });
-        } catch (e) { console.error(e); }
+
+            // 12s broadcast timeout for cloud environments
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 12000));
+            await Promise.race([mailPromise, timeoutPromise]);
+
+            console.log(`[AUTH] Reset OTP successfully broadcasted.`);
+            return res.json({ success: true, mode: 'live', message: 'Reset OTP broadcasted.' });
+        } catch (e) {
+            console.error("[AUTH] Reset broadcast failed:", e.message);
+            // Fall through to simulation mode below
+        }
     }
-    res.json({ success: false, mode: 'simulation', otp, message: 'Broadcaster simulation: Use OTP' });
+
+    console.log(`[AUTH] Reset Broadcaster: SIMULATION mode for ${email}`);
+    res.json({ success: true, mode: 'simulation', otp, message: 'Broadcaster simulation: Use OTP' });
 });
 
 router.post('/verify-reset-otp', (req, res) => {
