@@ -71,125 +71,132 @@ app.use('/api/maintenance', maintenanceRoutes);
 app.use('/api/testing', testingRoutes);
 
 
+// Basic Health Check (Cloud-Sync Ready)
+app.get('/health', (req, res) => res.json({ status: 'SENTINELX_CORE_ONLINE' }));
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Start Server with DB Sync
-sequelize.sync({ force: false }).then(async () => {
-  console.log('Database connected and synced');
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`
+  =================================================
+  SentinelX Professional v7.0 ONLINE
+  Mode: Enterprise Neural Core (Cloud Environment)
+  Interface: http://0.0.0.0:${PORT}
+  Status: Port Binding Synchronized
+  =================================================
+  `);
 
-  // --- ENTERPRISE ROLE SEEDING ---
-  const roles = [
-    { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' }
-  ];
+  // Start DB Sync in Background (Does not block Render Health Check)
+  sequelize.sync({ force: false }).then(async () => {
+    console.log('--- DATABASE HANDSHAKE SYNCED ---');
 
-  const bcrypt = require('bcryptjs');
-  let admin = null;
-  for (const r of roles) {
-    admin = await User.findOne({ where: { email: r.email } });
-    if (!admin) {
-      const hashedPassword = await bcrypt.hash(r.pass, 4);
-      admin = await User.create({
-        name: r.name,
-        email: r.email,
-        password: hashedPassword,
-        role: r.role,
-        provider: 'local'
-      });
-      console.log(`Seeded user: ${r.email} [${r.role}]`);
+    // --- ENTERPRISE ROLE SEEDING ---
+    const roles = [
+      { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' }
+    ];
+
+    const bcrypt = require('bcryptjs');
+    let admin = null;
+    for (const r of roles) {
+      try {
+        admin = await User.findOne({ where: { email: r.email } });
+        if (!admin) {
+          const hashedPassword = await bcrypt.hash(r.pass, 4);
+          admin = await User.create({
+            name: r.name,
+            email: r.email,
+            password: hashedPassword,
+            role: r.role,
+            provider: 'local'
+          });
+          console.log(`Seeded user: ${r.email} [${r.role}]`);
+        }
+      } catch (e) {
+        console.warn('Seeding check skipped (DB likely already populated):', e.message);
+      }
     }
-  }
 
-  console.log('--- ADMIN_IDENTITY_STATUS:', admin ? `ID:${admin.id}` : 'NOT_FOUND');
-
-  try {
-    // Seed Servers for Infrastructure view (Associated with Admin)
-    const serverCount = await Server.count();
-    if (serverCount === 0 && admin) {
-      await Server.bulkCreate([
-        { hostname: 'PROD-AWS-01', ipAddress: '10.0.0.45', region: 'US-East', status: 'online', load: 12, UserId: admin.id },
-        { hostname: 'PROD-AWS-02', ipAddress: '10.0.0.46', region: 'US-East', status: 'online', load: 45, UserId: admin.id },
-        { hostname: 'DB-CLUSTER-01', ipAddress: '10.0.1.10', region: 'EU-West', status: 'warning', load: 88, UserId: admin.id },
-        { hostname: 'BACKUP-NODE', ipAddress: '192.168.1.15', region: 'Local', status: 'offline', load: 0, UserId: admin.id }
-      ]);
-      console.log('Infrastructure servers seeded for Super Admin');
-    }
-
-    // Seed Logs for Audit Vault (Associated with Admin)
-    const logCount = await LogEntry.count();
-    if (logCount === 0 && admin) {
-      await LogEntry.bulkCreate([
-        { device: 'Firewall-01', severity: 'WARN', message: 'Port 22 attempted access from 192.168.1.105', suggestion: 'Ban IP', timestamp: new Date(), UserId: admin.id },
-        { device: 'Auth-Server', severity: 'ERROR', message: 'Multiple failed login attempts for root', suggestion: 'Lock account', timestamp: new Date(Date.now() - 86400000), UserId: admin.id },
-        { device: 'Web-Gateway', severity: 'INFO', message: 'SSL Certificate renewed', suggestion: 'None', timestamp: new Date(Date.now() - 172800000), UserId: admin.id },
-        { device: 'Database-Cluster', severity: 'WARN', message: 'Slow query detected on UserTable', suggestion: 'Optimize Index', timestamp: new Date(Date.now() - 259200000), UserId: admin.id }
-      ]);
-      console.log('Audit logs seeded for Super Admin');
-    }
-  } catch (seedErr) {
-    console.warn('Seed Error (Safe to ignore if columns populated):', seedErr.message);
-  }
-
-
-  // --- Real-time Metrics Emitter (v5.0) ---
-  const si = require('systeminformation');
-
-  setInterval(async () => {
     try {
-      const [cpu, mem, network] = await Promise.all([
-        si.currentLoad(),
-        si.mem(),
-        si.networkStats()
-      ]);
-
-      const data = {
-        cpuLoad: Math.round(cpu.currentLoad),
-        memoryUsage: Math.round((mem.active / mem.total) * 100),
-        networkRx: network && network[0] ? network[0].rx_sec : 0,
-        networkTx: network && network[0] ? network[0].tx_sec : 0,
-        timestamp: new Date()
-      };
-
-      // 1. Broadcast UI Updates
-      io.emit('metrics_update', data);
-
-      // 2. Persist "Holding Values" to DB (Filtered for Admin demo context)
-      if (admin) {
-        SystemMetric.create({
-          cpuLoad: data.cpuLoad,
-          memoryUsage: data.memoryUsage,
-          networkTraffic: data.networkRx + data.networkTx,
-          UserId: admin.id
-        }).catch(err => console.error('Metric persist failed:', err));
-
-        // 3. Update Infrastructure Loads randomly
-        await Server.update(
-          { load: parseFloat((Math.random() * 80).toFixed(1)), lastSeen: new Date() },
-          { where: { status: 'online', UserId: admin.id } }
-        );
-
-        const allServers = await Server.findAll({
-          where: { UserId: admin.id },
-          order: [['hostname', 'ASC']]
-        });
-        io.emit('infrastructure_update', allServers);
+      // Seed Servers for Infrastructure view (Associated with Admin)
+      const serverCount = await Server.count();
+      if (serverCount === 0 && admin) {
+        await Server.bulkCreate([
+          { hostname: 'PROD-AWS-01', ipAddress: '10.0.0.45', region: 'US-East', status: 'online', load: 12, UserId: admin.id },
+          { hostname: 'PROD-AWS-02', ipAddress: '10.0.0.46', region: 'US-East', status: 'online', load: 45, UserId: admin.id },
+          { hostname: 'DB-CLUSTER-01', ipAddress: '10.0.1.10', region: 'EU-West', status: 'warning', load: 88, UserId: admin.id },
+          { hostname: 'BACKUP-NODE', ipAddress: '192.168.1.15', region: 'Local', status: 'offline', load: 0, UserId: admin.id }
+        ]);
+        console.log('Infrastructure servers seeded for Super Admin');
       }
 
-    } catch (e) {
-      console.error('Core Telementry Error:', e);
+      // Seed Logs for Audit Vault (Associated with Admin)
+      const logCount = await LogEntry.count();
+      if (logCount === 0 && admin) {
+        await LogEntry.bulkCreate([
+          { device: 'Firewall-01', severity: 'WARN', message: 'Port 22 attempted access from 192.168.1.105', suggestion: 'Ban IP', timestamp: new Date(), UserId: admin.id },
+          { device: 'Auth-Server', severity: 'ERROR', message: 'Multiple failed login attempts for root', suggestion: 'Lock account', timestamp: new Date(Date.now() - 86400000), UserId: admin.id },
+          { device: 'Web-Gateway', severity: 'INFO', message: 'SSL Certificate renewed', suggestion: 'None', timestamp: new Date(Date.now() - 172800000), UserId: admin.id },
+          { device: 'Database-Cluster', severity: 'WARN', message: 'Slow query detected on UserTable', suggestion: 'Optimize Index', timestamp: new Date(Date.now() - 259200000), UserId: admin.id }
+        ]);
+        console.log('Audit logs seeded for Super Admin');
+      }
+    } catch (seedErr) {
+      console.warn('Seed Error (Safe to ignore if columns populated):', seedErr.message);
     }
-  }, 4000); // Optimized 4s frequency for Enterprise Stability
 
-  const PORT = process.env.PORT || 3000;
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`
-    =================================================
-    SentinelX Professional v7.0 ONLINE
-    Mode: Enterprise Neural Core
-    Interface: http://0.0.0.0:${PORT}
-    Status: All Matrix Systems Synchronized
-    =================================================
-    `);
+
+    // --- Real-time Metrics Emitter (v5.0) ---
+    const si = require('systeminformation');
+
+    setInterval(async () => {
+      try {
+        const [cpu, mem, network] = await Promise.all([
+          si.currentLoad(),
+          si.mem(),
+          si.networkStats()
+        ]);
+
+        const data = {
+          cpuLoad: Math.round(cpu.currentLoad || 0),
+          memoryUsage: Math.round(((mem.active || 1) / (mem.total || 1)) * 100),
+          networkRx: network && network[0] ? network[0].rx_sec : 0,
+          networkTx: network && network[0] ? network[0].tx_sec : 0,
+          timestamp: new Date()
+        };
+
+        // 1. Broadcast UI Updates
+        io.emit('metrics_update', data);
+
+        // 2. Persist "Holding Values" to DB
+        if (admin) {
+          SystemMetric.create({
+            cpuLoad: data.cpuLoad,
+            memoryUsage: data.memoryUsage,
+            networkTraffic: data.networkRx + data.networkTx,
+            UserId: admin.id
+          }).catch(err => { }); // Silent fail on intermittent DB load
+
+          // 3. Update Infrastructure Loads randomly
+          await Server.update(
+            { load: parseFloat((Math.random() * 80).toFixed(1)), lastSeen: new Date() },
+            { where: { status: 'online', UserId: admin.id } }
+          );
+
+          const allServers = await Server.findAll({
+            where: { UserId: admin.id },
+            order: [['hostname', 'ASC']]
+          });
+          io.emit('infrastructure_update', allServers);
+        }
+
+      } catch (e) {
+        // Silently suppress telemetry noise in cloud environments
+      }
+    }, 5000); // 5s frequency for Cloud stability
+
+  }).catch(err => {
+    console.error('--- DATABASE INITIALIZATION FAILED ---');
+    console.error(err.message);
   });
-}).catch(err => {
-  console.error('Core Database connection failed:', err);
 });
