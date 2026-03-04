@@ -4134,8 +4134,12 @@ async function handleForgotPassword() {
     try {
         runJourney();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => {
+            console.error("[AUTH] Request timed out. Aborting fetch...");
+            controller.abort();
+        }, 20000); // 20s frontend timeout for cloud stability
 
+        console.log(`[AUTH] Dispatching identity recovery for: ${email}`);
         const res = await fetch('/api/auth/forgot-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -4145,27 +4149,37 @@ async function handleForgotPassword() {
         clearTimeout(timeoutId);
         const data = await res.json();
 
-        if (res.ok) {
-            logMsg("✅ Recovery sequence dispatched successfully.");
-            setTimeout(() => {
-                if (scanner) scanner.style.display = 'none';
-                if (data.mode === 'simulation') showToast(`[RESET OTP]: ${data.otp}`, "success");
-                else showToast("Reset sequence sent to email.", "info");
+        // Dismiss scanner as soon as we have ANY response
+        if (scanner) scanner.style.display = 'none';
 
-                document.getElementById('fp-email-step').style.display = 'none';
-                document.getElementById('fp-recovery-step').style.display = 'block';
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }, 800);
+        if (res.ok) {
+            logMsg("✅ Identity Verified. Transitioning...");
+            if (data.mode === 'simulation') {
+                showToast(`[SYSTEM] RESET OTP: ${data.otp}`, "success");
+                logMsg(`Bypassing SMTP: Simulation key generated.`);
+            } else {
+                showToast("Reset sequence sent to email.", "info");
+            }
+
+            // Move to Step 2
+            document.getElementById('fp-email-step').style.display = 'none';
+            document.getElementById('fp-recovery-step').style.display = 'block';
+
+            const otpInp = document.getElementById('fp-otp');
+            if (otpInp) otpInp.focus();
         } else {
-            if (scanner) scanner.style.display = 'none';
-            showToast(data.error || "Recovery initiation failed.", "error");
-            btn.disabled = false;
-            btn.innerText = originalText;
+            console.warn(`[AUTH] Handshake Rejected: ${data.error || 'Unknown Error'}`);
+            showToast(data.error || "Identity check failed.", "error");
         }
     } catch (e) {
         if (scanner) scanner.style.display = 'none';
-        showToast("Connection failed or timed out.", "error");
+        console.error("[AUTH] Communication failure:", e.message);
+        if (e.name === 'AbortError') {
+            showToast("Recovery timed out. Check your email or try again.", "warning");
+        } else {
+            showToast("Connection to SentinelX Core lost.", "error");
+        }
+    } finally {
         btn.disabled = false;
         btn.innerText = originalText;
     }
