@@ -146,12 +146,12 @@ router.post('/request-otp', async (req, res) => {
             mailer = await getTransporter();
         }
 
-        otpStore[email] = {
+        otpStore[`reg_${email}`] = {
             otp,
             userData: { name, email, password },
             expires: Date.now() + 300000 // Exact 5-minute security window requested
         };
-        console.log(`[AUTH] Sequence Refreshed: New OTP broadcast sequence active for ${email}`);
+        console.log(`[AUTH] Sequence Refreshed: New Registration OTP broadcast sequence active for ${email}`);
 
         if (mailer) {
             console.log(`[AUTH] Dispatching OTP via ${authMode} protocol...`);
@@ -215,7 +215,7 @@ router.post('/request-otp', async (req, res) => {
 router.post('/verify-registration', async (req, res) => {
     try {
         const { email, otp } = req.body;
-        const entry = otpStore[email];
+        const entry = otpStore[`reg_${email}`];
         if (!entry || entry.expires < Date.now()) return res.status(400).json({ error: 'Expired' });
         if (entry.otp !== otp) return res.status(400).json({ error: 'Invalid' });
 
@@ -231,7 +231,7 @@ router.post('/verify-registration', async (req, res) => {
         });
 
         console.log(`[AUTH] Identity PERSISTED: ${email} registered successfully.`);
-        delete otpStore[email];
+        delete otpStore[`reg_${email}`];
         req.session.user = user;
         req.session.save(() => res.json({ success: true, user }));
     } catch (err) {
@@ -247,7 +247,7 @@ router.post('/forgot-password', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'Identity not found.' });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore[email] = { otp, expires: Date.now() + 300000 };
+    otpStore[`reset_${email}`] = { otp, expires: Date.now() + 300000 };
 
     const mailer = await getTransporter();
     if (mailer) {
@@ -277,7 +277,7 @@ router.post('/forgot-password', async (req, res) => {
 
 router.post('/verify-reset-otp', (req, res) => {
     const { email, otp } = req.body;
-    const entry = otpStore[email];
+    const entry = otpStore[`reset_${email}`];
     if (!entry || entry.expires < Date.now()) return res.status(400).json({ error: 'Expired' });
     if (entry.otp !== otp) return res.status(400).json({ error: 'Invalid' });
     res.json({ success: true });
@@ -294,7 +294,7 @@ router.post('/reset-password', async (req, res) => {
         await user.save();
 
         console.log(`[AUTH] Credentials REFRESHED for ${email}. Redirecting to Login Handshake.`);
-        delete otpStore[email];
+        delete otpStore[`reset_${email}`];
         res.json({ success: true, message: 'Password updated. Please log in.' });
     } catch (err) {
         console.error("[AUTH] Reset commit failed:", err);
