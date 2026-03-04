@@ -22,7 +22,7 @@ services:
           property: connectionString
       - key: PYTHON_URL
         value: http://sentinelx-ai:10000
-      # Social Auth & Email (User must fill these in Render Dashboard for full functionality)
+      # Social Auth & Email
       - key: GOOGLE_CLIENT_ID
         value: "621393f52357ebe89dac0ba2333675fc"
       - key: GOOGLE_CLIENT_SECRET

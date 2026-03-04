@@ -158,7 +158,7 @@ router.post('/request-otp', async (req, res) => {
             console.log(`[AUTH] Dispatching OTP via ${authMode} protocol...`);
             try {
                 const mailPromise = mailer.sendMail({
-                    from: `"SentinelX" <no-reply@SentinelX.com>`, // As per user diagram
+                    from: `"SentinelX" <${process.env.EMAIL_USER}>`, // High-deliverability format
                     to: email,
                     subject: `Log-in to your SentinelX Account: ${otp}`,
                     html: `
