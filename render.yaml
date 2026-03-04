@@ -10,6 +10,7 @@ services:
     rootDir: backend
     buildCommand: npm install
     startCommand: node server.js
+    autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: 18
@@ -42,6 +43,7 @@ services:
     rootDir: backend/python_service
     buildCommand: pip install -r requirements.txt
     startCommand: python app.py
+    autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
