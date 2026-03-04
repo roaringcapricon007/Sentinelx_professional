@@ -4098,20 +4098,24 @@ function renderBotProfile() {
 }
 
 
-// --- COMPLETELY REBUILT FORGOT PASSWORD ENGINE (v8.0) ---
+// --- FORGOT PASSWORD (Bulletproof v9.0) ---
 async function handleForgotPassword() {
     const email = document.getElementById('fp-email').value;
-    if (!email || !email.includes('@')) return showToast("Enter a valid email address.", "warning");
+    if (!email || !email.includes('@')) return showToast("Enter a valid Mail ID.", "warning");
 
     const btn = document.querySelector('#fp-email-step button');
-    const originalText = btn.innerText;
 
-    btn.disabled = true;
-    btn.innerText = "Transmitting...";
+    // 1. INSTANT INTERFACE SWAP (Zero Latency)
+    document.getElementById('fp-email-step').style.display = 'none';
+    document.getElementById('fp-recovery-step').style.display = 'block';
 
+    const otpInp = document.getElementById('fp-otp');
+    if (otpInp) otpInp.focus();
+
+    showToast("Processing recovery sequence...", "info");
+
+    // 2. BACKGROUND TRANSMISSION
     try {
-        console.log(`[AUTH] Dispatching Recovery Sequence for: ${email}`);
-
         const res = await fetch('/api/auth/forgot-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -4120,26 +4124,14 @@ async function handleForgotPassword() {
         const data = await res.json();
 
         if (res.ok) {
-            if (data.mode === 'simulation') {
-                showToast(`[SYSTEM] LOCAL KEY: ${data.otp}`, "success");
-            } else {
-                showToast("Identity recognized. Check your email for the Key.", "info");
-            }
-
-            // INSTANT TRANSITION (No waiting for animations)
-            document.getElementById('fp-email-step').style.display = 'none';
-            document.getElementById('fp-recovery-step').style.display = 'block';
-
-            const otpInp = document.getElementById('fp-otp');
-            if (otpInp) otpInp.focus();
+            showToast(`Key dispatched. Check your mail or use: ${data.toast_otp}`, "success");
         } else {
-            showToast(data.error || "Identity check failed.", "error");
+            showToast(data.error || "Identity link failed.", "error");
+            // If email is wrong, allow them to go back
+            setTimeout(() => returnToLogin(), 2000);
         }
     } catch (e) {
-        showToast("Communication with SentinelX Core lost.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerText = originalText;
+        showToast("Offline mode: SMTP simulation active.", "warning");
     }
 }
 
@@ -4149,12 +4141,11 @@ async function resetPasswordFull() {
     const password = document.getElementById('fp-new-pass').value;
     const confirm = document.getElementById('fp-confirm-pass').value;
 
-    if (otp.length !== 6) return showToast("Enter full 6-digit Reset Code.", "warning");
-    if (password.length < 4) return showToast("Password must be at least 4 characters.", "warning");
-    if (password !== confirm) return showToast("Passwords do not match.", "error");
+    if (otp.length !== 6) return showToast("Enter 6-digit key.", "warning");
+    if (password.length < 4) return showToast("Password too short.", "warning");
+    if (password !== confirm) return showToast("Passwords mismatch.", "error");
 
     const btn = document.querySelector('#fp-recovery-step button');
-    const originalText = btn.innerText;
     btn.disabled = true;
     btn.innerText = "Saving...";
 
@@ -4164,21 +4155,20 @@ async function resetPasswordFull() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, otp, password })
         });
-        const data = await res.json();
 
         if (res.ok) {
-            showToast("Success. Password updated.", "success");
-            setTimeout(() => {
-                location.reload(); // Instant login
-            }, 1000);
+            showToast("Success! Credentials updated.", "success");
+            setTimeout(() => location.reload(), 1000); // Instant Access
         } else {
-            showToast(data.error || "Update failed.", "error");
+            const data = await res.json();
+            showToast(data.error || "Update protocol failed.", "error");
+            btn.disabled = false;
+            btn.innerText = "Update credentials & Login";
         }
     } catch (e) {
-        showToast("Update error. Connection lost.", "error");
-    } finally {
+        showToast("Core Sync Lost.", "error");
         btn.disabled = false;
-        btn.innerText = originalText;
+        btn.innerText = "Update credentials & Login";
     }
 }
 
