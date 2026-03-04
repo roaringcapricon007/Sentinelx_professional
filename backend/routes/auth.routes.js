@@ -243,48 +243,82 @@ router.post('/verify-registration', async (req, res) => {
 // Forgot Password Protocol
 router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ error: 'Identity not found.' });
+    console.log(`[AUTH_DIAGNOSTIC] Forgot Password Handshake started for: ${email}`);
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore[`reset_${email}`] = { otp, expires: Date.now() + 300000 };
+    // Emergency 15s circuit breaker for the entire request
+    const circuitBreaker = setTimeout(() => {
+        if (!res.headersSent) {
+            console.error(`[AUTH_CRITICAL] Forgot Password TIMEOUT for ${email}. Returning emergency simulation code.`);
+            const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
+            otpStore[`reset_${email}`] = { otp: fallbackOtp, expires: Date.now() + 300000 };
+            res.json({ success: true, mode: 'simulation', otp: fallbackOtp, message: 'Broadcast Timeout: Use emergency recovery key.' });
+        }
+    }, 15000);
 
-    const mailer = await getTransporter();
-    if (mailer) {
-        try {
-            console.log(`[AUTH] Dispatching Reset OTP via Master Core to ${email}...`);
-            const mailPromise = mailer.sendMail({
-                from: `"SentinelX" <no-reply@SentinelX.com>`,
-                to: email,
-                subject: `SentinelX Reset Code: ${otp}`,
-                html: `
-                    <div style="font-family: Arial, sans-serif; padding: 30px; border: 1px solid #eee; max-width: 500px; margin: auto;">
-                        <h2 style="color: #008080;">PASSWORD RESET PROTOCOL</h2>
-                        <p>Hello User,</p>
-                        <p>We received a request to refresh your access credentials. Use the sequence below:</p>
-                        <div style="background: #f9f9f9; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 10px; font-weight: bold; color: #008080; border: 2px dashed #008080;">
-                            ${otp}
+    try {
+        console.log(`[AUTH_DIAGNOSTIC] Step 1: Locating user in DB for ${email}`);
+        const user = await User.findOne({ where: { email } });
+        if (!user) {
+            console.warn(`[AUTH_DIAGNOSTIC] Identity not found: ${email}`);
+            clearTimeout(circuitBreaker);
+            return res.status(404).json({ error: 'Identity not found.' });
+        }
+        console.log(`[AUTH_DIAGNOSTIC] User identity confirmed for ${email}`);
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        otpStore[`reset_${email}`] = { otp, expires: Date.now() + 300000 };
+        console.log(`[AUTH_DIAGNOSTIC] Reset code generated and cached for ${email}`);
+
+        console.log(`[AUTH_DIAGNOSTIC] Step 2: Preparing SMTP Broadcaster...`);
+        const mailer = await getTransporter();
+
+        if (mailer) {
+            try {
+                console.log(`[AUTH_DIAGNOSTIC] SMTP Active. Dispatching broadcast to ${email}...`);
+                const mailPromise = mailer.sendMail({
+                    from: `"SentinelX" <no-reply@SentinelX.com>`,
+                    to: email,
+                    subject: `SentinelX Reset Code: ${otp}`,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; padding: 30px; border: 1px solid #eee; max-width: 500px; margin: auto;">
+                            <h2 style="color: #008080;">PASSWORD RESET PROTOCOL</h2>
+                            <p>Hello User,</p>
+                            <p>We received a request to refresh your access credentials. Use the sequence below:</p>
+                            <div style="background: #f9f9f9; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 10px; font-weight: bold; color: #008080; border: 2px dashed #008080;">
+                                ${otp}
+                            </div>
+                            <p style="color: red; font-size: 12px; margin-top: 20px;">If you did not request this, please secure your account immediately.</p>
+                            <p>Regards,<br>SentinelX Security</p>
                         </div>
-                        <p style="color: red; font-size: 12px; margin-top: 20px;">If you did not request this, please secure your account immediately.</p>
-                        <p>Regards,<br>SentinelX Security</p>
-                    </div>
-                `
-            });
+                    `
+                });
 
-            // 12s broadcast timeout for cloud environments
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 12000));
-            await Promise.race([mailPromise, timeoutPromise]);
+                // 12s broadcast timeout for cloud environments
+                const smtpTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP_TIMEOUT')), 12000));
+                await Promise.race([mailPromise, smtpTimeout]);
 
-            console.log(`[AUTH] Reset OTP successfully broadcasted.`);
-            return res.json({ success: true, mode: 'live', message: 'Reset OTP broadcasted.' });
-        } catch (e) {
-            console.error("[AUTH] Reset broadcast failed:", e.message);
-            // Fall through to simulation mode below
+                console.log(`[AUTH_DIAGNOSTIC] Broadcast SUCCESS for ${email}`);
+                clearTimeout(circuitBreaker);
+                return res.json({ success: true, mode: 'live', message: 'Reset OTP broadcasted.' });
+            } catch (e) {
+                console.error(`[AUTH_DIAGNOSTIC] Broadcast FAILED for ${email}: ${e.message}`);
+                // Fall through to simulation mode below
+            }
+        } else {
+            console.warn(`[AUTH_DIAGNOSTIC] Broadcaster OFFLINE. Entering simulation mode for ${email}`);
+        }
+
+        clearTimeout(circuitBreaker);
+        console.log(`[AUTH_DIAGNOSTIC] Returning simulation code for ${email}`);
+        res.json({ success: true, mode: 'simulation', otp, message: 'Broadcaster simulation: Use OTP' });
+
+    } catch (err) {
+        console.error(`[AUTH_FATAL] Error in forgot-password flow for ${email}:`, err);
+        clearTimeout(circuitBreaker);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'SentinelX Core error. Internal communication broken.' });
         }
     }
-
-    console.log(`[AUTH] Reset Broadcaster: SIMULATION mode for ${email}`);
-    res.json({ success: true, mode: 'simulation', otp, message: 'Broadcaster simulation: Use OTP' });
 });
 
 router.post('/verify-reset-otp', (req, res) => {

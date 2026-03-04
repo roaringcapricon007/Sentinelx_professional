@@ -7,16 +7,16 @@ const sequelize = require('../database');
  */
 async function dbCheck(req, res, next) {
     try {
-        // Simple authentication check - very fast for SQLite
-        await sequelize.authenticate();
+        // Strict 3s timeout for DB health check during web requests
+        const authPromise = sequelize.authenticate();
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('DB_TIMEOUT')), 3000));
+
+        await Promise.race([authPromise, timeoutPromise]);
         next();
     } catch (err) {
-        console.error('[CRITICAL] Database Connectivity Lost:', err.message);
-        res.status(503).json({
-            error: 'Infrastructure Fault',
-            message: 'Core database is currently offline. SentinelX is in emergency fallback mode.',
-            timestamp: new Date().toISOString()
-        });
+        console.warn('[WARNING] Database Connectivity Slow/Lost. Proceeding in fallback mode.');
+        // Don't block the request, let the route handle potential DB errors
+        next();
     }
 }
 
