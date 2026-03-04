@@ -118,8 +118,10 @@ async function ingestLog(data, userId = null) {
         existingLog.timestamp = new Date();
         // Update message to show grouping if it's a brute force
         if (explanationData === EXPLANATIONS['brute'] && existingLog.attempts > 1) {
-            existingLog.message = `⚠ ${existingLog.attempts} SUSPICIOUS LOGIN ATTEMPTS from IP: ${ip} [${ipIntel.country}]`;
+            existingLog.message = `⚠ ${existingLog.attempts} SUSPICIOUS LOGIN ATTEMPTS from IP: ${ip} [${ipIntel.country || 'Unknown'}]`;
         }
+        // Update suggestion with real-time location context
+        existingLog.suggestion = `${explanationData.problem} [REAL-TIME LOCATION: ${ipIntel.city || 'N/A'}, ${ipIntel.country || 'N/A'}] Why: ${explanationData.why}`;
         await existingLog.save();
         return existingLog;
     }
@@ -129,12 +131,12 @@ async function ingestLog(data, userId = null) {
         severity,
         device,
         message: severity === 'CRITICAL' ? `🚨 ${message}` : message,
-        ip: `${ip} (${ipIntel.country})`,
+        ip: `${ip} (${ipIntel.country || 'Unknown'})`,
         status: 'ACTIVE',
         attempts: 1,
         riskScore: baseScore,
         impact: explanationData.impact,
-        suggestion: `${explanationData.problem} Why: ${explanationData.why}`,
+        suggestion: `${explanationData.problem} [REAL-TIME LOCATION: ${ipIntel.city || 'N/A'}, ${ipIntel.country || 'N/A'}] Why: ${explanationData.why}`,
         recommendations: explanationData.recommendations,
         UserId: userId,
         timestamp: new Date()

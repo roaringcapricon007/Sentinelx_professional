@@ -3,7 +3,8 @@ const { authorize } = require('../middleware/auth.middleware');
 // Native fetch is available in Node 18+
 
 // Proxy to Python Service
-const PYTHON_URL = 'http://127.0.0.1:5001';
+// Proxy to Python Service
+const PYTHON_URL = process.env.PYTHON_URL || 'http://127.0.0.1:5001';
 
 router.get('/pulse', authorize(['super_admin', 'admin', 'analyst', 'user']), async (req, res) => {
     try {

@@ -2,41 +2,58 @@ const { Sequelize } = require('sequelize');
 const path = require('path');
 require('dotenv').config();
 
-const isRemote = !!process.env.DB_HOST;
+const isRemote = !!(process.env.DATABASE_URL || process.env.DB_HOST);
 
-const sequelizeConfig = isRemote ? {
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 5432,
-    username: process.env.DB_USER,
-    password: process.env.DB_PASS,
-    database: process.env.DB_NAME,
-    dialect: process.env.DB_DIALECT || 'postgres',
-    logging: false,
-    dialectOptions: {
-        ssl: {
-            require: true,
-            rejectUnauthorized: false
+const sequelizeConfig = process.env.DATABASE_URL
+    ? {
+        // Standard for Render/Heroku Postgres
+        dialect: 'postgres',
+        protocol: 'postgres',
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
+        },
+        logging: false
+    }
+    : (isRemote ? {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT || 5432,
+        username: process.env.DB_USER,
+        password: process.env.DB_PASS,
+        database: process.env.DB_NAME,
+        dialect: process.env.DB_DIALECT || 'postgres',
+        logging: false,
+        dialectOptions: {
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
         }
-    }
-} : {
-    dialect: 'sqlite',
-    storage: path.join(__dirname, 'database.sqlite'),
-    logging: false
-};
+    } : {
+        dialect: 'sqlite',
+        storage: path.join(__dirname, 'database.sqlite'),
+        logging: false
+    });
 
-const sequelize = new Sequelize({
-    ...sequelizeConfig,
-    pool: {
-        max: 10,
-        min: 0,
-        acquire: 60000,
-        idle: 10000
-    },
-    define: {
-        timestamps: true,
-        freezeTableName: true
-    }
-});
+const connectionString = process.env.DATABASE_URL;
+
+const sequelize = connectionString
+    ? new Sequelize(connectionString, sequelizeConfig)
+    : new Sequelize({
+        ...sequelizeConfig,
+        pool: {
+            max: 10,
+            min: 0,
+            acquire: 60000,
+            idle: 10000
+        },
+        define: {
+            timestamps: true,
+            freezeTableName: true
+        }
+    });
 
 /**
  * --- DATABASE INTEGRITY LAYER ---

@@ -606,6 +606,74 @@ function login(user) {
     setTimeout(() => refreshRiskScore(), 1000);
 }
 
+/**
+ * --- SESSION PERSISTENCE ENGINE ---
+ * Verifies if a user is already authenticated via secure cookie.
+ */
+async function checkSession() {
+    try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        if (res.ok && data.authenticated) {
+            console.log("[SESSION] Active link detected. Resuming session for:", data.user.email);
+            login(data.user);
+        } else {
+            console.log("[SESSION] No active link. Awaiting manual handshake.");
+            // Hide intro and show login if checkSession is called later
+            const intro = document.getElementById('intro-view');
+            if (intro && intro.style.display === 'none') {
+                if (views.login) views.login.style.display = 'flex';
+            }
+        }
+    } catch (e) {
+        console.warn("[SESSION] Persistence check failed - likely offline.");
+    }
+}
+
+/**
+ * --- TERMINATE SESSION (LOGOUT) ---
+ */
+async function logout() {
+    console.log("Terminating secure session...");
+    showToast("Disconnecting from Neural Core...", "info");
+
+    try {
+        // 1. Notify Server (Clears Session/Cookie)
+        await fetch('/api/auth/logout');
+
+        // 2. Local State Purge
+        state.isLoggedIn = false;
+        state.user = null;
+        state.liveLogs = [];
+        state.analysisData = null;
+
+        // 3. Persistence Purge
+        localStorage.removeItem('last_tab');
+        localStorage.removeItem('user_token');
+        sessionStorage.clear();
+
+        // 4. UI Reset
+        if (views.dashboard) views.dashboard.style.display = 'none';
+        if (views.login) {
+            views.login.style.display = 'flex';
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        }
+
+        const chatbot = document.getElementById('main-chat-widget');
+        if (chatbot) chatbot.style.display = 'none';
+
+        // 5. Final Handshake - Clean Redirect
+        window.location.href = '/?logout=true';
+    } catch (e) {
+        console.error("Logout Handshake Interrupted:", e);
+        // Fallback: hard reset
+        window.location.reload();
+    }
+}
+
+window.logout = logout;
+
 function applyRolePermissions(role) {
     console.log(`Applying security clearance for role: ${role}`);
 
@@ -820,6 +888,41 @@ function setupSocket() {
         const analysisView = document.getElementById('analysis-view');
         if (analysisView) {
             updateAnalysisTable(analysisView);
+        }
+
+        // --- Global Map Pulse (Step 8 Visualization) ---
+        const mapGroup = document.getElementById('map-threat-points');
+        if (mapGroup) {
+            const x = Math.floor(Math.random() * 800) + 100;
+            const y = Math.floor(Math.random() * 300) + 100;
+            const color = log.severity === 'CRITICAL' ? '#ff0055' : log.severity === 'ERROR' ? '#ffcc00' : '#00d4ff';
+
+            const pulse = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            pulse.setAttribute("cx", x);
+            pulse.setAttribute("cy", y);
+            pulse.setAttribute("r", "4");
+            pulse.setAttribute("fill", color);
+
+            const animateR = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+            animateR.setAttribute("attributeName", "r");
+            animateR.setAttribute("from", "4");
+            animateR.setAttribute("to", "20");
+            animateR.setAttribute("dur", "2.5s");
+            animateR.setAttribute("repeatCount", "indefinite");
+
+            const animateO = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+            animateO.setAttribute("attributeName", "opacity");
+            animateO.setAttribute("from", "1");
+            animateO.setAttribute("to", "0");
+            animateO.setAttribute("dur", "2.5s");
+            animateO.setAttribute("repeatCount", "indefinite");
+
+            pulse.appendChild(animateR);
+            pulse.appendChild(animateO);
+            mapGroup.appendChild(pulse);
+
+            // Auto-clean after 10s
+            setTimeout(() => pulse.remove(), 10000);
         }
 
         // Refresh risk score banner
@@ -1309,16 +1412,16 @@ function renderAnalysis() {
                     <thead>
                         <tr>
                             <th>Severity</th>
-                            <th>Device / IP</th>
-                            <th>Attempts</th>
-                            <th>Risk Score</th>
-                            <th>Time</th>
-                            <th>Message & Impact</th>
-                            <th>Action</th>
+                            <th>Source & Origin</th>
+                            <th style="text-align:center;">Attempts</th>
+                            <th>Risk Factor</th>
+                            <th>Timeline</th>
+                            <th>Security Intelligence</th>
+                            <th style="width: 130px; border-left: 1px solid rgba(255,255,255,0.05);">Operational Actions</th>
                         </tr>
                     </thead>
                     <tbody id="logTableBody">
-                        <tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Loading alerts...</td></tr>
+                        <tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Initializating Neural Link...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1401,20 +1504,21 @@ async function updateAnalysisTable(viewContainer) {
             const attempts = log.attempts > 1 ? `<span style="color:#ff0055; font-weight:bold; display:block; font-size: 1.1rem; margin-top:5px;">${log.attempts}x ATTEMPTS</span>` : '<span style="color:var(--text-muted)">1st Event</span>';
 
             const hasLocation = log.ip && log.ip.includes('(');
-            const locationChip = hasLocation ? `<span class="stat-pill" style="font-size: 0.65rem; background: rgba(var(--primary-rgb),0.05); color: var(--primary);"><i class="fas fa-map-marker-alt"></i> ${log.ip.split('(')[1].replace(')', '')}</span>` : '';
+            const locationText = hasLocation ? log.ip.split('(')[1].replace(')', '') : 'N/A';
+            const locationChip = hasLocation ? `<span class="stat-pill" style="font-size: 0.65rem; background: rgba(var(--primary-rgb),0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb),0.3);"><i class="fas fa-map-marker-alt"></i> ${locationText}</span>` : '<span class="stat-pill" style="font-size:0.65rem; background:rgba(255,255,255,0.05); color:var(--text-muted);"><i class="fas fa-globe"></i> LOCAL</span>';
 
             const resolveBtn = alertTab === 'ACTIVE'
-                ? `<button onclick="resolveAlert(${log.id}, this)" class="btn-primary" style="padding: 4px 10px; font-size: 0.7rem; width:100%; margin-bottom: 5px;"><i class="fas fa-check"></i> RESOLVE</button>`
-                : `<span style="color: #00ff88; font-size: 0.8rem;"><i class="fas fa-check-circle"></i> Done</span>`;
+                ? `<button onclick="resolveAlert(${log.id}, this)" class="btn-primary" style="padding: 6px 12px; font-size: 0.72rem; width:100%; margin-bottom: 8px; box-shadow: 0 0 10px rgba(var(--primary-rgb),0.2);"><i class="fas fa-check-double"></i> RESOLVE</button>`
+                : `<span style="color: #00ff88; font-size: 0.8rem; font-weight:700;"><i class="fas fa-check-circle"></i> ARCHIVED</span>`;
 
-            // ENTERPRISE ACTION BUTTONS (Step 7)
+            // ENTERPRISE ACTION BUTTONS (Action Tab / Seventh Option)
             const blockBtn = (alertTab === 'ACTIVE' && log.ip && !log.ip.includes('LOCAL'))
-                ? `<button onclick="blockIP('${log.ip}', this)" style="background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; width:100%; margin-bottom: 5px;"><i class="fas fa-shield-virus"></i> BLOCK IP</button>`
-                : '';
+                ? `<button onclick="blockIP('${log.ip}', this)" style="background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.72rem; width:100%; margin-bottom: 8px; font-weight:600; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,0,85,0.2)'" onmouseout="this.style.background='rgba(255,0,85,0.1)'"><i class="fas fa-shield-virus"></i> BLOCK SOURCE</button>`
+                : (alertTab === 'ACTIVE' ? '<div style="font-size:0.65rem; color:var(--text-muted); text-align:center; padding-bottom:5px;"><i class="fas fa-info-circle"></i> Local IP / No Source</div>' : '');
 
             const suspendBtn = (alertTab === 'ACTIVE' && (log.message || '').includes('@'))
-                ? `<button onclick="suspendUserFromAlert('${log.message}', this)" style="background: rgba(255,204,0,0.1); border: 1px solid #ffcc00; color: #ffcc00; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; width:100%;"><i class="fas fa-user-slash"></i> SUSPEND</button>`
-                : '';
+                ? `<button onclick="suspendUserFromAlert('${log.message}', this)" style="background: rgba(255,204,0,0.1); border: 1px solid #ffcc00; color: #ffcc00; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.72rem; width:100%; font-weight:600; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,204,0,0.2)'" onmouseout="this.style.background='rgba(255,204,0,0.1)'"><i class="fas fa-user-slash"></i> SUSPEND USER</button>`
+                : (alertTab === 'ACTIVE' ? '<div style="font-size:0.65rem; color:var(--text-muted); text-align:center;"><i class="fas fa-user-shield"></i> System Process</div>' : '');
 
             return `
             <tr id="log-row-${log.id}" class="fade-in">
@@ -1426,21 +1530,25 @@ async function updateAnalysisTable(viewContainer) {
                 </td>
                 <td style="text-align:center;">${attempts}</td>
                 <td>
-                    <div style="font-weight: 900; color: ${riskColor}; font-size: 1.1rem; text-shadow: 0 0 10px ${riskColor}33;">${log.riskScore || 0}</div>
+                    <div style="font-weight: 900; color: ${riskColor}; font-size: 1.1rem; text-shadow: 0 0 10px ${riskColor}33;">${log.riskScore || 0}%</div>
                     <div style="font-size: 0.65rem; color: var(--text-muted);">Points</div>
                 </td>
                 <td style="font-size:0.8rem; color:#888; white-space: nowrap;">${new Date(log.timestamp || log.createdAt).toLocaleTimeString()}</td>
                 <td style="font-family: 'Space Mono', monospace; font-size: 0.8rem; max-width: 350px;">
                     <div style="color: #fff; line-height: 1.3;">${log.message || ''}</div>
-                    <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 8px; border-left: 2px solid var(--primary);">
-                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--primary); letter-spacing: 1px; font-weight:800; margin-bottom: 4px;">Human Explanation</div>
-                        <div style="font-size:0.82rem; color: var(--text-muted);">${formatSuggestion(log.suggestion)}</div>
+                    <div style="margin-top: 10px; padding: 10px; background: rgba(var(--primary-rgb), 0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); border-left: 2px solid var(--primary);">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--primary); letter-spacing: 1.5px; font-weight:800; margin-bottom: 5px;">
+                            <i class="fas fa-microchip"></i> Prime_AI Interpretation
+                        </div>
+                        <div style="font-size:0.85rem; color: var(--text-main); line-height: 1.4;">${formatSuggestion(log.suggestion)}</div>
                     </div>
                 </td>
-                <td style="width: 120px;">
-                    ${resolveBtn}
-                    ${blockBtn}
-                    ${suspendBtn}
+                <td style="width: 130px; background: rgba(255,255,255,0.01); border-left: 1px solid rgba(255,255,255,0.05); vertical-align: middle;">
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        ${resolveBtn}
+                        ${blockBtn}
+                        ${suspendBtn}
+                    </div>
                 </td>
             </tr>`;
         }).join('');
@@ -2778,29 +2886,55 @@ function renderPulse() {
         <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
             <div class="card glass-card" style="position: relative; overflow: hidden; padding: 30px;">
                 <div class="results-header">
-                    <div class="card-title font-transformers">Live Threat Intelligence v6.5</div>
-                    <button class="btn-primary" onclick="refreshPulse()" id="pulse-refresh-btn" style="padding: 5px 15px; font-size: 0.8rem;"><i class="fas fa-sync"></i> SCAN</button>
+                    <div class="card-title font-transformers"><i class="fas fa-globe-americas"></i> Global Threat Intelligence v7.5</div>
+                    <div class="stat-pill pulse-dot" style="background: rgba(var(--primary-rgb), 0.1);"><i class="fas fa-satellite-dish"></i> ACTIVE_SCAN</div>
                 </div>
-                <div id="pulse-scan-area" style="height: 300px; margin-top: 20px; background: rgba(0,0,0,0.2); border-radius: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); position: relative;">
-                     <div style="text-align: center;">
-                        <div class="upload-icon-pulse" style="font-size: 3rem; color: var(--primary);"><i class="fas fa-satellite-dish"></i></div>
-                        <p style="color: var(--text-muted); margin-top: 15px;">Monitoring Global Signature Anomalies...</p>
+                <div id="pulse-scan-area" style="height: 380px; margin-top: 20px; background: rgba(0,0,0,0.4); border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); position: relative; background-image: radial-gradient(circle, rgba(0,212,255,0.05) 1px, transparent 1px); background-size: 30px 30px;">
+                     <!-- SVG World Map Container -->
+                     <div id="world-map-svg-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative;">
+                         <svg viewBox="0 0 1000 500" style="width: 100%; height: 80%; fill: rgba(255,255,255,0.05); stroke: rgba(var(--primary-rgb), 0.2); stroke-width: 0.5;">
+                            <!-- Simplified World Paths (Abstract Representation) -->
+                            <path d="M150,150 Q180,100 250,150 T400,150" fill="none" stroke-width="1" />
+                            <circle cx="210" cy="180" r="100" fill="rgba(var(--primary-rgb), 0.02)" />
+                            <circle cx="600" cy="250" r="150" fill="rgba(var(--primary-rgb), 0.02)" />
+                            <text x="50%" y="50%" text-anchor="middle" fill="rgba(255,255,255,0.1)" font-family="Space Mono" font-size="24">SIGNAL_ENCRYPTION_ACTIVE</text>
+                            
+                            <!-- Dynamic Pulse Points (Step 8 Visualization) -->
+                            <g id="map-threat-points">
+                                <circle cx="250" cy="180" r="5" fill="#ff0055" class="pulse-point">
+                                    <animate attributeName="r" from="3" to="15" dur="2s" repeatCount="indefinite" />
+                                    <animate attributeName="opacity" from="1" to="0" dur="2s" repeatCount="indefinite" />
+                                </circle>
+                                <circle cx="800" cy="300" r="5" fill="#ffcc00" class="pulse-point">
+                                    <animate attributeName="r" from="3" to="12" dur="3s" repeatCount="indefinite" />
+                                    <animate attributeName="opacity" from="1" to="0" dur="3s" repeatCount="indefinite" />
+                                </circle>
+                            </g>
+                         </svg>
+                         
+                         <!-- Floating Data Chips -->
+                         <div style="position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; font-size: 0.7rem; border: 1px solid var(--primary); font-family: 'Space Mono';">
+                            <div style="color: var(--primary);">LATENCY: 12ms</div>
+                            <div style="color: #00ff88;">UPLINK: SECURE</div>
+                         </div>
                      </div>
-                     <div id="pulse-radar" style="position: absolute; width: 200px; height: 200px; border: 1px solid var(--primary); border-radius: 50%; opacity: 0.1; animation: radar 4s linear infinite;"></div>
                 </div>
-                <!-- ... metrics grid ... -->
-                <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                    <div style="background: rgba(var(--primary-rgb), 0.05); padding: 15px; border-radius: 10px;">
-                        <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase;">PPS rate</div>
-                        <div style="font-size: 1.2rem; font-weight: bold;" id="pulse-pps">${pps}k</div>
+                <!-- Neural Metrics Row -->
+                <div style="margin-top: 25px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                    <div class="card" style="background: rgba(var(--primary-rgb), 0.1); border: 1px solid rgba(var(--primary-rgb),0.2);">
+                        <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;">Ingress Rate</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; margin-top: 5px;" id="pulse-pps">${pps}k/s</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Packets Verified</div>
                     </div>
-                    <div style="background: rgba(162, 77, 255, 0.05); padding: 15px; border-radius: 10px;">
-                        <div style="font-size: 0.7rem; color: var(--secondary); text-transform: uppercase;">Active sessions</div>
-                        <div style="font-size: 1.2rem; font-weight: bold;" id="pulse-sessions">${sessions}</div>
+                    <div class="card" style="background: rgba(162,77,255,0.1); border: 1px solid rgba(162,77,255,0.2);">
+                        <div style="font-size: 0.7rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 1px;">Entropy Delta</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; margin-top: 5px;" id="pulse-sessions">${sessions}</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Active Sessions</div>
                     </div>
-                     <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 10px;">
-                        <div style="font-size: 0.7rem; color: #00ff88; text-transform: uppercase;">Entity Trust Score</div>
-                        <div style="font-size: 1.2rem; font-weight: bold;">99.4%</div>
+                     <div class="card" style="background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.2);">
+                        <div style="font-size: 0.7rem; color: #00ff88; text-transform: uppercase; letter-spacing: 1px;">Coherence</div>
+                        <div style="font-size: 1.5rem; font-weight: 800; margin-top: 5px;">99.4%</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted);">Sync Confidence</div>
                     </div>
                 </div>
             </div>

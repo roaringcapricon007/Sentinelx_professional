@@ -13,6 +13,7 @@ build/
 .agent/
 *.tmp
 *.pkl
+!backend/python_service/*.pkl
 classifier.json
 git_status_full.tmp
 SentinelX_Comprehensive_Enterprise_Manual.pdf

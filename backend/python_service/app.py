@@ -261,6 +261,6 @@ def ai_sync():
     })
 
 if __name__ == '__main__':
-    port = 5001
+    port = int(os.environ.get('PORT', 5001))
     print(f"Starting Python AI Service on port {port}...", file=sys.stderr)
     app.run(host='0.0.0.0', port=port, debug=False)
