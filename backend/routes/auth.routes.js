@@ -240,111 +240,69 @@ router.post('/verify-registration', async (req, res) => {
     }
 });
 
-// Forgot Password Protocol
+// --- COMPLETELY REBUILT FORGOT PASSWORD FLOW (v8.0) ---
 router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
-    console.log(`[AUTH_DIAGNOSTIC] Forgot Password Handshake started for: ${email}`);
-
-    // Emergency 15s circuit breaker for the entire request
-    const circuitBreaker = setTimeout(() => {
-        if (!res.headersSent) {
-            console.error(`[AUTH_CRITICAL] Forgot Password TIMEOUT for ${email}. Returning emergency simulation code.`);
-            const fallbackOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            otpStore[`reset_${email}`] = { otp: fallbackOtp, expires: Date.now() + 300000 };
-            res.json({ success: true, mode: 'simulation', otp: fallbackOtp, message: 'Broadcast Timeout: Use emergency recovery key.' });
-        }
-    }, 15000);
-
     try {
-        console.log(`[AUTH_DIAGNOSTIC] Step 1: Locating user in DB for ${email}`);
         const user = await User.findOne({ where: { email } });
-        if (!user) {
-            console.warn(`[AUTH_DIAGNOSTIC] Identity not found: ${email}`);
-            clearTimeout(circuitBreaker);
-            return res.status(404).json({ error: 'Identity not found.' });
-        }
-        console.log(`[AUTH_DIAGNOSTIC] User identity confirmed for ${email}`);
+        if (!user) return res.status(404).json({ error: 'Identity not found in SentinelX Core.' });
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpStore[`reset_${email}`] = { otp, expires: Date.now() + 300000 };
-        console.log(`[AUTH_DIAGNOSTIC] Reset code generated and cached for ${email}`);
+        otpStore[`reset_${email}`] = { otp, expires: Date.now() + 600000 }; // 10 minute window
 
-        console.log(`[AUTH_DIAGNOSTIC] Step 2: Preparing SMTP Broadcaster...`);
         const mailer = await getTransporter();
-
         if (mailer) {
             try {
-                console.log(`[AUTH_DIAGNOSTIC] SMTP Active. Dispatching broadcast to ${email}...`);
-                const mailPromise = mailer.sendMail({
-                    from: `"SentinelX" <no-reply@SentinelX.com>`,
+                // Background send: Don't wait for Gmail to finish if it's lagging
+                mailer.sendMail({
+                    from: `"SentinelX Security" <no-reply@SentinelX.com>`,
                     to: email,
-                    subject: `SentinelX Reset Code: ${otp}`,
+                    subject: `RESET CODE: ${otp}`,
                     html: `
-                        <div style="font-family: Arial, sans-serif; padding: 30px; border: 1px solid #eee; max-width: 500px; margin: auto;">
-                            <h2 style="color: #008080;">PASSWORD RESET PROTOCOL</h2>
-                            <p>Hello User,</p>
-                            <p>We received a request to refresh your access credentials. Use the sequence below:</p>
-                            <div style="background: #f9f9f9; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 10px; font-weight: bold; color: #008080; border: 2px dashed #008080;">
+                        <div style="font-family: 'Space Mono', monospace; padding: 40px; background: #0a0a0a; color: #00f2ff; border: 2px solid #00f2ff; border-radius: 8px;">
+                            <h1 style="color: #00f2ff; text-transform: uppercase; margin-bottom: 20px;">Identity Recovery Sequence</h1>
+                            <p style="color: #888;">Use the following unique key to reset your SentinelX credentials:</p>
+                            <div style="font-size: 42px; font-weight: bold; letter-spacing: 12px; margin: 30px 0; padding: 20px; background: rgba(0,242,255,0.1); text-align: center; border: 1px dashed #00f2ff;">
                                 ${otp}
                             </div>
-                            <p style="color: red; font-size: 12px; margin-top: 20px;">If you did not request this, please secure your account immediately.</p>
-                            <p>Regards,<br>SentinelX Security</p>
+                            <p style="color: #ff3e3e; font-size: 12px;">This key expires in 10 minutes. If you did not request this, secure your node immediately.</p>
                         </div>
                     `
-                });
+                }).catch(err => console.error("[SMTP_ERR]", err.message));
 
-                // 12s broadcast timeout for cloud environments
-                const smtpTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP_TIMEOUT')), 12000));
-                await Promise.race([mailPromise, smtpTimeout]);
-
-                console.log(`[AUTH_DIAGNOSTIC] Broadcast SUCCESS for ${email}`);
-                clearTimeout(circuitBreaker);
-                return res.json({ success: true, mode: 'live', message: 'Reset OTP broadcasted.' });
-            } catch (e) {
-                console.error(`[AUTH_DIAGNOSTIC] Broadcast FAILED for ${email}: ${e.message}`);
-                // Fall through to simulation mode below
-            }
-        } else {
-            console.warn(`[AUTH_DIAGNOSTIC] Broadcaster OFFLINE. Entering simulation mode for ${email}`);
+                return res.json({ success: true, mode: 'live', message: 'Reset code broadcasted.' });
+            } catch (e) { console.error("[AUTH_ERR]", e.message); }
         }
 
-        clearTimeout(circuitBreaker);
-        console.log(`[AUTH_DIAGNOSTIC] Returning simulation code for ${email}`);
-        res.json({ success: true, mode: 'simulation', otp, message: 'Broadcaster simulation: Use OTP' });
-
+        // Fallback to Simulation if Gmail is unresponsive
+        res.json({ success: true, mode: 'simulation', otp, message: 'Broadcaster simulation active.' });
     } catch (err) {
-        console.error(`[AUTH_FATAL] Error in forgot-password flow for ${email}:`, err);
-        clearTimeout(circuitBreaker);
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'SentinelX Core error. Internal communication broken.' });
-        }
+        res.status(500).json({ error: 'Core communication error.' });
     }
 });
 
-router.post('/verify-reset-otp', (req, res) => {
-    const { email, otp } = req.body;
-    const entry = otpStore[`reset_${email}`];
-    if (!entry || entry.expires < Date.now()) return res.status(400).json({ error: 'Expired' });
-    if (entry.otp !== otp) return res.status(400).json({ error: 'Invalid' });
-    res.json({ success: true });
-});
-
 router.post('/reset-password', async (req, res) => {
+    const { email, otp, password } = req.body;
     try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(404).json({ error: 'Identity not found.' });
+        const entry = otpStore[`reset_${email}`];
+        if (!entry || entry.expires < Date.now()) return res.status(400).json({ error: 'Reset code expired. Request a new one.' });
+        if (entry.otp !== otp) return res.status(400).json({ error: 'Invalid reset code sequence.' });
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        user.password = hashedPassword;
+        const user = await User.findOne({ where: { email } });
+        if (!user) return res.status(404).json({ error: 'Identity lost in transmission.' });
+
+        // Update with new hashed password
+        user.password = await bcrypt.hash(password, 10);
         await user.save();
 
-        console.log(`[AUTH] Credentials REFRESHED for ${email}. Redirecting to Login Handshake.`);
+        // Clear OTP and log in immediately
         delete otpStore[`reset_${email}`];
-        res.json({ success: true, message: 'Password updated. Please log in.' });
+        req.session.user = user;
+        req.session.save(() => res.json({ success: true, user }));
+
+        console.log(`[AUTH] Credentials REFRESHED & Handshake COMPLETED for ${email}`);
     } catch (err) {
-        console.error("[AUTH] Reset commit failed:", err);
-        res.status(500).json({ error: 'Update failed' });
+        res.status(500).json({ error: 'Database commit failed.' });
     }
 });
 

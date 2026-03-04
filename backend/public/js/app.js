@@ -4091,94 +4091,52 @@ function renderBotProfile() {
             </div>
         </div>
     </div>
+        }
+    }
 `;
     view.setAttribute('data-rendered', 'true');
 }
 
 
-// --- FORGOT PASSWORD ENGINE ---
+// --- COMPLETELY REBUILT FORGOT PASSWORD ENGINE (v8.0) ---
 async function handleForgotPassword() {
     const email = document.getElementById('fp-email').value;
-    if (!email) return showToast("Enter your email address.", "warning");
+    if (!email || !email.includes('@')) return showToast("Enter a valid email address.", "warning");
 
     const btn = document.querySelector('#fp-email-step button');
     const originalText = btn.innerText;
-    const scanner = document.getElementById('security-layer');
-    const scannerStep = document.getElementById('security-step');
-    const scannerLog = document.getElementById('security-log');
 
     btn.disabled = true;
-    btn.innerText = "Dispatching...";
-
-    if (scanner) scanner.style.display = 'flex';
-    if (scannerLog) scannerLog.innerHTML = "";
-    if (scannerStep) scannerStep.innerText = "INITIATING IDENTITY RECOVERY...";
-
-    const logMsg = (msg) => {
-        if (scannerLog) {
-            const div = document.createElement('div');
-            div.textContent = `> ${msg}`;
-            scannerLog.appendChild(div);
-            scannerLog.scrollTop = scannerLog.scrollHeight;
-        }
-    };
-
-    const runJourney = async () => {
-        logMsg("🔍 Locating identity in SentinelX Core...");
-        await new Promise(r => setTimeout(r, 600));
-        logMsg("🔐 Securing SMTP Broadcast channel...");
-        await new Promise(r => setTimeout(r, 800));
-        logMsg("📡 Broadcasting 6-digit Neural Key...");
-    };
+    btn.innerText = "Transmitting...";
 
     try {
-        runJourney();
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-            console.error("[AUTH] Request timed out. Aborting fetch...");
-            controller.abort();
-        }, 20000); // 20s frontend timeout for cloud stability
+        console.log(`[AUTH] Dispatching Recovery Sequence for: ${email}`);
 
-        console.log(`[AUTH] Dispatching identity recovery for: ${email}`);
         const res = await fetch('/api/auth/forgot-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email }),
-            signal: controller.signal
+            body: JSON.stringify({ email })
         });
-        clearTimeout(timeoutId);
         const data = await res.json();
 
-        // Dismiss scanner as soon as we have ANY response
-        if (scanner) scanner.style.display = 'none';
-
         if (res.ok) {
-            logMsg("✅ Identity Verified. Transitioning...");
             if (data.mode === 'simulation') {
-                showToast(`[SYSTEM] RESET OTP: ${data.otp}`, "success");
-                logMsg(`Bypassing SMTP: Simulation key generated.`);
+                showToast(`[SYSTEM] LOCAL KEY: ${data.otp}`, "success");
             } else {
-                showToast("Reset sequence sent to email.", "info");
+                showToast("Identity recognized. Check your email for the Key.", "info");
             }
 
-            // Move to Step 2
+            // INSTANT TRANSITION (No waiting for animations)
             document.getElementById('fp-email-step').style.display = 'none';
             document.getElementById('fp-recovery-step').style.display = 'block';
 
             const otpInp = document.getElementById('fp-otp');
             if (otpInp) otpInp.focus();
         } else {
-            console.warn(`[AUTH] Handshake Rejected: ${data.error || 'Unknown Error'}`);
             showToast(data.error || "Identity check failed.", "error");
         }
     } catch (e) {
-        if (scanner) scanner.style.display = 'none';
-        console.error("[AUTH] Communication failure:", e.message);
-        if (e.name === 'AbortError') {
-            showToast("Recovery timed out. Check your email or try again.", "warning");
-        } else {
-            showToast("Connection to SentinelX Core lost.", "error");
-        }
+        showToast("Communication with SentinelX Core lost.", "error");
     } finally {
         btn.disabled = false;
         btn.innerText = originalText;
@@ -4191,53 +4149,34 @@ async function resetPasswordFull() {
     const password = document.getElementById('fp-new-pass').value;
     const confirm = document.getElementById('fp-confirm-pass').value;
 
-    if (!otp || otp.length < 6) return showToast("Enter full 6-digit Reset Code.", "warning");
-    if (!password || password.length < 4) return showToast("Password must be at least 4 characters.", "warning");
-    if (password !== confirm) return showToast("New passwords do not match.", "error");
+    if (otp.length !== 6) return showToast("Enter full 6-digit Reset Code.", "warning");
+    if (password.length < 4) return showToast("Password must be at least 4 characters.", "warning");
+    if (password !== confirm) return showToast("Passwords do not match.", "error");
 
     const btn = document.querySelector('#fp-recovery-step button');
     const originalText = btn.innerText;
     btn.disabled = true;
-    btn.innerText = "Synchronizing...";
+    btn.innerText = "Saving...";
 
     try {
-        // Step 1: Verify OTP
-        const verifyRes = await fetch('/api/auth/verify-reset-otp', {
+        const res = await fetch('/api/auth/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, otp })
+            body: JSON.stringify({ email, otp, password })
         });
+        const data = await res.json();
 
-        if (!verifyRes.ok) {
-            showToast("Invalid Reset Code.", "error");
-            btn.disabled = false;
-            btn.innerText = originalText;
-            return;
-        }
-
-        // Step 2: Reset Password
-        const resetRes = await fetch('/api/auth/reset-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await resetRes.json();
-
-        if (resetRes.ok) {
-            showToast("Credentials updated successfully.", "success");
+        if (res.ok) {
+            showToast("Success. Password updated.", "success");
             setTimeout(() => {
-                returnToLogin();
-                const loginEmail = document.querySelector('#login-form input[type="email"]');
-                if (loginEmail) loginEmail.value = email;
+                location.reload(); // Instant login
             }, 1000);
         } else {
-            showToast(data.message || data.error || "Update protocol failed.", "error");
-            btn.disabled = false;
-            btn.innerText = originalText;
+            showToast(data.error || "Update failed.", "error");
         }
     } catch (e) {
         showToast("Update error. Connection lost.", "error");
+    } finally {
         btn.disabled = false;
         btn.innerText = originalText;
     }
