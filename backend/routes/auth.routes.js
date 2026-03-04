@@ -5,6 +5,7 @@ const GitHubStrategy = require('passport-github2').Strategy;
 const LinkedInStrategy = require('passport-linkedin-oauth2').Strategy;
 const bcrypt = require('bcryptjs');
 const { User } = require('../models');
+const sequelize = require('../database');
 const rateLimit = require('express-rate-limit');
 const nodemailer = require('nodemailer');
 
