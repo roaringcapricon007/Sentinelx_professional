@@ -338,8 +338,8 @@ async function handleLogin(formRef, email, password) {
     }, 400);
 
     try {
-        // Wait for "Scanning" effect to feel real (1.5s)
-        await new Promise(r => setTimeout(r, 1500));
+        // Wait for "Scanning" effect to feel real (500ms for snappiness)
+        await new Promise(r => setTimeout(r, 500));
 
         const res = await fetch('/api/auth/login', {
             method: 'POST',
@@ -428,8 +428,7 @@ async function handleRegister(formRef, name, email, password) {
     };
 
     try {
-        // Start cinematic journey parallel to the fetch
-        runJourney();
+        logMsg("Initializing OTP Broadcast sequence...");
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for complex SMTP handshakes
@@ -475,7 +474,7 @@ async function handleRegister(formRef, name, email, password) {
                 } else {
                     showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
                 }
-            }, 400); // Optimized for responsiveness
+            }, 50); // Instant Interface Swap
         } else {
             console.warn("[AUTH] Handshake REJECTED:", data);
             logMsg(`Handshake rejected: ${data.message || data.error}`);
@@ -4110,8 +4109,9 @@ async function handleForgotPassword() {
             showToast(`Key dispatched. Check your mail or use: ${data.toast_otp}`, "success");
         } else {
             showToast(data.error || "Identity link failed.", "error");
-            // If email is wrong, allow them to go back
-            setTimeout(() => returnToLogin(), 2000);
+            // Do not boot the user out, allow them to check their input
+            btn.disabled = false;
+            btn.innerText = originalText;
         }
     } catch (e) {
         showToast("Offline mode: SMTP simulation active.", "warning");

@@ -119,33 +119,9 @@ router.post('/request-otp', async (req, res) => {
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // --- DYNAMIC IDENTITY HANDSHAKE ---
-        console.log(`[AUTH] Initializing Dynamic Identity Handshake for ${email}...`);
-
-        let mailer = null;
-        let authMode = 'MASTER';
-
-        try {
-            // Attempt to verify the user as their own Broadcaster
-            const dynamicTransporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: { user: email, pass: password }
-            });
-
-            // Strict 6s timeout race for the dynamic verify
-            const verifyPromise = dynamicTransporter.verify();
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('HANDSHAKE_TIMEOUT')), 6000));
-
-            await Promise.race([verifyPromise, timeoutPromise]);
-
-            mailer = dynamicTransporter;
-            authMode = 'DYNAMIC';
-            console.log(`[AUTH] Dynamic Authority established for ${email}`);
-        } catch (e) {
-            console.warn(`[AUTH] Dynamic Handshake Bypassed: ${e.message}`);
-            console.log(`[AUTH] Routing broadcast through SentinelX Master Core...`);
-            mailer = await getTransporter();
-        }
+        // --- RELIABLE BROADCAST (MASTER ONLY) ---
+        const mailer = await getTransporter();
+        const authMode = 'MASTER';
 
         otpStore[`reg_${email}`] = {
             otp,
@@ -155,58 +131,37 @@ router.post('/request-otp', async (req, res) => {
         console.log(`[AUTH] Sequence Refreshed: New Registration OTP broadcast sequence active for ${email}`);
 
         if (mailer) {
-            console.log(`[AUTH] Dispatching OTP via ${authMode} protocol...`);
-            try {
-                const mailPromise = mailer.sendMail({
-                    from: `"SentinelX" <${process.env.EMAIL_USER}>`, // High-deliverability format
-                    to: email,
-                    subject: `Log-in to your SentinelX Account: ${otp}`,
-                    html: `
-                        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px; border-radius: 12px; color: #333; max-width: 500px; margin: auto; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-                            <!-- Brand Header -->
-                            <div style="text-align: left; margin-bottom: 25px;">
-                                <h1 style="color: #008080; margin: 0; font-size: 28px; letter-spacing: -0.5px; font-weight: 700;">SentinelX</h1>
-                                <div style="height: 3px; width: 40px; background-color: #00ffcc; margin-top: 5px;"></div>
-                            </div>
-                            
-                            <p style="font-size: 16px; margin-bottom: 20px;">Hello User,</p>
-                            
-                            <p style="font-size: 15px; line-height: 1.6; color: #555;">
-                                Ready to Log-in? Use below OTP to log in to your SentinelX account.
-                            </p>
-                            
-                            <!-- OTP Box -->
-                            <div style="background-color: #fff; border: 2px solid #008080; border-radius: 8px; padding: 25px; text-align: center; margin: 30px 0;">
-                                <span style="font-size: 36px; font-weight: 700; color: #008080; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace;">${otp}</span>
-                            </div>
-                            
-                            <p style="font-size: 14px; color: #cc0000; font-weight: 600; margin-bottom: 30px;">
-                                Do not Share Your OTP with anyone to keep your account safe.
-                            </p>
-                            
-                            <div style="border-top: 1px solid #eee; padding-top: 20px;">
-                                <p style="font-size: 14px; margin: 0; font-weight: 600;">Regards,</p>
-                                <p style="font-size: 14px; margin: 0; color: #008080;">SentinelX</p>
-                                <p style="font-size: 11px; color: #999; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px;">
-                                    SentinelX all rights Reserved.
-                                </p>
-                            </div>
+            console.log(`[AUTH] Dispatching OTP via ${authMode} protocol (Fire-and-Forget)...`);
+            mailer.sendMail({
+                from: `"SentinelX" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: `Log-in to your SentinelX Account: ${otp}`,
+                html: `
+                    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px; border-radius: 12px; color: #333; max-width: 500px; margin: auto; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <div style="text-align: left; margin-bottom: 25px;">
+                            <h1 style="color: #008080; margin: 0; font-size: 28px; letter-spacing: -0.5px; font-weight: 700;">SentinelX</h1>
+                            <div style="height: 3px; width: 40px; background-color: #00ffcc; margin-top: 5px;"></div>
                         </div>
-                    `
-                });
-
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 12000));
-                await Promise.race([mailPromise, timeoutPromise]);
-
-                console.log(`[AUTH] OTP successfully broadcasted via ${authMode}`);
-                return res.json({ mode: 'live', auth: authMode });
-            } catch (err) {
-                console.error("[AUTH] Broadcast failure:", err.message);
-            }
+                        <p style="font-size: 16px; margin-bottom: 20px;">Hello User,</p>
+                        <p style="font-size: 15px; line-height: 1.6; color: #555;">
+                            Ready to Log-in? Use below OTP to log in to your SentinelX account.
+                        </p>
+                        <div style="background-color: #fff; border: 2px solid #008080; border-radius: 8px; padding: 25px; text-align: center; margin: 30px 0;">
+                            <span style="font-size: 36px; font-weight: 700; color: #008080; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace;">${otp}</span>
+                        </div>
+                        <p style="font-size: 14px; color: #cc0000; font-weight: 600; margin-bottom: 30px;">
+                            Do not Share Your OTP with anyone to keep your account safe.
+                        </p>
+                        <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                            <p style="font-size: 14px; margin: 0; font-weight: 600;">Regards,</p>
+                            <p style="font-size: 14px; margin: 0; color: #008080;">SentinelX</p>
+                        </div>
+                    </div>`
+            }).catch(err => console.error("[AUTH] Background Broadcast failure:", err.message));
         }
 
-        console.log(`[AUTH] Entering simulation mode for ${email}`);
-        res.json({ mode: 'simulation', otp });
+        // --- INSTANT RESPONSE ---
+        return res.json({ mode: 'live', otp }); // Provide OTP as fallback anyway
     } catch (err) {
         console.error("[AUTH] Handshake FATAL:", err);
         res.status(500).json({ error: 'Sync initialization failed' });
