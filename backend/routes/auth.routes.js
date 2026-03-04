@@ -299,22 +299,40 @@ router.post('/reset-password', async (req, res) => {
     }
 });
 
-// Login Handshake (Enforcing Case 1)
+// --- LOGIN HANDSHAKE (Case-Insensitive) ---
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Identity credentials missing.' });
+
     try {
-        const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(401).json({ error: 'NOT_FOUND', message: 'Identity not found. Please register first.' });
+        console.log(`[AUTH] Access request received for: ${email}`);
+
+        // Use ILIKE (for Postgres) or case-insensitive find
+        const user = await User.findOne({
+            where: sequelize.where(
+                sequelize.fn('LOWER', sequelize.col('email')),
+                '=',
+                email.toLowerCase()
+            )
+        });
+
+        if (!user) {
+            console.warn(`[AUTH] Login Rejected: Identity ${email} not found.`);
+            return res.status(401).json({ error: 'NOT_FOUND', message: 'Identity not found. Register first.' });
+        }
 
         const ok = await bcrypt.compare(password, user.password);
-        if (!ok) return res.status(401).json({ error: 'PASSWORD_INCORRECT', message: 'Password not correct. Please try again.' });
+        if (!ok) {
+            console.warn(`[AUTH] Login Rejected: Invalid key for ${email}.`);
+            return res.status(401).json({ error: 'PASSWORD_INCORRECT', message: 'Credentials mismatch.' });
+        }
 
-        console.log(`[AUTH] Access GRANTED for ${email}`);
+        console.log(`[AUTH] ACCESS GRANTED: ${email}`);
         req.session.user = user;
         req.session.save(() => res.json({ success: true, user }));
     } catch (err) {
-        console.error("[AUTH] Login Handshake FATAL:", err);
-        res.status(500).json({ error: 'Acess handshake failed' });
+        console.error("[AUTH] Login Handshake FATAL:", err.message);
+        res.status(500).json({ error: 'Core Authentication System Error' });
     }
 });
 

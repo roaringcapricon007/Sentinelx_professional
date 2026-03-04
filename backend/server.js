@@ -91,7 +91,7 @@ server.listen(PORT, '0.0.0.0', () => {
   sequelize.sync({ force: false }).then(async () => {
     console.log('--- DATABASE HANDSHAKE SYNCED ---');
 
-    // --- ENTERPRISE ROLE SEEDING ---
+    // --- ENTERPRISE ROLE SEEDING (FORCED ACCESS v10) ---
     const roles = [
       { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' }
     ];
@@ -100,9 +100,10 @@ server.listen(PORT, '0.0.0.0', () => {
     let admin = null;
     for (const r of roles) {
       try {
+        const hashedPassword = await bcrypt.hash(r.pass, 10);
         admin = await User.findOne({ where: { email: r.email } });
+
         if (!admin) {
-          const hashedPassword = await bcrypt.hash(r.pass, 4);
           admin = await User.create({
             name: r.name,
             email: r.email,
@@ -110,10 +111,15 @@ server.listen(PORT, '0.0.0.0', () => {
             role: r.role,
             provider: 'local'
           });
-          console.log(`Seeded user: ${r.email} [${r.role}]`);
+          console.log(`[SEED] Master Account CREATED: ${r.email}`);
+        } else {
+          // FORCE UPDATE password to ensure '12345SuperAdmin!' always works
+          admin.password = hashedPassword;
+          await admin.save();
+          console.log(`[SEED] Master Account SYNCED (Password Reset): ${r.email}`);
         }
       } catch (e) {
-        console.warn('Seeding check skipped (DB likely already populated):', e.message);
+        console.warn('[SEED] Handshake failed:', e.message);
       }
     }
 
