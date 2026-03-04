@@ -241,62 +241,81 @@ router.post('/verify-registration', async (req, res) => {
     }
 });
 
-// --- FORGOT PASSWORD (Bulletproof v9.0) ---
+// --- FORGOT PASSWORD (STABLE v10.0) ---
 router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
     try {
-        // 1. Instant DB Check
-        const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(404).json({ error: 'Mail ID not found in system.' });
+        // 1. Find User (case-insensitive)
+        const user = await User.findOne({
+            where: sequelize.where(
+                sequelize.fn('LOWER', sequelize.col('email')),
+                '=',
+                email.toLowerCase()
+            )
+        });
+        if (!user) return res.status(404).json({ error: 'Mail ID not found.' });
 
-        // 2. Generate & Cache Key
+        // 2. Generate OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpStore[`reset_${email}`] = { otp, expires: Date.now() + 600000 };
+        otpStore[`reset_${user.email}`] = { otp, expires: Date.now() + 600000 };
 
-        // 3. Fire-and-Forget Broadcast (No await)
-        nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : ''
-            }
-        }).sendMail({
-            from: `"SentinelX Security" <no-reply@sentinelx.com>`,
-            to: email,
-            subject: `SentinelX Recovery Key: ${otp}`,
-            html: `<div style="padding:20px; border:1px solid #00f2ff; background:#000; color:#00f2ff; font-family:monospace;">
-                    <h2>IDENTITY RECOVERY SEQUENCE</h2>
-                    <p>Enter this key to unlock your node:</p>
-                    <h1 style="letter-spacing:10px;">${otp}</h1>
-                   </div>`
-        }).catch(err => console.error("[SMTP_ERR]", err.message));
+        // 3. Send Email (use cached transporter, fire-and-forget)
+        const mailer = await getTransporter();
+        if (mailer) {
+            mailer.sendMail({
+                from: `"SentinelX" <${process.env.EMAIL_USER}>`,
+                to: user.email,
+                subject: `SentinelX Password Reset Code: ${otp}`,
+                html: `<div style="font-family: Arial, sans-serif; padding: 30px; background: #f4f7f6; border-radius: 10px; max-width: 450px; margin: auto; border: 1px solid #e0e0e0;">
+                    <h2 style="color: #008080; margin-bottom: 20px;">Password Reset</h2>
+                    <p style="color: #555;">Use this code to reset your SentinelX password:</p>
+                    <div style="background: #fff; border: 2px solid #008080; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                        <span style="font-size: 32px; font-weight: bold; color: #008080; letter-spacing: 8px;">${otp}</span>
+                    </div>
+                    <p style="color: #cc0000; font-size: 13px;">This code expires in 10 minutes.</p>
+                    <p style="color: #999; font-size: 12px; margin-top: 20px;">— SentinelX Security</p>
+                </div>`
+            }).catch(err => console.error("[SMTP_ERR]", err.message));
+        }
 
-        // 4. Instant Return to Client
-        return res.json({ success: true, mode: 'sent', toast_otp: otp });
+        // 4. Always return success with OTP (so user is never stuck)
+        return res.json({ success: true, toast_otp: otp });
     } catch (err) {
-        res.status(500).json({ error: 'Internal Core Error' });
+        console.error("[FORGOT_PASS_ERR]", err.message);
+        res.status(500).json({ error: 'Server error.' });
     }
 });
 
 router.post('/reset-password', async (req, res) => {
     const { email, otp, password } = req.body;
     try {
-        const entry = otpStore[`reset_${email}`];
-        if (!entry || entry.expires < Date.now()) return res.status(400).json({ error: 'Recovery key expired.' });
-        if (entry.otp !== otp) return res.status(400).json({ error: 'Invalid recovery key.' });
+        // Try case-insensitive OTP lookup
+        const storeKey = Object.keys(otpStore).find(k =>
+            k.toLowerCase() === `reset_${email.toLowerCase()}`
+        );
+        const entry = storeKey ? otpStore[storeKey] : null;
 
-        const user = await User.findOne({ where: { email } });
-        if (!user) return res.status(404).json({ error: 'User link lost.' });
+        if (!entry || entry.expires < Date.now()) return res.status(400).json({ error: 'Code expired. Request a new one.' });
+        if (entry.otp !== otp) return res.status(400).json({ error: 'Invalid code.' });
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        user.password = hashedPassword;
+        const user = await User.findOne({
+            where: sequelize.where(
+                sequelize.fn('LOWER', sequelize.col('email')),
+                '=',
+                email.toLowerCase()
+            )
+        });
+        if (!user) return res.status(404).json({ error: 'User not found.' });
+
+        user.password = await bcrypt.hash(password, 10);
         await user.save();
 
-        delete otpStore[`reset_${email}`];
+        delete otpStore[storeKey];
         req.session.user = user;
         req.session.save(() => res.json({ success: true }));
     } catch (err) {
-        res.status(500).json({ error: 'Failed to update database.' });
+        console.error("[RESET_PASS_ERR]", err.message);
+        res.status(500).json({ error: 'Failed to update.' });
     }
 });
 

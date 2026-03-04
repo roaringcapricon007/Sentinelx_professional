@@ -703,15 +703,15 @@ function applyRolePermissions(role) {
     });
 
     // Special UI Handover: Hide sensitive buttons for non-super admins/admins
-    const dangerousButtons = document.querySelectorAll('.danger-btn, .admin-only, .btn-primary, .btn-secondary');
-    dangerousButtons.forEach(btn => {
-        const isAdmin = (role === 'super_admin' || role === 'admin');
-        if (btn.classList.contains('danger-btn') || btn.classList.contains('admin-only')) {
-            btn.style.display = isAdmin ? 'block' : 'none';
-        } else {
+    // ONLY target buttons INSIDE the dashboard, NOT global .btn-primary (which includes login/register)
+    const dashboard = document.getElementById('dashboard-view');
+    if (dashboard) {
+        const dangerousButtons = dashboard.querySelectorAll('.danger-btn, .admin-only');
+        dangerousButtons.forEach(btn => {
+            const isAdmin = (role === 'super_admin' || role === 'admin');
             btn.style.display = isAdmin ? 'inline-block' : 'none';
-        }
-    });
+        });
+    }
 
     const intelHeader = document.querySelector('.intel-governance');
     if (intelHeader) {
@@ -719,24 +719,7 @@ function applyRolePermissions(role) {
     }
 }
 
-async function checkSession() {
-    try {
-        const res = await fetch('/api/auth/me');
-        if (res.ok) {
-            const data = await res.json();
-            if (data.authenticated) {
-                login(data.user);
-            }
-        }
-    } catch (e) {
-        console.error("Session check failed", e);
-    }
-}
-
-function logout() {
-    console.log("[AUTH] Initiating Logout sequence...");
-    window.location.href = '/api/auth/logout';
-}
+// (Duplicate checkSession and logout removed — originals at lines 613 and 636 are used)
 
 function fillDemo() {
     // Demo fill behavior disabled for generalized authentication flow constraints requested by user.

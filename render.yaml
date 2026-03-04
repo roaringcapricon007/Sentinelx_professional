@@ -24,9 +24,9 @@ services:
         value: http://sentinelx-ai:10000
       # Social Auth & Email (User must fill these in Render Dashboard for full functionality)
       - key: GOOGLE_CLIENT_ID
-        value: "" # placeholder
+        value: "621393f52357ebe89dac0ba2333675fc"
       - key: GOOGLE_CLIENT_SECRET
-        value: "" # placeholder
+        value: "cd43d1ef0878134c54734178df301d38"
       - key: EMAIL_USER
         value: "alertsentinelx@gmail.com"
       - key: EMAIL_PASS
