@@ -28,9 +28,9 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         value: "" # placeholder
       - key: EMAIL_USER
-        value: "" # placeholder
+        value: "alertsentinelx@gmail.com"
       - key: EMAIL_PASS
-        value: "" # placeholder
+        value: "imay xfcs tuvp domb"
 
   # =========================================================================
   # 2. SENTINELX AI ENGINE (Python Flask)
