@@ -256,3 +256,110 @@ body[data-theme="light"],
     overflow: hidden;
     height: 60px;
 }
+
+/* --- Global Toast System --- */
+#toast-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    z-index: 10000;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    background: rgba(17, 22, 37, 0.9);
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    padding: 18px 25px;
+    border-radius: 16px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    width: 420px;
+    max-width: calc(100vw - 60px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    transform: translateX(120%) scale(0.9);
+    opacity: 0;
+    transition: all 0.5s var(--ease-elastic);
+    position: relative;
+    overflow: hidden;
+}
+
+.toast.active {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+}
+
+.toast::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: var(--primary);
+}
+
+.toast-success::before {
+    background: #00ff88;
+}
+
+.toast-error::before {
+    background: #ff1f71;
+}
+
+.toast-warning::before {
+    background: #ffcc00;
+}
+
+.toast i {
+    font-size: 1.4rem;
+    filter: drop-shadow(0 0 8px currentColor);
+}
+
+.toast-success i {
+    color: #00ff88;
+}
+
+.toast-error i {
+    color: #ff1f71;
+}
+
+.toast-warning i {
+    color: #ffcc00;
+}
+
+.toast-content {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.toast-content strong {
+    color: var(--primary);
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    padding: 2px 6px;
+    background: rgba(var(--primary-rgb), 0.1);
+    border-radius: 4px;
+}
+
+@media (max-width: 600px) {
+    #toast-container {
+        bottom: 20px;
+        right: 20px;
+        left: 20px;
+        align-items: center;
+    }
+
+    .toast {
+        width: 100%;
+    }
+}

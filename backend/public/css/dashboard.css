@@ -778,7 +778,7 @@
 /* Profile Dropdown */
 .profile-wrapper {
     position: relative;
-    z-index: 1000;
+    z-index: 5000;
 }
 
 /* Profile Dropdown (The "Column") */
@@ -800,7 +800,7 @@
     pointer-events: none;
     transform: translateY(-10px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1000;
+    z-index: 5001;
     transform-origin: top right;
     animation: fadeInScale 0.2s ease-out;
 }

@@ -469,10 +469,10 @@ async function handleRegister(formRef, name, email, password) {
                 }
 
                 if (data.mode === 'simulation') {
-                    showToast(`[SYSTEM] LOCAL OTP: ${data.otp}`, "success");
+                    showToast(`[SIMULATION] LOCAL OTP: <strong>${data.otp}</strong>`, "success");
                     logMsg(`Simulation OTP obtained: ${data.otp}`);
                 } else {
-                    showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
+                    showToast(`Quantum-OTP broadcasted to ${email}. Fallback: <strong>${data.otp}</strong>`, "info");
                 }
             }, 50); // Instant Interface Swap
         } else {
@@ -631,44 +631,23 @@ async function checkSession() {
 
 /**
  * --- TERMINATE SESSION (LOGOUT) ---
+ * Uses direct navigation — the server handles session destruction and redirect.
+ * This approach is IMPOSSIBLE to break — no async, no fetch, no race conditions.
  */
-async function logout() {
-    console.log("Terminating secure session...");
-    showToast("Disconnecting from Neural Core...", "info");
+function logout(e) {
+    if (e) e.preventDefault();
+    if (e) e.stopPropagation();
+    console.log("[LOGOUT] Session termination initiated.");
 
-    try {
-        // 1. Notify Server (Clears Session/Cookie)
-        await fetch('/api/auth/logout');
+    // Purge local state immediately
+    state.isLoggedIn = false;
+    state.user = null;
+    localStorage.removeItem('last_tab');
+    localStorage.removeItem('user_token');
+    sessionStorage.clear();
 
-        // 2. Local State Purge
-        state.isLoggedIn = false;
-        state.user = null;
-        state.liveLogs = [];
-        state.analysisData = null;
-
-        // 3. Persistence Purge
-        localStorage.removeItem('last_tab');
-        localStorage.removeItem('user_token');
-        sessionStorage.clear();
-
-        // 4. UI Reset
-        if (views.dashboard) views.dashboard.style.display = 'none';
-        if (views.login) {
-            views.login.style.display = 'flex';
-            document.getElementById('login-form').style.display = 'block';
-            document.getElementById('register-form').style.display = 'none';
-        }
-
-        const chatbot = document.getElementById('main-chat-widget');
-        if (chatbot) chatbot.style.display = 'none';
-
-        // 5. Final Handshake - Clean Redirect
-        window.location.href = '/?logout=true';
-    } catch (e) {
-        console.error("Logout Handshake Interrupted:", e);
-        // Fallback: hard reset
-        window.location.reload();
-    }
+    // Direct navigation to server logout — server destroys session + cookie, then redirects to /?logout=true
+    window.location.href = '/api/auth/logout';
 }
 
 window.logout = logout;
@@ -3732,6 +3711,16 @@ function initHeaderActions() {
             }
         });
     }
+
+    // Attach Robust Logout Listener
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent the dropdown from immediately hiding and canceling the event flow
+            logout(e);
+        });
+    }
 }
 
 // Ensure global exposure for old calls if any remain
@@ -4106,7 +4095,7 @@ async function handleForgotPassword() {
         const data = await res.json();
 
         if (res.ok) {
-            showToast(`Key dispatched. Check your mail or use: ${data.toast_otp}`, "success");
+            showToast(`Protocol active. Check your mail or use fallback: <strong>${data.toast_otp}</strong>`, "success");
         } else {
             showToast(data.error || "Identity link failed.", "error");
             // Do not boot the user out, allow them to check their input
@@ -4165,3 +4154,16 @@ function returnToLogin() {
     const toggleBtn = document.getElementById('toggle-auth');
     if (toggleBtn) toggleBtn.style.display = 'inline-block';
 }
+
+// --- GLOBAL EVENT DELEGATION (BULLETPROOF LOGOUT) ---
+// This ensures that even if the DOM is refreshed or inline listeners detach,
+// clicking the logout button will always trigger securely and prevent default anchor jumping.
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#logout-btn');
+    if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Global Event Delegation: Logout triggered securely.");
+        logout(e);
+    }
+});

@@ -19,23 +19,26 @@ async function getTransporter() {
 
     if (user && pass && user.includes('@')) {
         try {
-            console.log(`[SMTP] Initializing Global Postal Empire [${user}]...`);
+            console.log(`[SMTP] Establishing Secure Handshake [${user}]...`);
+
+            // Rebuilt configuration for production reliability (Detected Service Mode)
             const transporter = nodemailer.createTransport({
                 service: 'gmail',
-                auth: { user, pass }
+                auth: { user, pass },
+                tls: { rejectUnauthorized: false }
             });
 
-            // Strict 5s timeout on verification to prevent hanging
+            // Strict 8s timeout for slower network links (increased from 5s)
             const verifyPromise = transporter.verify();
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP_TIMEOUT')), 5000));
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('SMTP_TIMEOUT')), 8000));
 
             await Promise.race([verifyPromise, timeoutPromise]);
 
             transporterCache = transporter;
-            console.log("\x1b[32m%s\x1b[0m", `[SERVER] GLOBAL POSTAL EMPIRE: [CONNECTED]`);
+            console.log("\x1b[32m%s\x1b[0m", `[SERVER] SMTP CORE: [CONNECTED]`);
             return transporterCache;
         } catch (e) {
-            console.error("\x1b[31m%s\x1b[0m", `[SERVER] SMTP HANDSHAKE FAILED: ${e.message}`);
+            console.error("\x1b[31m%s\x1b[0m", `[SERVER] SMTP BRIDGE FAILED: ${e.message}`);
             transporterCache = null;
         }
     } else {
@@ -95,8 +98,10 @@ router.get('/me', (req, res) => {
 
 router.get('/logout', (req, res) => {
     req.logout(() => {
-        req.session.destroy();
-        res.redirect('/?logout=true');
+        req.session.destroy(() => {
+            res.clearCookie('connect.sid');
+            res.redirect('/?logout=true');
+        });
     });
 });
 
@@ -131,37 +136,37 @@ router.post('/request-otp', async (req, res) => {
         console.log(`[AUTH] Sequence Refreshed: New Registration OTP broadcast sequence active for ${email}`);
 
         if (mailer) {
-            console.log(`[AUTH] Dispatching OTP via ${authMode} protocol (Fire-and-Forget)...`);
+            console.log(`[AUTH] Dispatching OTP via MASTER protocol (Fire-and-Forget)...`);
             mailer.sendMail({
-                from: `"SentinelX" <${process.env.EMAIL_USER}>`,
+                from: `"SentinelX Security" <${process.env.EMAIL_USER}>`,
                 to: email,
-                subject: `Log-in to your SentinelX Account: ${otp}`,
+                subject: `SentinelX Verification Code: ${otp}`,
                 html: `
                     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px; border-radius: 12px; color: #333; max-width: 500px; margin: auto; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                         <div style="text-align: left; margin-bottom: 25px;">
                             <h1 style="color: #008080; margin: 0; font-size: 28px; letter-spacing: -0.5px; font-weight: 700;">SentinelX</h1>
                             <div style="height: 3px; width: 40px; background-color: #00ffcc; margin-top: 5px;"></div>
                         </div>
-                        <p style="font-size: 16px; margin-bottom: 20px;">Hello User,</p>
+                        <p style="font-size: 16px; margin-bottom: 20px;">Hello ${name},</p>
                         <p style="font-size: 15px; line-height: 1.6; color: #555;">
-                            Ready to Log-in? Use below OTP to log in to your SentinelX account.
+                            Security Handshake initiated. Use the verification code below to establish your identity.
                         </p>
                         <div style="background-color: #fff; border: 2px solid #008080; border-radius: 8px; padding: 25px; text-align: center; margin: 30px 0;">
                             <span style="font-size: 36px; font-weight: 700; color: #008080; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace;">${otp}</span>
                         </div>
                         <p style="font-size: 14px; color: #cc0000; font-weight: 600; margin-bottom: 30px;">
-                            Do not Share Your OTP with anyone to keep your account safe.
+                            Security Warning: Do not share this sequence with anyone.
                         </p>
                         <div style="border-top: 1px solid #eee; padding-top: 20px;">
                             <p style="font-size: 14px; margin: 0; font-weight: 600;">Regards,</p>
-                            <p style="font-size: 14px; margin: 0; color: #008080;">SentinelX</p>
+                            <p style="font-size: 14px; margin: 0; color: #008080;">SentinelX Intelligence Engine</p>
                         </div>
                     </div>`
-            }).catch(err => console.error("[AUTH] Background Broadcast failure:", err.message));
+            }).catch(err => console.error("[AUTH] Mail Dispatch Error:", err.message));
         }
 
         // --- INSTANT RESPONSE ---
-        return res.json({ mode: 'live', otp }); // Provide OTP as fallback anyway
+        return res.json({ mode: mailer ? 'live' : 'simulation', otp }); // Provide OTP as fallback anyway
     } catch (err) {
         console.error("[AUTH] Handshake FATAL:", err);
         res.status(500).json({ error: 'Sync initialization failed' });
@@ -214,26 +219,38 @@ router.post('/forgot-password', async (req, res) => {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         otpStore[`reset_${user.email}`] = { otp, expires: Date.now() + 600000 };
 
-        // 3. Send Email (use cached transporter, fire-and-forget)
+        // 3. Dispatch Email (Fire-and-Forget for low latency)
         const mailer = await getTransporter();
         if (mailer) {
             mailer.sendMail({
-                from: `"SentinelX" <${process.env.EMAIL_USER}>`,
+                from: `"SentinelX Security" <${process.env.EMAIL_USER}>`,
                 to: user.email,
-                subject: `SentinelX Password Reset Code: ${otp}`,
-                html: `<div style="font-family: Arial, sans-serif; padding: 30px; background: #f4f7f6; border-radius: 10px; max-width: 450px; margin: auto; border: 1px solid #e0e0e0;">
-                    <h2 style="color: #008080; margin-bottom: 20px;">Password Reset</h2>
-                    <p style="color: #555;">Use this code to reset your SentinelX password:</p>
-                    <div style="background: #fff; border: 2px solid #008080; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                        <span style="font-size: 32px; font-weight: bold; color: #008080; letter-spacing: 8px;">${otp}</span>
-                    </div>
-                    <p style="color: #cc0000; font-size: 13px;">This code expires in 10 minutes.</p>
-                    <p style="color: #999; font-size: 12px; margin-top: 20px;">— SentinelX Security</p>
-                </div>`
-            }).catch(err => console.error("[SMTP_ERR]", err.message));
+                subject: `Identity Recovery code: ${otp}`,
+                html: `
+                    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f7f6; padding: 40px; border-radius: 12px; color: #333; max-width: 500px; margin: auto; border: 1px solid #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <div style="text-align: left; margin-bottom: 25px;">
+                            <h1 style="color: #008080; margin: 0; font-size: 28px; letter-spacing: -0.5px; font-weight: 700;">SentinelX</h1>
+                            <div style="height: 3px; width: 40px; background-color: #00ffcc; margin-top: 5px;"></div>
+                        </div>
+                        <p style="font-size: 16px; margin-bottom: 20px;">Identity Recovery Initiated</p>
+                        <p style="font-size: 15px; line-height: 1.6; color: #555;">
+                            A password reset sequence was requested. Use the security code below to proceed.
+                        </p>
+                        <div style="background-color: #fff; border: 2px solid #008080; border-radius: 8px; padding: 25px; text-align: center; margin: 30px 0;">
+                            <span style="font-size: 36px; font-weight: 700; color: #008080; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace;">${otp}</span>
+                        </div>
+                        <p style="font-size: 14px; color: #cc0000; font-weight: 600; margin-bottom: 30px;">
+                            Warning: This code expires in 10 minutes. 
+                        </p>
+                        <div style="border-top: 1px solid #eee; padding-top: 20px;">
+                            <p style="font-size: 14px; margin: 0; font-weight: 600;">Regards,</p>
+                            <p style="font-size: 14px; margin: 0; color: #008080;">SentinelX Security Command</p>
+                        </div>
+                    </div>`
+            }).catch(err => console.error("[AUTH] Recovery Dispatch Error:", err.message));
         }
 
-        // 4. Always return success with OTP (so user is never stuck)
+        // 4. Always return success with OTP (Simulation Fallback)
         return res.json({ success: true, toast_otp: otp });
     } catch (err) {
         console.error("[FORGOT_PASS_ERR]", err.message);
