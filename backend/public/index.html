@@ -383,8 +383,10 @@
                 <a href="#" onclick="switchTab('profile')"><i class="fas fa-user-circle"></i> Profile</a>
                 <a href="#" onclick="switchTab('settings')"><i class="fas fa-cog"></i> Settings</a>
                 <div class="divider"></div>
-                <a href="javascript:void(0)" id="logout-btn" class="danger-item" onclick="logout(event)"><i
-                    class="fas fa-sign-out-alt"></i> Logout</a>
+                <a class="danger-item" style="cursor: pointer;"
+                  onclick="localStorage.clear(); sessionStorage.clear(); window.location.href='/api/auth/logout';">
+                  <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
               </div>
             </div>
           </div>
