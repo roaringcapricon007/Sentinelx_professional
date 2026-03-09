@@ -88,7 +88,7 @@ server.listen(PORT, '0.0.0.0', () => {
   `);
 
   // Start DB Sync in Background (Does not block Render Health Check)
-  sequelize.sync({ force: false }).then(async () => {
+  sequelize.sync({ alter: true }).then(async () => {
     console.log('--- DATABASE HANDSHAKE SYNCED ---');
 
     // --- ENTERPRISE ROLE SEEDING (FORCED ACCESS v10) ---

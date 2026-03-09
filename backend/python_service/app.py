@@ -2,6 +2,21 @@ from flask import Flask, request, jsonify
 import pickle
 import os
 import sys
+import sys
+import numpy as np
+import requests
+from sklearn.ensemble import IsolationForest
+
+# --- Train ML Anomaly Model (Isolation Forest) ---
+# For real-time SOC logs, we train an initial in-memory Isolation Forest 
+# using simulated baseline features (Length, Numeric Count, Error Keyword Count).
+anomaly_model = IsolationForest(contamination=0.05, random_state=42)
+# Baseline "normal" traffic features
+dummy_normal_data = np.array([
+    [50, 2, 0], [45, 1, 0], [55, 3, 0], [48, 2, 0], [60, 4, 0], 
+    [40, 1, 0], [52, 2, 0], [47, 1, 0], [58, 3, 0], [65, 5, 0]
+])
+anomaly_model.fit(dummy_normal_data)
 
 # Import our custom Deep Learning modules
 try:
@@ -258,6 +273,87 @@ def ai_sync():
         "status": "synced",
         "weights_version": "v6.5.2-alpha",
         "nodes_updated": 142
+    })
+
+# =========================================================================
+# 5. ML Anomaly Detection & Local LLM (Llama 3 via Ollama) Handover
+# =========================================================================
+@app.route('/api/analyze-log', methods=['POST'])
+def analyze_single_log():
+    data = request.json
+    if not data:
+        return jsonify({"error": "No log data"}), 400
+        
+    message = data.get('message', '')
+    ip = data.get('ip', '0.0.0.0')
+    severity = data.get('severity', 'INFO')
+    
+    # 1. Feature Extraction for ML Model
+    msg_length = len(message)
+    num_count = sum(c.isdigit() for c in message)
+    err_keywords = sum(1 for w in ['fail', 'error', 'denied', 'timeout', 'crash', 'critical'] if w in message.lower())
+    
+    features = np.array([[msg_length, num_count, err_keywords]])
+    
+    # 2. Predict with Isolation Forest (-1 is Anomaly, 1 is Normal)
+    prediction = anomaly_model.predict(features)[0]
+    is_anomaly = bool(prediction == -1)
+    
+    # Simple risk scoring logic based on ML prediction and severity
+    risk_score = 5
+    if severity == 'WARN': risk_score += 15
+    if severity in ['ERROR', 'CRITICAL']: risk_score += 40
+    if is_anomaly: risk_score += 30
+    if "login" in message.lower() and "fail" in message.lower(): risk_score += 20
+        
+    risk_score = min(risk_score, 100)
+    
+    # 3. Determine Threat Type based on patterns
+    threat_type = "Standard Operational Noise"
+    rec = ["Continue monitoring."]
+    
+    l_msg = message.lower()
+    if "login" in l_msg and "fail" in l_msg:
+        threat_type = "Brute Force Attack"
+        rec = ["Block Origin IP globally", "Enforce 2FA for targeted accounts"]
+    elif "timeout" in l_msg or "refused" in l_msg:
+        threat_type = "Service Degradation"
+        rec = ["Check database health", "Scale up connection pool"]
+    elif "sql" in l_msg or "syntax" in l_msg:
+        threat_type = "SQL Injection Probe"
+        rec = ["Sanitize inputs via WAF", "Review query logs"]
+    
+    # 4. Request Explanation from Local Llama 3 via Ollama
+    explanation = f"ML Engine flagged this {severity} log. No immediate human-readable explanation available."
+    
+    try:
+        # Attempt to reach local Ollama API
+        prompt = f"Explain this error log briefly and professionally as a SOC analyst:\nLOG: {message}\nIP: {ip}\nSeverity: {severity}"
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={"model": "llama3", "prompt": prompt, "stream": False},
+            timeout=1.5 # Short timeout, we don't want to block the UI if Ollama isn't running
+        )
+        if response.status_code == 200:
+            llm_result = response.json()
+            explanation = llm_result.get('response', explanation).strip()
+    except Exception as e:
+        # Fallback to predefined intelligent explanations if Llama is offline
+        if threat_type == "Brute Force Attack":
+            explanation = f"Multiple authentication failures detected originating from IP {ip}. The actor is systematically testing credentials against the authentication gateway."
+        elif threat_type == "Service Degradation":
+            explanation = "Internal systems failed to establish a network handshake within the required timeframe. The target service may be offline or saturated with requests."
+        elif threat_type == "SQL Injection Probe":
+            explanation = "Anomalous database syntax detected in the request payload. Assessed as automated scanning looking for SQL vulnerabilities."
+        else:
+            explanation = f"Routine {severity} telemetry recorded matching standard threshold boundaries."
+
+    return jsonify({
+        "is_anomaly": is_anomaly,
+        "risk_score": risk_score,
+        "threat_type": threat_type,
+        "explanation": explanation,
+        "recommendations": rec
     })
 
 if __name__ == '__main__':

@@ -94,12 +94,39 @@ async function ingestLog(data, userId = null) {
         explanationData = EXPLANATIONS['brute'];
     }
 
-    // 3. RISK CALCULATION (Step 4)
+    // 3. AI ANALYSIS (ML Anomaly + Local LLM) - SentinelX Upgraded Architecture
+    let isAnomaly = false;
+    let aiThreatType = "Standard Operational Noise";
+    let aiExplanation = `${explanationData.problem} Why: ${explanationData.why}`;
+    let aiRecommendations = explanationData.recommendations;
     let baseScore = SEVERITY_SCORES[severity.toUpperCase()] || 5;
-    if (ipIntel.risk === 'SUSPICIOUS') baseScore += 20; // Geographic risk penalty
+
+    try {
+        const PYTHON_URL = process.env.PYTHON_URL || 'http://127.0.0.1:5001';
+        const aiRes = await fetch(`${PYTHON_URL}/api/analyze-log`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: lMsg, ip, severity: severity.toUpperCase() })
+        });
+
+        if (aiRes.ok) {
+            const aiData = await aiRes.json();
+            isAnomaly = aiData.is_anomaly;
+            baseScore = Math.max(baseScore, aiData.risk_score);
+            aiThreatType = aiData.threat_type;
+            aiExplanation = aiData.explanation;
+            if (aiData.recommendations && aiData.recommendations.length > 0) {
+                aiRecommendations = aiData.recommendations;
+            }
+        }
+    } catch (err) {
+        console.warn("[AI_CORE_FALLBACK] Could not reach ML Engine:", err.message);
+    }
+
+    if (ipIntel.risk === 'SUSPICIOUS') baseScore += 20;
 
     // 4. ALERT GROUPING (Step 2)
-    const windowStart = new Date(Date.now() - 60000);
+    const windowStart = new Date(Date.now() - 60000); // 1-minute grouping window
     const existingLog = await LogEntry.findOne({
         where: {
             ip,
@@ -114,14 +141,18 @@ async function ingestLog(data, userId = null) {
 
     if (existingLog) {
         existingLog.attempts += 1;
-        existingLog.riskScore += Math.floor(baseScore * 0.5); // Accrue interest
+        existingLog.riskScore = Math.min(existingLog.riskScore + Math.floor(baseScore * 0.2), 100);
         existingLog.timestamp = new Date();
-        // Update message to show grouping if it's a brute force
-        if (explanationData === EXPLANATIONS['brute'] && existingLog.attempts > 1) {
-            existingLog.message = `⚠ ${existingLog.attempts} SUSPICIOUS LOGIN ATTEMPTS from IP: ${ip} [${ipIntel.country || 'Unknown'}]`;
+
+        if (aiThreatType.includes('Brute') || isAnomaly) {
+            existingLog.message = `⚠ ${existingLog.attempts} ${aiThreatType.toUpperCase()} EVENTS from IP: ${ip} [${ipIntel.country || 'Unknown'}]`;
         }
-        // Update suggestion with real-time location context
-        existingLog.suggestion = `${explanationData.problem} [REAL-TIME LOCATION: ${ipIntel.city || 'N/A'}, ${ipIntel.country || 'N/A'}] Why: ${explanationData.why}`;
+
+        existingLog.suggestion = `${aiExplanation} [LOCATION: ${ipIntel.city || 'N/A'}, ${ipIntel.country || 'N/A'}]`;
+        existingLog.threatType = aiThreatType;
+        existingLog.isAnomaly = existingLog.isAnomaly || isAnomaly;
+        existingLog.recommendations = aiRecommendations;
+
         await existingLog.save();
         return existingLog;
     }
@@ -130,14 +161,16 @@ async function ingestLog(data, userId = null) {
     const log = await LogEntry.create({
         severity,
         device,
-        message: severity === 'CRITICAL' ? `🚨 ${message}` : message,
+        message: severity === 'CRITICAL' || isAnomaly ? `🚨 ${message}` : message,
         ip: `${ip} (${ipIntel.country || 'Unknown'})`,
         status: 'ACTIVE',
         attempts: 1,
         riskScore: baseScore,
-        impact: explanationData.impact,
-        suggestion: `${explanationData.problem} [REAL-TIME LOCATION: ${ipIntel.city || 'N/A'}, ${ipIntel.country || 'N/A'}] Why: ${explanationData.why}`,
-        recommendations: explanationData.recommendations,
+        threatType: aiThreatType,
+        isAnomaly: isAnomaly,
+        impact: explanationData.impact, // Can keep structural impact
+        suggestion: `${aiExplanation} [LOCATION: ${ipIntel.city || 'N/A'}, ${ipIntel.country || 'N/A'}]`,
+        recommendations: aiRecommendations,
         UserId: userId,
         timestamp: new Date()
     });

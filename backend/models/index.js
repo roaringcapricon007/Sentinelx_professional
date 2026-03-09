@@ -46,6 +46,8 @@ const LogEntry = sequelize.define('LogEntry', {
     attempts: { type: DataTypes.INTEGER, defaultValue: 1 },
     ip: { type: DataTypes.STRING, allowNull: true },
     riskScore: { type: DataTypes.INTEGER, defaultValue: 0 },
+    threatType: { type: DataTypes.STRING, defaultValue: 'Standard Operational Noise' },
+    isAnomaly: { type: DataTypes.BOOLEAN, defaultValue: false },
     impact: { type: DataTypes.TEXT, allowNull: true },
     recommendations: { type: DataTypes.JSON, defaultValue: [] },
 
