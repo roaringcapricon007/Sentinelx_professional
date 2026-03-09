@@ -4167,3 +4167,5 @@ document.addEventListener('click', (e) => {
         logout(e);
     }
 });
+
+console.log('Scripts fully loaded!')
