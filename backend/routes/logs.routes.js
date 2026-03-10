@@ -19,6 +19,7 @@ module.exports = function (io) {
             });
             res.json(logs);
         } catch (err) {
+            console.error('Fetch Logs Error:', err);
             res.status(500).json({ error: 'Failed to fetch logs' });
         }
     });
@@ -65,6 +66,7 @@ module.exports = function (io) {
 
             res.json({ message: 'Alert successfully resolved', log });
         } catch (err) {
+            console.error('Resolve Alert Error:', err);
             res.status(500).json({ error: 'Failed to resolve alert' });
         }
     });
@@ -75,6 +77,7 @@ module.exports = function (io) {
             const score = await logService.getGlobalRiskScore(req.user.id);
             res.json(score);
         } catch (err) {
+            console.error('Risk Score Error:', err);
             res.status(500).json({ error: 'Failed to calculate risk score' });
         }
     });
@@ -92,6 +95,7 @@ module.exports = function (io) {
             // Group by day for the narrative view
             res.json(logs);
         } catch (err) {
+            console.error('Timeline Error:', err);
             res.status(500).json({ error: 'Failed to fetch timeline' });
         }
     });

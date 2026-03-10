@@ -198,7 +198,7 @@ function runIntro() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = "#0F0";
         ctx.font = fontSize + "px Courier New";
-        for (let i = 0; i < drops.length; i++) {
+        for (let i = 0; i <drops.length; i++) {
             const text = characters.charAt(Math.floor(Math.random() * characters.length));
             ctx.fillText(text, i * fontSize, drops[i] * fontSize);
             if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
@@ -285,7 +285,7 @@ function runIntro() {
                     let iter = 0;
                     const interval = setInterval(() => {
                         el.innerText = word.split("").map((c, i) => {
-                            if (i < iter) return word[i];
+                            if (i <iter) return word[i];
                             return chars[Math.floor(Math.random() * chars.length)];
                         }).join("");
                         if (iter >= word.length) { clearInterval(interval); el.innerText = word; }
@@ -1072,7 +1072,7 @@ function renderOverview() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-    <div class="dashboard-grid" >
+    <div class="dashboard-grid">
         <div class="card">
             <div class="card-title font-transformers">CPU Load <i class="fas fa-microchip"></i></div>
             <div class="card-value" id="metric-cpu">...</div>
@@ -1210,7 +1210,7 @@ function updateOverviewCharts(servers) {
 
     // Direct update without throttle for instant feedback
     // const now = Date.now();
-    // if (now - lastChartUpdate < 60000) return;
+    // if (now - lastChartUpdate <60000) return;
     // lastChartUpdate = now;
 
     // Check if chart exists (might not if view not rendered yet, but that's handled by view init)
@@ -1691,7 +1691,7 @@ function formatSuggestion(text) {
     // Simplified for non-technical users
     if (text.includes('Why:')) {
         const parts = text.split('Why:');
-        return `< strong > ${parts[0]}</strong > <br><span style="font-size:0.75rem; color:var(--text-muted)">Reason: ${parts[1]}</span>`;
+        return `<strong > ${parts[0]}</strong> <br><span style="font-size:0.75rem; color:var(--text-muted)">Reason: ${parts[1]}</span>`;
     }
     return text;
 }
@@ -1703,7 +1703,7 @@ async function renderInfrastructure() {
     // Show currently cached data immediately if not rendered
     if (view.getAttribute('data-rendered') !== 'true') {
         view.innerHTML = `
-    <div class="card glass-card" >
+    <div class="card glass-card">
             <div class="results-header">
                 <div class="card-title font-transformers">Server Fleet Status</div>
                 <div class="stat-pill" id="infra-count"><i class="fas fa-network-wired"></i> Scanning...</div>
@@ -1741,7 +1741,7 @@ async function renderInfrastructure() {
     } catch (e) {
         if (!state.infraData) {
             const tbody = view.querySelector('#infra-table-body');
-            if (tbody) tbody.innerHTML = `<tr > <td colspan="5" style="text-align:center; padding: 20px; color:red">Failed to load infrastructure data</td></tr> `;
+            if (tbody) tbody.innerHTML = `<tr> <td colspan="5" style="text-align:center; padding: 20px; color:red">Failed to load infrastructure data</td></tr> `;
         }
         console.error(e);
     }
@@ -1846,7 +1846,7 @@ function renderSettings() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-                    <div class="settings-view" >
+                    <div class="settings-view">
                         <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));">
                             <!-- Theme & Experience -->
                             <div class="card glass-card">
@@ -2061,7 +2061,7 @@ function showAnalysisResults(data) {
                     </div>
                     <div class="llm-response-text">${data.llm_report || 'Analysis in progress...'}</div>
                     <div style="margin-top: 20px; display: flex; gap: 15px;">
-                        <div class="trend-indicator ${data.summary.ERROR > 5 ? 'trend-up' : 'trend-down'}">
+                        <div class="trend-indicator ${data.summary.ERROR> 5 ? 'trend-up' : 'trend-down'}">
                             <i class="fas fa-chart-line"></i>
                             Risk Level: ${data.summary.ERROR > 5 ? 'ELEVEATED' : 'STABLE'}
                         </div>
@@ -2230,7 +2230,7 @@ async function sendChat() {
     typing.id = 'typing-indicator';
     typing.className = 'message msg-ai';
     typing.innerHTML = `
-                    <div class="typing-dots" >
+                    <div class="typing-dots">
                         <div class="dot"></div>
                         <div class="dot"></div>
                         <div class="dot"></div>
@@ -2383,7 +2383,7 @@ function updateTopologyNodes(servers) {
         g.setAttribute("transform", `translate(${x}, ${y})`);
         g.setAttribute("class", "topo-node");
         g.style.cursor = "pointer";
-        g.onclick = () => showToast(`Quantum Link: ${s.hostname} | Health: ${s.load < 80 ? 'OPTIMIZED' : 'STRESSED'} `, 'info');
+        g.onclick = () => showToast(`Quantum Link: ${s.hostname} | Health: ${s.load <80 ? 'OPTIMIZED' : 'STRESSED'} `, 'info');
 
         // Hexagon-ish shape for futuristic feel
         const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -3064,8 +3064,8 @@ function renderAilab() {
     const adminPerm = isAdmin();
 
     view.innerHTML = `
-                < div class= "ailab-container fade-in" >
-        < !--OPERATIONAL DIRECTIVE-- >
+                <div class= "ailab-container fade-in">
+        <!--OPERATIONAL DIRECTIVE-->
         <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--primary-rgb), 0.05); border-left: 4px solid var(--primary); padding: 20px;">
             <div style="display: flex; gap: 15px; align-items: flex-start;">
                 <i class="fas fa-brain" style="color: var(--primary); margin-top: 3px;"></i>
@@ -3104,7 +3104,7 @@ function renderAilab() {
                 <button class="btn-primary" style="width:100% ${!adminPerm ? '; opacity:0.5; cursor:not-allowed;' : ''}" 
                     onclick="${adminPerm ? "showToast('Expanding training set from Audit Vault...', 'info')" : "showToast('Admin Access Required', 'warning')"}"
                     ${!adminPerm ? 'title="Restricted Control"' : ''}>Extend Corpus</button>
-            </div >
+            </div>
 
                     <div class="card glass-card" style="padding: 25px; text-align: center;">
                         <div style="font-size: 2.5rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-brain"></i></div>
@@ -3113,8 +3113,8 @@ function renderAilab() {
                         <button class="btn-primary" style="width:100%; background: #00ff88; color: black; ${!adminPerm ? 'opacity:0.5; cursor:not-allowed;' : ''}"
                             onclick="${adminPerm ? 'retrainAIModel(this)' : " showToast('Admin Access Required', 'warning')"}"
                         ${!adminPerm ? 'title="Restricted Control"' : ''}>Trigger Retraining</button>
-            </div >
-        </div >
+            </div>
+        </div>
                     ${!adminPerm ? '<div style="margin-top:20px; padding:15px; background:rgba(255,165,0,0.05); border-radius:10px; border:1px solid rgba(255,165,0,0.2); text-align:center;"><p style="color:orange; font-size:0.8rem;"><i class="fas fa-user-shield"></i> Information: Viewing in READ-ONLY mode. Advanced training controls require Admin Clearance.</p></div>' : ''}
     </div>
             `;
@@ -3167,8 +3167,8 @@ async function renderVault() {
     const view = showView('vault-view');
     // Always re-fetch to show latest archived logs
     view.innerHTML = `
-            < div class="vault-container fade-in" >
-        < !--OPERATIONAL DIRECTIVE-- >
+            <div class="vault-container fade-in">
+        <!-- OPERATIONAL DIRECTIVE -->
         <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--secondary-rgb), 0.05); border-left: 4px solid var(--secondary); padding: 20px;">
             <div style="display: flex; gap: 15px; align-items: flex-start;">
                 <i class="fas fa-archive" style="color: var(--secondary); margin-top: 3px;"></i>
@@ -3209,7 +3209,7 @@ async function renderVault() {
                     </tbody>
                 </table>
             </div>
-    </div >
+    </div>
             `;
 
     loadVaultData();
@@ -3238,7 +3238,7 @@ async function loadVaultData(filter = '') {
         tbody.innerHTML = filtered.map(log => {
             const riskColor = (log.riskScore || 0) > 40 ? '#ff0055' : (log.riskScore || 0) > 15 ? '#ffcc00' : '#00ff88';
             return `
-            < tr class="fade-in" >
+            <tr class="fade-in" >
                 <td><span style="font-family: 'Space Mono'; color: var(--primary);">#VX-${String(log.id).padStart(3, '0')}</span></td>
                 <td style="font-size: 0.8rem;">${new Date(log.timestamp || log.createdAt).toLocaleDateString()} ${new Date(log.timestamp || log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                 <td>
@@ -3251,8 +3251,8 @@ async function loadVaultData(filter = '') {
                 </td>
                 <td>
                     <button onclick="showToast('Incident: ${(log.message || '').substring(0, 60).replace(/'/g, '')}', 'info')" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer;" title="${(log.message || '').replace(/"/g, '')}"><i class="fas fa-eye"></i></button>
-                </td >
-            </tr > `;
+                </td>
+            </tr> `;
         }).join('');
 
         if (filtered.length === 0) {
@@ -3296,7 +3296,7 @@ async function refreshRiskScore() {
         badge.style.borderColor = color;
         badge.style.color = color;
         badge.style.boxShadow = data.color === 'red' ? `0 0 12px rgba(255, 0, 85, 0.3)` : 'none';
-        badge.innerHTML = `< i class="fas fa-shield-alt" ></i > Risk: ${score}% <span style="font-size:0.7rem; opacity:0.8;">${label}</span>`;
+        badge.innerHTML = `<i class="fas fa-shield-alt" ></i> Risk: ${score}% <span style="font-size:0.7rem; opacity:0.8;">${label}</span>`;
     } catch (e) {
         // Silent fail — not logged in
     }
@@ -3321,8 +3321,8 @@ async function renderAutomation() {
     const adminPerm = isAdmin();
 
     view.innerHTML = `
-            < div class="automation-container fade-in" >
-        < !--OPERATIONAL DIRECTIVE-- >
+            <div class="automation-container fade-in">
+        <!--OPERATIONAL DIRECTIVE-->
         <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--secondary-rgb), 0.05); border-left: 4px solid var(--secondary); padding: 20px;">
             <div style="display: flex; gap: 15px; align-items: flex-start;">
                 <i class="fas fa-flask" style="color: var(--secondary); margin-top: 3px;"></i>
@@ -3372,7 +3372,7 @@ async function renderAutomation() {
                     <div style="font-size: 0.85rem; color: white;">Zero Critical Exceptions | Nominal Latency</div>
                 </div>
             </div>
-        </div >
+        </div>
 
             <div class="dashboard-grid" style="margin-top: 25px; grid-template-columns: 2fr 1fr;">
                 <!-- Execution Console -->
@@ -3399,7 +3399,7 @@ async function renderAutomation() {
                     </div>
                 </div>
             </div>
-    </div >
+    </div>
             `;
 
     // Internal Tool Description Toggle
@@ -3422,7 +3422,7 @@ async function executeAutomationTest() {
     if (!toolId) return;
 
     statusEl.innerHTML = '<span style="color:var(--primary)">RUNNING...</span>';
-    consoleEl.innerHTML = `< div style = "color:var(--primary)" > [EXEC] Starting ${toolId} sequence...</div > `;
+    consoleEl.innerHTML = `<div style = "color:var(--primary)"> [EXEC] Starting ${toolId} sequence...</div> `;
     showToast(`Executing ${toolId} suite...`, "info");
 
     try {
@@ -3438,8 +3438,8 @@ async function executeAutomationTest() {
         const interval = setInterval(() => {
             if (i >= data.results.length) {
                 clearInterval(interval);
-                statusEl.innerHTML = `< span style = "color:${data.overall === 'STABLE' || data.overall === 'SECURE' || data.overall === 'FAST' || data.overall === 'OPTIMIZED' ? '#00ff88' : '#ff0055'}" > ${data.overall}</span > `;
-                consoleEl.innerHTML += `< div style = "margin-top:10px; color:#00ff88;" > [DONE] Report generated for ${data.tool}.Overall Status: ${data.overall}</div > `;
+                statusEl.innerHTML = `<span style = "color:${data.overall === 'STABLE' || data.overall === 'SECURE' || data.overall === 'FAST' || data.overall === 'OPTIMIZED' ? '#00ff88' : '#ff0055'}" > ${data.overall}</span> `;
+                consoleEl.innerHTML += `<div style = "margin-top:10px; color:#00ff88;"> [DONE] Report generated for ${data.tool}.Overall Status: ${data.overall}</div> `;
                 renderTestSummary(data);
                 showToast("Test Sequence Complete", "success");
                 return;
@@ -3447,14 +3447,14 @@ async function executeAutomationTest() {
 
             const r = data.results[i];
             const color = r.status === 'PASS' ? '#00ff88' : '#ffa600';
-            consoleEl.innerHTML += `< div ><span style="color:#888;">[${r.timestamp.split('T')[1].split('.')[0]}]</span> <span style="color:${color}">[${r.status}]</span> ${r.step}: ${r.detail}</div > `;
+            consoleEl.innerHTML += `<div><span style="color:#888;">[${r.timestamp.split('T')[1].split('.')[0]}]</span> <span style="color:${color}">[${r.status}]</span> ${r.step}: ${r.detail}</div> `;
             consoleEl.scrollTop = consoleEl.scrollHeight;
             i++;
         }, 800);
 
     } catch (e) {
         statusEl.innerHTML = '<span style="color:#ff0055">FAILED</span>';
-        consoleEl.innerHTML += `< div style = "color:#ff0055" > [ERROR] Execution aborted: Server unreachable.</div > `;
+        consoleEl.innerHTML += `<div style = "color:#ff0055"> [ERROR] Execution aborted: Server unreachable.</div> `;
         showToast("Testing Engine Failure", "error");
     }
 }
@@ -3468,7 +3468,7 @@ function renderTestSummary(data) {
     const failCount = data.results.filter(r => r.status === 'FAIL').length;
 
     container.innerHTML = `
-            < div style = "font-size: 1.2rem; font-weight: 700; color: white; margin-bottom: 15px;" > ${data.tool}</div >
+            <div style = "font-size: 1.2rem; font-weight: 700; color: white; margin-bottom: 15px;"> ${data.tool}</div>
     <div style="display: flex; flex-direction: column; gap: 12px;">
         <div style="background: rgba(0, 255, 136, 0.05); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
             <span style="color: #00ff88; font-size: 0.85rem;">Benchmarks Passed</span>
@@ -3511,7 +3511,7 @@ function showToast(message, type = 'info') {
     if (type === 'warning') icon = 'exclamation-triangle';
 
     toast.innerHTML = `
-            < i class="fas fa-${icon}" ></i >
+            <i class="fas fa-${icon}" ></i>
                 <div class="toast-content">${message}</div>
         `;
 
@@ -3535,8 +3535,8 @@ function renderProfile() {
     if (view.getAttribute('data-rendered') === 'true') return;
 
     view.innerHTML = `
-            < div class="dashboard-grid" style = "grid-template-columns: 2fr 1fr; gap: 25px;" >
-        < !--Main Identifier-- >
+            <div class="dashboard-grid" style = "grid-template-columns: 2fr 1fr; gap: 25px;">
+        <!--Main Identifier-->
         <div class="card glass-card" style="grid-column: span 2; padding: 40px; border-radius: 20px;">
             <div style="display: flex; gap: 40px; align-items: center;">
                 <div style="width: 120px; height: 120px; background: linear-gradient(135deg, var(--secondary), var(--primary)); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 3rem; color: white; border: 4px solid rgba(255,255,255,0.1); box-shadow: 0 0 30px rgba(var(--primary-rgb), 0.3);">
@@ -3563,7 +3563,7 @@ function renderProfile() {
             </div>
         </div>
 
-        <!--Detailed Stats Area-- >
+        <!--Detailed Stats Area-->
         <div class="card glass-card">
             <div class="card-title">Account Metrics</div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px;">
@@ -3586,7 +3586,7 @@ function renderProfile() {
             </div>
         </div>
 
-        <!--Security Log Area-- >
+        <!--Security Log Area-->
          <div class="card glass-card">
             <div class="card-title">Session Intelligence</div>
             <div style="margin-top: 20px;">
@@ -3614,7 +3614,7 @@ function renderProfile() {
             </div>
         </div>
 
-        <!--Advanced Metadata-- >
+        <!--Advanced Metadata-->
             <div class="card glass-card" style="grid-column: span 2;">
                 <div class="card-title">Organizational metadata</div>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 20px;">
@@ -3636,7 +3636,7 @@ function renderProfile() {
                     <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Exporting encryption keys...', 'info')">Export Key Bundle</button>
                 </div>
             </div>
-    </div >
+    </div>
             `;
     view.setAttribute('data-rendered', 'true');
 }
@@ -3843,17 +3843,17 @@ function openDownloadModal(type) {
     if (type === 'security') {
         desc.innerText = "Select format for Security Audit (PDF Optimized):";
         actions.innerHTML = `
-            < button class="btn-pdf" onclick = "generateReport('pdf')" >
+            <button class="btn-pdf" onclick = "generateReport('pdf')" >
                 <i class="fas fa-file-pdf"></i> PDF Document
-        </button >
+        </button>
             `;
     } else {
         const reportName = type === 'availability' ? 'Weekly Availability' : 'Performance Trends';
         desc.innerText = `Select export format for ${reportName}: `;
         actions.innerHTML = `
-            < button class="btn-excel" onclick = "generateReport('excel')" >
+            <button class="btn-excel" onclick = "generateReport('excel')" >
                 <i class="fas fa-file-excel"></i> Excel Spreadsheet
-        </button >
+        </button>
             <button class="btn-pdf" onclick="generateReport('pdf')">
                 <i class="fas fa-file-pdf"></i> PDF Document
             </button>
@@ -4103,7 +4103,7 @@ function renderBotProfile() {
     if (view.getAttribute('data-rendered') === 'true' && view.innerHTML !== '') return;
 
     view.innerHTML = `
-            < div class="bot-profile-container fade-in" >
+            <div class="bot-profile-container fade-in">
         <div class="profile-header glass-card" style="padding: 60px 40px; text-align: center; margin-bottom: 30px; border-radius: 24px; position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
             <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
             <img src="img/autobot_logo.png" style="width: 120px; height: 120px; margin: 0 auto 20px auto; display: block; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.3));">
@@ -4128,7 +4128,7 @@ function renderBotProfile() {
                     </div>
                     <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
                         <span style="color: var(--text-muted);">Response Latency:</span>
-                        <span style="color: #00ff88;">< 0.4ms</span>
+                        <span style="color: #00ff88;"><0.4ms</span>
                     </div>
                 </div>
             </div>
@@ -4148,7 +4148,7 @@ function renderBotProfile() {
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Currently monitoring <strong>Global Node Signature 12-B</strong> and optimizing regional packet flow for Europe-A Cluster.</p>
             </div>
         </div>
-    </div >
+    </div>
         }
 }
 `;
@@ -4201,7 +4201,7 @@ async function resetPasswordFull() {
     const confirm = document.getElementById('fp-confirm-pass').value;
 
     if (otp.length !== 6) return showToast("Enter 6-digit key.", "warning");
-    if (password.length < 4) return showToast("Password too short.", "warning");
+    if (password.length <4) return showToast("Password too short.", "warning");
     if (password !== confirm) return showToast("Passwords mismatch.", "error");
 
     const btn = document.querySelector('#fp-recovery-step button');

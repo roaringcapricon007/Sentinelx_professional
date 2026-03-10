@@ -15,10 +15,10 @@ router.get('/realtime', authorize(['super_admin', 'admin', 'analyst', 'User']), 
         ]);
 
         const data = {
-            cpuLoad: Math.round(cpu.currentLoad),
-            memoryUsage: Math.round((mem.active / mem.total) * 100),
-            networkRx: network && network[0] ? network[0].rx_sec : 0, // Bytes per sec
-            networkTx: network && network[0] ? network[0].tx_sec : 0,
+            cpuLoad: Math.round(cpu.currentLoad || 0),
+            memoryUsage: Math.round(((mem.active || 1) / (mem.total || 1)) * 100),
+            networkRx: (network && network[0] && network[0].rx_sec) ? network[0].rx_sec : 0, // Bytes per sec
+            networkTx: (network && network[0] && network[0].tx_sec) ? network[0].tx_sec : 0,
             uptime: si.time().uptime,
             timestamp: new Date()
         };

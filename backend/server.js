@@ -88,7 +88,8 @@ server.listen(PORT, '0.0.0.0', () => {
   `);
 
   // Start DB Sync in Background (Does not block Render Health Check)
-  sequelize.sync({ alter: true }).then(async () => {
+  const isPostgres = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres');
+  sequelize.sync({ alter: isPostgres, force: false }).then(async () => {
     console.log('--- DATABASE HANDSHAKE SYNCED ---');
 
     // --- ENTERPRISE ROLE SEEDING (FORCED ACCESS v10) ---
