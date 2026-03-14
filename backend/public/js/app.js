@@ -1321,8 +1321,8 @@ function renderAnalysis() {
 
     view.innerHTML = `
     <div class="analysis-container">
-        <!-- SOC Observability Dashboard Widgets -->
-        <div class="dashboard-grid" style="grid-template-columns: 1fr 1.5fr 1fr; gap: 20px; margin-bottom: 30px;">
+        <!-- Dashboard Grid (Hidden until upload) -->
+        <div id="analysis-dashboard-grid" style="display: ${analysisActive ? 'grid' : 'none'}; grid-template-columns: 1fr 1.5fr 1fr; gap: 20px; margin-bottom: 30px;">
             <!-- Threat Overview Panel -->
             <div class="card glass-card" style="padding: 25px; display: flex; flex-direction: column; justify-content: space-between;">
                 <div class="results-header">
@@ -1408,8 +1408,8 @@ function renderAnalysis() {
             </div>
         </div>
 
-        <!-- Enterprise Alert Table with Tabs -->
-        <div class="table-container glass-card" style="margin-top: 20px;">
+        <!-- Enterprise Alert Table (Hidden until upload) -->
+        <div class="table-container glass-card" style="margin-top: 20px; display: ${analysisActive ? 'block' : 'none'};">
             <div style="padding: 20px 25px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                 <!-- Tabs -->
                 <div style="display: flex; gap: 8px;">
@@ -1484,7 +1484,47 @@ async function updateAnalysisTable(viewContainer) {
     if (!tbody) return;
 
     if (analysisActive) {
-        // [Existing offline log upload logic remains unrendered or handled in a different view if needed]
+        const issues = state.analysisData.issues || [];
+        const pill = viewContainer.querySelector('#log-count-pill');
+        if (pill) pill.innerText = `${issues.length} Issues Detected`;
+        
+        if (issues.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-check-circle"></i> Neural scrub complete. No anomalies detected.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = issues.map((log, idx) => {
+            const sev = (log.severity || 'INFO').toUpperCase();
+            const riskColor = sev === 'ERROR' ? '#ff0055' : sev === 'WARN' ? '#ffcc00' : '#00ff88';
+            
+            return `
+            <tr class="fade-in">
+                <td><span class="badge-severity ${sev}">${sev}</span></td>
+                <td>
+                    <div style="font-size: 0.85rem; font-weight:700;">${log.device || 'Neural Core'}</div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); margin: 3px 0;">Sequence #${idx+1}</div>
+                </td>
+                <td style="text-align:center;"><span style="color:var(--text-muted)">1st Event</span></td>
+                <td>
+                    <div style="font-weight: 900; color: ${riskColor}; font-size: 1.1rem; text-shadow: 0 0 10px ${riskColor}33;">AI</div>
+                    <div style="font-size: 0.65rem; color: var(--text-muted);">Assessment</div>
+                </td>
+                <td style="font-size:0.8rem; color:#888; white-space: nowrap;">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Now'}</td>
+                <td style="font-family: 'Space Mono', monospace; font-size: 0.8rem; max-width: 350px;">
+                    <div style="color: #fff; line-height: 1.3;">${log.message || ''}</div>
+                    <div style="margin-top: 10px; padding: 10px; background: rgba(var(--primary-rgb), 0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); border-left: 2px solid var(--primary);">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--primary); letter-spacing: 1.5px; font-weight:800; margin-bottom: 5px;">
+                            <i class="fas fa-microchip"></i> Prime_AI Interpretation
+                        </div>
+                        <div style="font-size:0.85rem; color: var(--text-main); line-height: 1.4;">${log.suggestion}</div>
+                    </div>
+                </td>
+                <td style="border-left: 1px solid rgba(255,255,255,0.05); text-align:center;">
+                    <span style="color:var(--text-muted); font-size:0.7rem;">REPORT MODE</span>
+                </td>
+            </tr>
+            `;
+        }).join('');
         return;
     }
 
