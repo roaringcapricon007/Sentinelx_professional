@@ -89,13 +89,14 @@ server.listen(PORT, '0.0.0.0', () => {
 
   // Start DB Sync in Background (Does not block Render Health Check)
   const isPostgres = process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres');
-  // Forcing schema update locally once to resolve 500 errors on risk-score columns
-  sequelize.sync({ alter: true }).then(async () => {
+  // Forcing schema update only for Postgres; SQLite columns handled by initial sync or migrations
+  sequelize.sync({ alter: isPostgres }).then(async () => {
     console.log('--- DATABASE HANDSHAKE SYNCED ---');
 
     // --- ENTERPRISE ROLE SEEDING (FORCED ACCESS v10) ---
     const roles = [
-      { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' }
+      { name: 'Super Admin', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' },
+      { name: 'Director', role: 'super_admin', email: 'kamaleshselvakumar007@gmail.com', pass: '12345SuperAdmin!' }
     ];
 
     const bcrypt = require('bcryptjs');

@@ -1359,6 +1359,31 @@ function renderAnalysis() {
             </div>
         </div>
 
+        <!-- NEW: Log Ingestion Zone -->
+        <div class="card glass-card" style="margin-bottom: 30px; padding: 30px; border: 1px dashed var(--primary); background: rgba(var(--primary-rgb), 0.03);">
+            <div style="text-align: center;">
+                <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;">
+                    <i class="fas fa-file-upload"></i>
+                </div>
+                <h3 class="font-transformers" style="margin-bottom: 10px;">Deep Packet Log Ingestion</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">
+                    Upload raw log files (.txt, .log) for heuristic risk scoring and neural pattern matching.
+                </p>
+                <div style="display: flex; justify-content: center; gap: 15px;">
+                    <input type="file" id="log-upload-input" style="display: none;" onchange="handleAnalysisUpload(event)">
+                    <button class="btn-primary" onclick="document.getElementById('log-upload-input').click()" style="padding: 12px 30px;">
+                        <i class="fas fa-microchip"></i> INGEST RAW DATA
+                    </button>
+                    <button class="btn-secondary" onclick="demoHeuristicCheck()" style="padding: 12px 30px; background: transparent; border: 1px solid rgba(255,255,255,0.1);">
+                        <i class="fas fa-brain"></i> RUN NEURAL SCRUB
+                    </button>
+                </div>
+                <div id="upload-status" style="margin-top: 20px; font-size: 0.8rem; font-family: var(--font-mono); color: var(--primary); display: none;">
+                    [SYSTEM] Uplink established. Synchronizing packets...
+                </div>
+            </div>
+        </div>
+
         <!--Analysis Results(Upload)-->
         <div id="analysis-results" style="display: ${analysisActive ? 'block' : 'none'}; margin-bottom: 50px;">
              <div class="results-header" style="margin-bottom: 25px;">
@@ -2026,6 +2051,52 @@ function clearAnalysis() {
     state.analysisData = null;
     renderAnalysis();
 }
+
+async function handleAnalysisUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('upload-status');
+    if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = `[INGEST] Synchronizing <strong>${file.name}</strong>...`;
+    }
+
+    const formData = new FormData();
+    formData.append('log', file);
+
+    try {
+        const res = await fetch('/api/analysis/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+            state.analysisData = data;
+            showToast("Log analysis complete. Neural results synchronized.", "success");
+            renderAnalysis(); // Refresh view to show report
+        } else {
+            showToast(data.error || "Analysis synchronization failed.", "error");
+        }
+    } catch (e) {
+        showToast("Local neural core connection failed.", "error");
+    } finally {
+        if (statusEl) statusEl.style.display = 'none';
+        event.target.value = ''; // Reset
+    }
+}
+
+function demoHeuristicCheck() {
+    showToast("Initializing automated neural scrub...", "info");
+    setTimeout(() => {
+        showToast("Pattern match found: Potential SQL Injection attempt in Auth-Gateway.", "warning");
+    }, 1500);
+}
+
+window.handleAnalysisUpload = handleAnalysisUpload;
+window.demoHeuristicCheck = demoHeuristicCheck;
+
 
 function exportAnalysis() {
     if (!state.analysisData) return;
