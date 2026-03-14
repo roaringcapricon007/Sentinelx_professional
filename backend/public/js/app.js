@@ -1360,27 +1360,34 @@ function renderAnalysis() {
         </div>
 
         <!-- NEW: Log Ingestion Zone -->
-        <div class="card glass-card" style="margin-bottom: 30px; padding: 30px; border: 1px dashed var(--primary); background: rgba(var(--primary-rgb), 0.03);">
-            <div style="text-align: center;">
+        <div class="card glass-card" style="margin-bottom: 30px; padding: 30px;">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <h3 class="font-transformers" style="color: var(--primary);"><i class="fas fa-file-medical"></i> Deep Packet Log Ingestion</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Ingest raw data streams for autonomous heuristic risk assessment.</p>
+            </div>
+            
+            <div class="upload-zone" id="log-dropzone" 
+                 onclick="document.getElementById('log-upload-input').click()" 
+                 ondragover="event.preventDefault(); this.style.borderColor='var(--primary)'; this.style.background='rgba(var(--primary-rgb), 0.1)';"
+                 ondragleave="this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)';"
+                 ondrop="event.preventDefault(); this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)'; handleAnalysisUpload({target: {files: event.dataTransfer.files}})"
+                 style="border: 2px dashed rgba(var(--primary-rgb), 0.3); background: rgba(var(--primary-rgb), 0.02); transition: all 0.3s; position: relative; padding: 40px 20px;">
+                <input type="file" id="log-upload-input" style="display: none;" onchange="handleAnalysisUpload(event)">
                 <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;">
-                    <i class="fas fa-file-upload"></i>
+                    <i class="fas fa-microchip"></i>
                 </div>
-                <h3 class="font-transformers" style="margin-bottom: 10px;">Deep Packet Log Ingestion</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">
-                    Upload raw log files (.txt, .log) for heuristic risk scoring and neural pattern matching.
-                </p>
-                <div style="display: flex; justify-content: center; gap: 15px;">
-                    <input type="file" id="log-upload-input" style="display: none;" onchange="handleAnalysisUpload(event)">
-                    <button class="btn-primary" onclick="document.getElementById('log-upload-input').click()" style="padding: 12px 30px;">
-                        <i class="fas fa-microchip"></i> INGEST RAW DATA
-                    </button>
-                    <button class="btn-secondary" onclick="demoHeuristicCheck()" style="padding: 12px 30px; background: transparent; border: 1px solid rgba(255,255,255,0.1);">
-                        <i class="fas fa-brain"></i> RUN NEURAL SCRUB
-                    </button>
-                </div>
-                <div id="upload-status" style="margin-top: 20px; font-size: 0.8rem; font-family: var(--font-mono); color: var(--primary); display: none;">
+                <div class="font-transformers" style="font-size: 1.1rem; color: #fff;">INGEST RAW DATA</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">Drag & Drop log files or click to browse Nexus local storage</div>
+                
+                <div id="upload-status" style="position: absolute; bottom: 15px; left: 0; right: 0; font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary); display: none;">
                     [SYSTEM] Uplink established. Synchronizing packets...
                 </div>
+            </div>
+
+            <div style="display: flex; justify-content: center; margin-top: 15px;">
+                <button class="btn-secondary" onclick="demoHeuristicCheck()" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">
+                    <i class="fas fa-brain"></i> RUN NEURAL SCRUB
+                </button>
             </div>
         </div>
 
@@ -2056,11 +2063,16 @@ async function handleAnalysisUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    console.log("[DEBUG] Ingesting file:", file.name);
+
     const statusEl = document.getElementById('upload-status');
+    const dropzone = document.getElementById('log-dropzone');
+    
     if (statusEl) {
         statusEl.style.display = 'block';
         statusEl.innerHTML = `[INGEST] Synchronizing <strong>${file.name}</strong>...`;
     }
+    if (dropzone) dropzone.style.borderColor = 'var(--primary)';
 
     const formData = new FormData();
     formData.append('log', file);
@@ -2070,20 +2082,24 @@ async function handleAnalysisUpload(event) {
             method: 'POST',
             body: formData
         });
-        const data = await res.json();
-
-        if (res.ok) {
-            state.analysisData = data;
-            showToast("Log analysis complete. Neural results synchronized.", "success");
-            renderAnalysis(); // Refresh view to show report
-        } else {
-            showToast(data.error || "Analysis synchronization failed.", "error");
+        
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Uplink synchronization failed.");
         }
+
+        const data = await res.json();
+        state.analysisData = data;
+        showToast("Log analysis complete. Neural results synchronized.", "success");
+        renderAnalysis(); // Refresh view to show report
+        
     } catch (e) {
-        showToast("Local neural core connection failed.", "error");
+        console.error("[CRITICAL] Analysis Error:", e);
+        showToast(e.message || "Local neural core connection failed.", "error");
     } finally {
         if (statusEl) statusEl.style.display = 'none';
-        event.target.value = ''; // Reset
+        if (dropzone) dropzone.style.borderColor = 'rgba(var(--primary-rgb), 0.3)';
+        event.target.value = ''; // Reset input to allow re-upload of same file
     }
 }
 
