@@ -1312,10 +1312,12 @@ function renderAnalysis() {
     const view = showView('analysis-view');
     const analysisActive = !!state.analysisData;
 
+    /* 
     if (view.getAttribute('data-rendered') === 'true' && !analysisActive) {
         updateAnalysisTable(view);
         return;
     }
+    */
 
     view.innerHTML = `
     <div class="analysis-container">
@@ -1359,20 +1361,22 @@ function renderAnalysis() {
             </div>
         </div>
 
-        <!-- NEW: Log Ingestion Zone -->
+        <!-- NEW: Log Ingestion Zone (NATIVE TRIGGER v12.0) -->
         <div class="card glass-card" style="margin-bottom: 30px; padding: 30px;">
             <div style="text-align: center; margin-bottom: 25px;">
                 <h3 class="font-transformers" style="color: var(--primary);"><i class="fas fa-file-medical"></i> Deep Packet Log Ingestion</h3>
                 <p style="color: var(--text-muted); font-size: 0.85rem;">Ingest raw data streams for autonomous heuristic risk assessment.</p>
             </div>
             
-            <input type="file" id="log-upload-input" style="display: none;" onchange="handleAnalysisUpload(event)">
-            <div class="upload-zone" id="log-dropzone" 
-                 onclick="document.getElementById('log-upload-input').click()" 
+            <!-- Native trigger input (hidden) -->
+            <input type="file" id="log-upload-input" style="display: none;" onchange="handleAnalysisUpload(this)">
+            
+            <label class="upload-zone" id="log-dropzone" 
+                 for="log-upload-input"
                  ondragover="event.preventDefault(); this.style.borderColor='var(--primary)'; this.style.background='rgba(var(--primary-rgb), 0.1)';"
                  ondragleave="this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)';"
                  ondrop="event.preventDefault(); this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)'; if(event.dataTransfer.files.length) handleAnalysisUpload(event.dataTransfer.files);"
-                 style="border: 2px dashed rgba(var(--primary-rgb), 0.3); background: rgba(var(--primary-rgb), 0.02); transition: all 0.3s; position: relative; padding: 60px 20px; cursor: pointer;">
+                 style="display: block; border: 2px dashed rgba(var(--primary-rgb), 0.3); background: rgba(var(--primary-rgb), 0.02); transition: all 0.3s; position: relative; padding: 60px 20px; cursor: pointer;">
                 
                 <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px; pointer-events: none;">
                     <i class="fas fa-microchip"></i>
@@ -1380,10 +1384,10 @@ function renderAnalysis() {
                 <div class="font-transformers" style="font-size: 1.1rem; color: #fff; pointer-events: none;">INGEST RAW DATA</div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; pointer-events: none;">Drag & Drop log files or click to browse Nexus local storage</div>
                 
-                <div id="upload-status" style="position: absolute; bottom: 15px; left: 0; right: 0; font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary); display: none;">
+                <div id="upload-status" style="position: absolute; bottom: 15px; left: 0; right: 0; font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary); display: none; pointer-events: none;">
                     [SYSTEM] Uplink established. Synchronizing packets...
                 </div>
-            </div>
+            </label>
 
             <div style="display: flex; justify-content: center; margin-top: 15px;">
                 <button class="btn-secondary" onclick="demoHeuristicCheck()" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">
@@ -2064,7 +2068,9 @@ async function handleAnalysisUpload(input) {
     let file = null;
     let inputEl = null;
 
-    // Handle both FileList (from drag/drop) and Event (from input)
+    console.log("[DEBUG] handleAnalysisUpload triggered with:", input);
+
+    // Support FileList, Event, or Element
     if (input instanceof FileList) {
         file = input[0];
     } else if (input && input.target && input.target.files) {
@@ -2072,20 +2078,29 @@ async function handleAnalysisUpload(input) {
         inputEl = input.target;
     } else if (input && input.files) {
         file = input.files[0];
+        inputEl = input;
+    } else if (input && input.constructor && input.constructor.name === 'FileList') {
+        file = input[0];
     }
 
-    if (!file) return;
+    if (!file) {
+        console.warn("[INGEST] No file object detected in input source.");
+        return;
+    }
 
-    console.log("[INGEST] Processing:", file.name);
+    console.log("[INGEST] Attempting synchronization for:", file.name);
 
     const statusEl = document.getElementById('upload-status');
     const dropzone = document.getElementById('log-dropzone');
     
     if (statusEl) {
         statusEl.style.display = 'block';
-        statusEl.innerHTML = `[INGEST] Synchronizing <strong>${file.name}</strong>...`;
+        statusEl.innerHTML = `<i class="fas fa-sync fa-spin"></i> Synchronizing <strong>${file.name}</strong>...`;
     }
-    if (dropzone) dropzone.style.borderColor = 'var(--primary)';
+    if (dropzone) {
+        dropzone.style.borderColor = 'var(--primary)';
+        dropzone.style.background = 'rgba(var(--primary-rgb), 0.05)';
+    }
 
     const formData = new FormData();
     formData.append('log', file);
@@ -2098,10 +2113,11 @@ async function handleAnalysisUpload(input) {
         
         if (!res.ok) {
             const errorData = await res.json();
-            throw new Error(errorData.error || "Uplink synchronization failed.");
+            throw new Error(errorData.error || `Server Error: ${res.status}`);
         }
 
         const data = await res.json();
+        console.log("[INGEST] Analysis successful:", data);
         state.analysisData = data;
         showToast("Log analysis complete. Neural results synchronized.", "success");
         renderAnalysis(); // Refresh view to show report
@@ -2111,7 +2127,10 @@ async function handleAnalysisUpload(input) {
         showToast(e.message || "Local neural core connection failed.", "error");
     } finally {
         if (statusEl) statusEl.style.display = 'none';
-        if (dropzone) dropzone.style.borderColor = 'rgba(var(--primary-rgb), 0.3)';
+        if (dropzone) {
+            dropzone.style.borderColor = 'rgba(var(--primary-rgb), 0.3)';
+            dropzone.style.background = 'rgba(var(--primary-rgb), 0.02)';
+        }
         if (inputEl) inputEl.value = ''; // Reset input
     }
 }

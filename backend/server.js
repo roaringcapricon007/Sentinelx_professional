@@ -49,6 +49,14 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Global Identity Synchronizer (Session -> req.user)
+app.use((req, res, next) => {
+  if (!req.user && req.session.user) {
+    req.user = req.session.user;
+  }
+  next();
+});
+
 // Mount Routes
 // Database
 const sequelize = require('./database');
