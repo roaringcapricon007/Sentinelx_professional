@@ -1361,33 +1361,39 @@ function renderAnalysis() {
             </div>
         </div>
 
-        <!-- NEW: Log Ingestion Zone (NATIVE TRIGGER v12.0) -->
+        <!-- NEW: Log Ingestion Zone (v14.0 ABSOLUTE TRIGGER) -->
         <div class="card glass-card" style="margin-bottom: 30px; padding: 30px;">
             <div style="text-align: center; margin-bottom: 25px;">
                 <h3 class="font-transformers" style="color: var(--primary);"><i class="fas fa-file-medical"></i> Deep Packet Log Ingestion</h3>
                 <p style="color: var(--text-muted); font-size: 0.85rem;">Ingest raw data streams for autonomous heuristic risk assessment.</p>
             </div>
             
-            <!-- Native trigger input (hidden) -->
-            <input type="file" id="log-upload-input" style="display: none;" onchange="handleAnalysisUpload(this)">
-            
-            <label class="upload-zone" id="log-dropzone" 
-                 for="log-upload-input"
+            <div class="upload-zone" id="log-dropzone" 
                  ondragover="event.preventDefault(); this.style.borderColor='var(--primary)'; this.style.background='rgba(var(--primary-rgb), 0.1)';"
                  ondragleave="this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)';"
                  ondrop="event.preventDefault(); this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)'; if(event.dataTransfer.files.length) handleAnalysisUpload(event.dataTransfer.files);"
-                 style="display: block; border: 2px dashed rgba(var(--primary-rgb), 0.3); background: rgba(var(--primary-rgb), 0.02); transition: all 0.3s; position: relative; padding: 60px 20px; cursor: pointer;">
+                 style="display: block; border: 2px dashed rgba(var(--primary-rgb), 0.3); background: rgba(var(--primary-rgb), 0.02); transition: all 0.3s; position: relative; padding: 60px 20px; border-radius: 15px; text-align: center; overflow: hidden;">
+                
+                <!-- ABSOLUTE OVERLAY INPUT: This captures all clicks natively -->
+                <input type="file" id="log-upload-input" 
+                       onchange="handleAnalysisUpload(this)"
+                       style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 100;">
                 
                 <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px; pointer-events: none;">
                     <i class="fas fa-microchip"></i>
                 </div>
-                <div class="font-transformers" style="font-size: 1.1rem; color: #fff; pointer-events: none;">INGEST RAW DATA</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; pointer-events: none;">Drag & Drop log files or click to browse Nexus local storage</div>
+                <div class="font-transformers" style="font-size: 1.1rem; color: #fff; pointer-events: none; margin-bottom: 20px;">INGEST RAW DATA</div>
                 
-                <div id="upload-status" style="position: absolute; bottom: 15px; left: 0; right: 0; font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary); display: none; pointer-events: none;">
+                <div class="btn-primary" style="display:inline-block; padding: 10px 25px; margin-bottom: 15px; pointer-events: none;">
+                    <i class="fas fa-upload"></i> SELECT LOG FILE
+                </div>
+                
+                <div style="font-size: 0.8rem; color: var(--text-muted); pointer-events: none;">Drag & Drop log files or click anywhere in this zone</div>
+                
+                <div id="upload-status" style="position: absolute; bottom: 15px; left: 0; right: 0; font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary); display: none; pointer-events: none; z-index:101;">
                     [SYSTEM] Uplink established. Synchronizing packets...
                 </div>
-            </label>
+            </div>
 
             <div style="display: flex; justify-content: center; margin-top: 15px;">
                 <button class="btn-secondary" onclick="demoHeuristicCheck()" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem;">
@@ -1488,6 +1494,9 @@ async function updateAnalysisTable(viewContainer) {
         const pill = viewContainer.querySelector('#log-count-pill');
         if (pill) pill.innerText = `${issues.length} Issues Detected`;
         
+        // Populate SOC Dashboard Widgets with Uploaded Data
+        renderSOCPanels(issues, viewContainer);
+
         if (issues.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-check-circle"></i> Neural scrub complete. No anomalies detected.</td></tr>`;
             return;
@@ -1621,18 +1630,30 @@ function renderSOCPanels(logs, viewContainer) {
     const timelineData = new Array(15).fill(0); // Assuming 15 time buckets
 
     logs.forEach(log => {
-        if (log.riskScore >= 70 || log.isAnomaly || log.severity === 'CRITICAL') highRiskCount++;
-        else if (log.riskScore >= 30 || log.severity === 'WARN' || log.severity === 'ERROR') medRiskCount++;
+        const sev = (log.severity || '').toUpperCase();
+        const score = log.riskScore || 0;
+        
+        if (score >= 70 || log.isAnomaly || sev === 'CRITICAL' || sev === 'ERROR') {
+            highRiskCount++;
+        } else if (score >= 30 || sev === 'WARN') {
+            medRiskCount++;
+        }
 
-        let sourceKey = log.device || 'Unknown Service';
+        let sourceKey = log.device || 'Neural Core';
         if (log.ip && log.ip !== '0.0.0.0') sourceKey = log.ip;
         sources[sourceKey] = (sources[sourceKey] || 0) + (log.attempts || 1);
     });
 
     const highRiskEl = viewContainer.querySelector('#soc-high-risk');
     const medRiskEl = viewContainer.querySelector('#soc-med-risk');
-    if (highRiskEl) highRiskEl.innerText = highRiskCount;
-    if (medRiskEl) medRiskEl.innerText = medRiskCount;
+    if (highRiskEl) {
+        highRiskEl.innerText = highRiskCount;
+        highRiskEl.style.color = highRiskCount > 0 ? '#ff0055' : 'var(--text-muted)';
+    }
+    if (medRiskEl) {
+        medRiskEl.innerText = medRiskCount;
+        medRiskEl.style.color = medRiskCount > 0 ? '#ffcc00' : 'var(--text-muted)';
+    }
 
     // Render Top Sources
     const topSourcesEl = viewContainer.querySelector('#soc-top-sources');
@@ -1654,8 +1675,12 @@ function renderSOCPanels(logs, viewContainer) {
     const ctx = viewContainer.querySelector('#socTimelineChart');
     if (ctx && window.Chart) {
         // Mocking timeline distribution based on log counts over short timeframe
-        logs.forEach(l => {
-            const bucket = Math.floor(Math.random() * 15);
+        // Distribute logs into 'bursts' for a more realistic incident timeline
+        const primaryBucket = Math.floor(Math.random() * 5) + 8; // Recent burst (bucket 8-13)
+        const secondaryBucket = Math.floor(Math.random() * 5); // Older burst (bucket 0-4)
+        
+        logs.forEach((l, idx) => {
+            const bucket = (idx % 3 === 0) ? primaryBucket : (idx % 7 === 0) ? secondaryBucket : Math.floor(Math.random() * 15);
             timelineData[bucket] += (l.attempts || 1);
         });
 
