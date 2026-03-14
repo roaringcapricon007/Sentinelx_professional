@@ -1366,18 +1366,19 @@ function renderAnalysis() {
                 <p style="color: var(--text-muted); font-size: 0.85rem;">Ingest raw data streams for autonomous heuristic risk assessment.</p>
             </div>
             
+            <input type="file" id="log-upload-input" style="display: none;" onchange="handleAnalysisUpload(event)">
             <div class="upload-zone" id="log-dropzone" 
                  onclick="document.getElementById('log-upload-input').click()" 
                  ondragover="event.preventDefault(); this.style.borderColor='var(--primary)'; this.style.background='rgba(var(--primary-rgb), 0.1)';"
                  ondragleave="this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)';"
-                 ondrop="event.preventDefault(); this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)'; handleAnalysisUpload({target: {files: event.dataTransfer.files}})"
-                 style="border: 2px dashed rgba(var(--primary-rgb), 0.3); background: rgba(var(--primary-rgb), 0.02); transition: all 0.3s; position: relative; padding: 40px 20px;">
-                <input type="file" id="log-upload-input" style="display: none;" onchange="handleAnalysisUpload(event)">
-                <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;">
+                 ondrop="event.preventDefault(); this.style.borderColor='rgba(var(--primary-rgb), 0.3)'; this.style.background='rgba(var(--primary-rgb), 0.02)'; if(event.dataTransfer.files.length) handleAnalysisUpload(event.dataTransfer.files);"
+                 style="border: 2px dashed rgba(var(--primary-rgb), 0.3); background: rgba(var(--primary-rgb), 0.02); transition: all 0.3s; position: relative; padding: 60px 20px; cursor: pointer;">
+                
+                <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px; pointer-events: none;">
                     <i class="fas fa-microchip"></i>
                 </div>
-                <div class="font-transformers" style="font-size: 1.1rem; color: #fff;">INGEST RAW DATA</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">Drag & Drop log files or click to browse Nexus local storage</div>
+                <div class="font-transformers" style="font-size: 1.1rem; color: #fff; pointer-events: none;">INGEST RAW DATA</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; pointer-events: none;">Drag & Drop log files or click to browse Nexus local storage</div>
                 
                 <div id="upload-status" style="position: absolute; bottom: 15px; left: 0; right: 0; font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary); display: none;">
                     [SYSTEM] Uplink established. Synchronizing packets...
@@ -2059,11 +2060,23 @@ function clearAnalysis() {
     renderAnalysis();
 }
 
-async function handleAnalysisUpload(event) {
-    const file = event.target.files[0];
+async function handleAnalysisUpload(input) {
+    let file = null;
+    let inputEl = null;
+
+    // Handle both FileList (from drag/drop) and Event (from input)
+    if (input instanceof FileList) {
+        file = input[0];
+    } else if (input && input.target && input.target.files) {
+        file = input.target.files[0];
+        inputEl = input.target;
+    } else if (input && input.files) {
+        file = input.files[0];
+    }
+
     if (!file) return;
 
-    console.log("[DEBUG] Ingesting file:", file.name);
+    console.log("[INGEST] Processing:", file.name);
 
     const statusEl = document.getElementById('upload-status');
     const dropzone = document.getElementById('log-dropzone');
@@ -2099,7 +2112,7 @@ async function handleAnalysisUpload(event) {
     } finally {
         if (statusEl) statusEl.style.display = 'none';
         if (dropzone) dropzone.style.borderColor = 'rgba(var(--primary-rgb), 0.3)';
-        event.target.value = ''; // Reset input to allow re-upload of same file
+        if (inputEl) inputEl.value = ''; // Reset input
     }
 }
 
