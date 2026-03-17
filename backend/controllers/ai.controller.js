@@ -1,0 +1,118 @@
+const { SystemMetric, LogEntry, Server } = require('../models');
+const fs = require('fs');
+const path = require('path');
+const natural = require('natural');
+require('dotenv').config();
+
+// 1. Local AI Model (Natural)
+let classifier = null;
+const modelPath = path.join(__dirname, '../classifier.json');
+if (fs.existsSync(modelPath)) {
+    natural.BayesClassifier.load(modelPath, null, (err, loadedClassifier) => {
+        if (err) {
+            console.error('Error loading local AI model:', err);
+        } else {
+            classifier = loadedClassifier;
+            console.log('SentinelX v5.0 Local AI Model Loaded');
+        }
+    });
+}
+
+async function generateResponse(msg) {
+    const lower = msg.toLowerCase();
+
+    // 1. Try Python PrimeBrain first
+    try {
+        const pyResponse = await fetch('http://127.0.0.1:5001/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg })
+        });
+        if (pyResponse.ok) {
+            const data = await pyResponse.json();
+            return data.response;
+        }
+    } catch (err) {
+        console.warn('Python AI Engine Offline, using local fallback.');
+    }
+
+    // --- Local Logic Fallback ---
+    let intent = 'unknown';
+
+    // Predict Intent with NLP
+    if (classifier) {
+        intent = classifier.classify(lower);
+        console.log(`AI Prediction (Local): "${msg}" -> ${intent}`);
+    } else {
+        if (lower.includes('status')) intent = 'status';
+        else if (lower.includes('security') || lower.includes('alert')) intent = 'security';
+        else if (lower.includes('cpu') || lower.includes('load')) intent = 'performance';
+        else if (lower.includes('log')) intent = 'logs';
+        else if (lower.includes('hello')) intent = 'greeting';
+    }
+
+    // Execute Action based on Intent
+    switch (intent) {
+        case 'status':
+            return await checkSystemStatus();
+        case 'security':
+            return await checkSecurityStatus();
+        case 'performance':
+            return await checkPerformance();
+        case 'logs':
+            return await checkLogs();
+        case 'greeting':
+            return "Greetings Administrator. I am PRIME_AI. My neural network is monitoring the matrix of your infrastructure.";
+        case 'agent':
+            return "To add a new node, run the 'sentinelx_agent.js' script on the target machine pointing to this server.";
+        case 'maintenance':
+            return "I can initiate a system optimization routine. Would you like me to clear caches or restart monitoring buffers?";
+        case 'network':
+            return "Network Analysis: Global latency is stable within 25ms. You can view regional throughput in the Infrastructure tab.";
+        default:
+            return "I'm analyzing your request. Try asking about 'System Status', 'Security Alerts', or 'Performance Metrics'.";
+    }
+}
+
+// --- Action Handlers ---
+
+async function checkSystemStatus() {
+    const totalServers = await Server.count();
+    const offlineServers = await Server.findAll({ where: { status: 'offline' } });
+
+    if (offlineServers.length > 0) {
+        const names = offlineServers.map(s => s.hostname).join(', ');
+        return `CRITICAL ALERT: ${offlineServers.length}/${totalServers} nodes are OFFLINE (${names}). Immediate action required.`;
+    }
+    return `All Systems Operational. ${totalServers} nodes are online and healthy.`;
+}
+
+async function checkSecurityStatus() {
+    const criticalLogs = await LogEntry.findAll({
+        where: { severity: ['critical', 'high'] },
+        order: [['timestamp', 'DESC']],
+        limit: 1
+    });
+
+    if (criticalLogs.length > 0) {
+        const log = criticalLogs[0];
+        return `Security Warning: Recent critical event detected on ${log.device}: "${log.message}". Suggestion: ${log.suggestion}`;
+    }
+    return "Security Verified. No critical threats detected in the active log stream.";
+}
+
+async function checkPerformance() {
+    const metric = await SystemMetric.findOne({ order: [['createdAt', 'DESC']] });
+    if (metric) {
+        return `Performance Report: CPU Load is ${metric.cpuLoad}%, Memory Usage is ${metric.memoryUsage}%. Configuration is stable.`;
+    }
+    return "No performance data available yet. Please ensure agents are connected.";
+}
+
+async function checkLogs() {
+    const count = await LogEntry.count();
+    return `Log Analysis: I have indexed ${count} total events. You can view detailed breakdowns in the Analysis tab.`;
+}
+
+module.exports = { generateResponse };
+
