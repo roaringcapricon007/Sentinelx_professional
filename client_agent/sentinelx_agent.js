@@ -1,133 +1,79 @@
 const axios = require('axios');
 const si = require('systeminformation');
-const { io } = require('socket.io-client');
+const os = require('os');
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
-const os = require('os');
 
-// Parse Arguments
+// --- ENTERPRISE CONFIGURATION ---
 const argv = yargs(hideBin(process.argv))
-    .option('server', {
-        alias: 's',
-        type: 'string',
-        description: 'SentinelX Backend URL (e.g., http://192.168.1.5:3000)',
-        default: 'http://localhost:3000'
-    })
-    .option('name', {
-        alias: 'n',
-        type: 'string',
-        description: 'Unique Device Name',
-        default: os.hostname()
-    })
-    .option('interval', {
-        alias: 'i',
-        type: 'number',
-        description: 'Metrics Interval (ms)',
-        default: 5000
-    })
-    .help()
-    .help()
+    .option('server', { alias: 's', default: 'http://localhost:3000', description: 'SentinelX Core Uplink' })
+    .option('key', { alias: 'k', default: 'sx_key_local', description: 'Node Security Token' })
+    .option('name', { alias: 'n', default: os.hostname(), description: 'Unique Hostname' })
+    .option('interval', { alias: 'i', type: 'number', default: 5000, description: 'Refresh Rate (ms)' })
     .argv;
 
-process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION:', err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('UNHANDLED REJECTION:', reason);
-});
-
 const SERVER_URL = argv.server;
-const DEVICE_NAME = argv.name;
+const API_KEY = argv.key;
+const HOSTNAME = argv.name;
 
-console.log(`\n--- SentinelX Client Agent v1.0 ---`);
-console.log(`Target Server: ${SERVER_URL}`);
-console.log(`Device Name:   ${DEVICE_NAME}`);
-console.log(`Interval:      ${argv.interval}ms`);
-console.log(`-----------------------------------\n`);
+console.log(`
+  =================================================
+  SentinelX External Machine Agent v3.0
+  Node: ${HOSTNAME}
+  Uplink: ${SERVER_URL}
+  Clearance: SYNCED
+  =================================================
+`);
 
-// --- 1. Infrastructure Heartbeat ---
-async function sendHeartbeat() {
+/**
+ * Enterprise Matrix Pulse (Heartbeat + Log Streaming)
+ * Unified ingestion via the '/api/ingest' Neural Pipeline.
+ */
+async function streamTelemetry() {
     try {
-        const [cpu, mem, osInfo] = await Promise.all([
-            si.currentLoad(),
-            si.mem(),
-            si.osInfo()
-        ]);
-
+        const [cpu, mem] = await Promise.all([si.currentLoad(), si.mem()]);
+        
         const payload = {
-            hostname: DEVICE_NAME,
-            ipAddress: getLocalIP(),
-            region: 'Remote-Office', // Configurable if needed
-            status: 'online',
-            load: Math.round(cpu.currentLoad),
-            memory: Math.round((mem.active / mem.total) * 100),
-            platform: osInfo.platform,
-            distro: osInfo.distro
+            apiKey: API_KEY,
+            events: [
+                {
+                    type: 'heartbeat',
+                    hostname: HOSTNAME,
+                    cpu: Math.round(cpu.currentLoad),
+                    ram: Math.round((mem.active / mem.total) * 100),
+                    ip: getLocalIP()
+                }
+            ]
         };
 
-        await axios.post(`${SERVER_URL}/api/infrastructure/register`, payload);
-        process.stdout.write('.'); // Dot for each heartbeat
+        // Occasional simulated activity log
+        if (Math.random() > 0.7) {
+            payload.events.push({
+                type: 'log',
+                hostname: HOSTNAME,
+                severity: 'INFO',
+                message: `Heuristic scan completed on ${HOSTNAME}. Neural buffers stable.`,
+                timestamp: new Date()
+            });
+        }
+
+        const res = await axios.post(`${SERVER_URL}/api/ingest`, payload);
+        process.stdout.write(`\r[SENTINEL_PULSE] System Synchronized (${res.data.processed} events) | CPU: ${payload.events[0].cpu}% | RAM: ${payload.events[0].ram}%   `);
     } catch (err) {
-        process.stdout.write('X'); // X for failure
-        // console.error(`\nHeartbeat Failed: ${err.message}`);
+        process.stdout.write(`\r[ERROR] Uplink Interrupted: ${err.message.substring(0, 50)}...   `);
     }
-}
-
-// --- 2. Log Simulation (Demo Mode) ---
-// In a real scenario, this would tail a file like /var/log/syslog
-const SEVERITIES = ['low', 'medium', 'high', 'critical'];
-const MESSAGES = [
-    'User login successful',
-    'Failed SSH attempt from 192.168.1.55',
-    'Disk usage exceeded 85%',
-    'Service "nginx" restarted',
-    'Firewall dropped packet from external IP',
-    'Backup completed successfully',
-    'Memory fragmentation detected'
-];
-
-async function sendLog() {
-    // Only send a log 30% of the time to avoid spamming
-    if (Math.random() > 0.3) return;
-
-    try {
-        const severity = SEVERITIES[Math.floor(Math.random() * SEVERITIES.length)];
-        const message = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
-
-        const payload = {
-            severity,
-            device: DEVICE_NAME,
-            message: `[${new Date().toISOString()}] ${message}`,
-            suggestion: getSuggestion(severity)
-        };
-
-        await axios.post(`${SERVER_URL}/api/logs/ingest`, payload);
-    } catch (err) {
-        // console.error(`\nLog Send Failed: ${err.message}`);
-    }
-}
-
-function getSuggestion(severity) {
-    if (severity === 'critical') return 'Immediate investigation required. Check firewall logs.';
-    if (severity === 'high') return 'Monitor closely. Potential security risk.';
-    if (severity === 'medium') return 'Review system performance benchmarks.';
-    return 'Routine activity. No action needed.';
 }
 
 function getLocalIP() {
     const nets = os.networkInterfaces();
     for (const name of Object.keys(nets)) {
         for (const net of nets[name]) {
-            if (net.family === 'IPv4' && !net.internal) {
-                return net.address;
-            }
+            if (net.family === 'IPv4' && !net.internal) return net.address;
         }
     }
     return '127.0.0.1';
 }
 
-// --- Main Loop ---
-setInterval(sendHeartbeat, argv.interval);
-setInterval(sendLog, 8000); // Logs every 8s approx
-
-console.log('Agent is running... (Press Ctrl+C to stop)');
+// Start Stream
+setInterval(streamTelemetry, argv.interval);
+streamTelemetry(); // Immediate first pulse

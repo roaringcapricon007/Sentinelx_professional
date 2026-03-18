@@ -17,6 +17,7 @@
     "express-rate-limit": "^8.2.1",
     "express-session": "^1.17.3",
     "geoip-lite": "^1.4.10",
+    "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "natural": "^8.1.0",

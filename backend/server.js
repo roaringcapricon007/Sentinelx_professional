@@ -18,15 +18,14 @@ logWorker.initialize().catch(err => console.error('[WORKER] Init Serialized Erro
 // 3. EVENT-TO-SOCKET BRIDGE (Push Layer)
 /**
  * SentinelX Realtime Bridge v10.0
- * Connects internal event bus to global Socket.io emitters.
+ * Translates internal Neural Stream events to Socket.io UI pushes.
+ * This is the 'Push' layer (Step 3 of the Perfectionist Flow).
  */
-global.eventBus.on('log:processed', (log) => {
-    io.emit('new_log', log);
-});
-
-global.eventBus.on('log:repeat', (log) => {
-    io.emit('log_repeat', log);
-});
+global.eventBus.on('log:processed', (log) => io.emit('new_log', log));
+global.eventBus.on('log:repeat', (log) => io.emit('log_repeat', log));
+global.eventBus.on('system:alert', (alert) => io.emit('system:alert', alert));
+global.eventBus.on('infrastructure:update', (servers) => io.emit('infrastructure_update', servers));
+global.eventBus.on('metrics:update', (data) => io.emit('metrics_update', data));
 
 // 4. DATABASE & SEEDING (Initialization Layer)
 const PORT = process.env.PORT || 3000;
@@ -90,15 +89,16 @@ function startTelemetryCycle() {
         try {
             const metrics = await si.currentLoad();
             const mem = await si.mem();
-            io.emit('metrics_update', {
+            
+            // Publish to Neural Stream for Global Sync
+            eventBus.publish('metrics:update', {
                 cpuLoad: Math.round(metrics.currentLoad),
                 memoryUsage: Math.round((mem.active / mem.total) * 100),
                 timestamp: new Date()
             });
             
-            // Updates servers and pushes to UI
             const servers = await Server.findAll();
-            io.emit('infrastructure_update', servers);
+            eventBus.publish('infrastructure:update', servers);
         } catch (e) { /* silent telemetry jitter */ }
     }, 5000);
 }
