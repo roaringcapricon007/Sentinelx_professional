@@ -31,8 +31,37 @@ const LoginHistory = sequelize.define('LoginHistory', {
     ipAddress: { type: DataTypes.STRING },
     location: { type: DataTypes.STRING, defaultValue: 'Unknown' },
     userAgent: { type: DataTypes.TEXT },
+    deviceName: { type: DataTypes.STRING, defaultValue: 'Unknown Device' },
+    browserName: { type: DataTypes.STRING, defaultValue: 'Unknown Browser' },
     status: { type: DataTypes.STRING }, // SUCCESS, FAILED
     timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    UserId: {
+        type: DataTypes.INTEGER,
+        references: { model: 'User', key: 'id' }
+    }
+});
+
+// --- Audit Log (Immutable History) ---
+const AuditLog = sequelize.define('AuditLog', {
+    action: { type: DataTypes.STRING, allowNull: false }, // e.g., "USER_LOGIN", "RULE_CREATED", "NODE_REBOOTED"
+    category: { type: DataTypes.STRING, defaultValue: 'SYSTEM' }, // SECURITY, SYSTEM, AUTH
+    details: { type: DataTypes.TEXT },
+    ipAddress: { type: DataTypes.STRING },
+    UserId: {
+        type: DataTypes.INTEGER,
+        references: { model: 'User', key: 'id' }
+    },
+    timestamp: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
+});
+
+// --- Active Sessions (Remote Logout Support) ---
+const ActiveSession = sequelize.define('ActiveSession', {
+    sid: { type: DataTypes.STRING, primaryKey: true },
+    expires: { type: DataTypes.DATE },
+    data: { type: DataTypes.TEXT },
+    ipAddress: { type: DataTypes.STRING },
+    userAgent: { type: DataTypes.TEXT },
+    lastActive: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     UserId: {
         type: DataTypes.INTEGER,
         references: { model: 'User', key: 'id' }
@@ -96,7 +125,7 @@ const Server = sequelize.define('Server', {
     }
 });
 
-// --- Playbook Model (SOAR Orchestration) ---
+// --- Playbook Model (SOAR Orchestration / Automation Lab) ---
 const Playbook = sequelize.define('Playbook', {
     name: { type: DataTypes.STRING, allowNull: false },
     description: { type: DataTypes.TEXT },
@@ -104,6 +133,8 @@ const Playbook = sequelize.define('Playbook', {
     action: { type: DataTypes.STRING }, // e.g., "BLOCK_IP", "NOTIFY_ADMIN", "REBOOT_NODE"
     isActive: { type: DataTypes.BOOLEAN, defaultValue: true },
     executionCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+    lastExecuted: { type: DataTypes.DATE },
+    logRetention: { type: DataTypes.INTEGER, defaultValue: 30 }, // Days
     UserId: {
         type: DataTypes.INTEGER,
         references: { model: 'User', key: 'id' }
@@ -113,6 +144,12 @@ const Playbook = sequelize.define('Playbook', {
 // --- ASSOCIATIONS ---
 User.hasMany(LoginHistory, { foreignKey: 'UserId' });
 LoginHistory.belongsTo(User, { foreignKey: 'UserId' });
+
+User.hasMany(AuditLog, { foreignKey: 'UserId' });
+AuditLog.belongsTo(User, { foreignKey: 'UserId' });
+
+User.hasMany(ActiveSession, { foreignKey: 'UserId' });
+ActiveSession.belongsTo(User, { foreignKey: 'UserId' });
 
 User.hasMany(LogEntry, { foreignKey: 'UserId' });
 LogEntry.belongsTo(User, { foreignKey: 'UserId' });
@@ -129,4 +166,4 @@ SystemMetric.belongsTo(Server, { foreignKey: 'ServerId' });
 Server.hasMany(LogEntry, { foreignKey: 'ServerId' });
 LogEntry.belongsTo(Server, { foreignKey: 'ServerId' });
 
-module.exports = { User, LoginHistory, SystemMetric, LogEntry, Server, Playbook };
+module.exports = { User, LoginHistory, AuditLog, ActiveSession, SystemMetric, LogEntry, Server, Playbook };

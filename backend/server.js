@@ -13,7 +13,10 @@ global.eventBus = require('./services/event.service');
 
 // 2. INITIALIZE WORKERS (Process Layer)
 const logWorker = require('./workers/log.worker');
+const infraWorker = require('./workers/infrastructure.worker');
+
 logWorker.initialize().catch(err => console.error('[WORKER] Init Serialized Error:', err));
+infraWorker.initialize().catch(err => console.error('[WATCHDOG] Init Serialized Error:', err));
 
 // 3. EVENT-TO-SOCKET BRIDGE (Push Layer)
 /**

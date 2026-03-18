@@ -1085,6 +1085,38 @@ function setupSocket() {
         refreshRiskScore();
     });
 
+    socket.on('new_log', (log) => {
+        state.liveLogs.unshift(log);
+        if (state.liveLogs.length > 100) state.liveLogs.pop();
+        
+        // Push to Real-time Feed Panel (Step 3.A)
+        prependToFeed({
+            type: 'SECURITY_INCIDENT',
+            severity: log.severity,
+            message: log.message,
+            target: log.device,
+            time: new Date().toLocaleTimeString()
+        });
+
+        // Update Map Pulse if relevant
+        if (log.ip) {
+            // ... (existing map logic)
+        }
+    });
+
+    socket.on('system:alert', (alert) => {
+        showToast(`💥 ${alert.type}: ${alert.message}`, 'error');
+        prependToFeed({
+            type: 'SYSTEM_FAULT',
+            severity: 'CRITICAL',
+            message: alert.message,
+            target: alert.target || 'GLOBAL_CORE',
+            time: new Date().toLocaleTimeString()
+        });
+        document.body.classList.add('alert-flash');
+        setTimeout(() => document.body.classList.remove('alert-flash'), 2000);
+    });
+
     socket.on('metrics_update', (data) => {
         state.overviewData = data;
         updateDashboardMetrics(data);
@@ -1093,16 +1125,25 @@ function setupSocket() {
 
     socket.on('infrastructure_update', (servers) => {
         state.infraData = servers;
-        // Update both table and topology if visible
         renderInfraTable(servers);
     });
 
-    socket.on('system:alert', (alert) => {
-        showToast(`💥 SYSTEM_FAULT: ${alert.message}`, 'error');
-        // Optionally flash the dashboard background or play sound
-        document.body.classList.add('alert-flash');
-        setTimeout(() => document.body.classList.remove('alert-flash'), 2000);
-    });
+    function prependToFeed(event) {
+        const feed = document.getElementById('global-live-feed');
+        if (!feed) return;
+        const item = document.createElement('div');
+        item.className = `feed-item ${event.severity}`;
+        item.innerHTML = `
+            <div class="feed-time">${event.time}</div>
+            <div class="feed-body">
+                <span class="feed-type">${event.type}</span>
+                <p>${event.message}</p>
+                <div class="feed-node"><i class="fas fa-microchip"></i> ${event.target}</div>
+            </div>
+        `;
+        feed.prepend(item);
+        if (feed.childNodes.length > 20) feed.removeChild(feed.lastChild);
+    }
 
     socket.on('streaming_log', (log) => {
         const terminal = document.getElementById('log-terminal-stream');
@@ -1316,15 +1357,17 @@ function renderOverview() {
         </div>
     </div>
 
-    <div class="charts-row" style="margin-top: 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; height: 350px;">
-
-        <div class="chart-container" style="flex: 2; position: relative;">
-            <canvas id="mainTrendChart"></canvas>
+    <div class="charts-row" style="margin-top: 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; height: 350px;">
+        <div class="chart-container" style="flex: 1.5; position: relative; display: flex; flex-direction: column;">
+            <div class="card-title font-transformers" style="margin-bottom: 10px;"><i class="fas fa-wave-square"></i> System Trend</div>
+            <canvas id="mainTrendChart" style="flex-grow: 1;"></canvas>
         </div>
-        <div class="chart-container" style="flex: 1; position: relative;">
-            <div class="card-title font-transformers" style="margin-bottom: 20px;"><i class="fas fa-crystal-ball"></i> AI Predictive Insight</div>
-            <div id="ai-prediction-content">
-                <div style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Analyzing trend vectors...</div>
+        <div class="chart-container" style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="card-title font-transformers" style="margin-bottom: 15px; color: var(--primary);"><i class="fas fa-rss"></i> GLOBAL SECURITY FEED</div>
+            <div id="global-live-feed" class="custom-scrollbar" style="flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px;">
+                <div style="text-align:center; padding: 40px; color: var(--text-muted); font-size: 0.8rem;">
+                    <i class="fas fa-satellite fa-bounce"></i><br>Syncing Neural Arrays...
+                </div>
             </div>
         </div>
     </div>

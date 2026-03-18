@@ -11,13 +11,27 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Session Config
+// Session Config with Database Persistence
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
+const sequelize = require('./database');
+
+const sessionStore = new SequelizeStore({
+  db: sequelize,
+  tableName: 'Sessions', // Default but explicit for audit
+  checkExpirationInterval: 15 * 60 * 1000, // 15 min cleanup
+  expiration: 24 * 60 * 60 * 1000 // 24 hour max session
+});
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'dev_secret_key',
+  secret: process.env.SESSION_SECRET || 'sentinelx_enterprise_nexus_2026',
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false }
+  proxy: true, // Required for secure cookie behind reverse proxies
+  cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
+
+sessionStore.sync();
 
 app.use(passport.initialize());
 app.use(passport.session());

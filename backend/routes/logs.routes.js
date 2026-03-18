@@ -5,6 +5,17 @@ const logService = require('../services/log.service');
 module.exports = function (io) {
     const { authorize } = require('../middleware/auth.middleware');
 
+    // GET /api/logs/search?ip=...&device=...
+    const searchService = require('../services/search.service');
+    router.get('/search', authorize(['admin', 'analyst', 'super_admin']), async (req, res) => {
+        try {
+            const results = await searchService.advancedSearch(req.query);
+            res.json(results);
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // GET /api/logs/history?status=ACTIVE
     router.get('/history', authorize(['admin', 'User', 'analyst', 'super_admin']), async (req, res) => {
         try {

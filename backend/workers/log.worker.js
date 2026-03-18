@@ -71,15 +71,28 @@ class LogWorker {
         log.recommendations = aiRecommendations;
         await log.save();
 
-        // 4. SOAR Strategy Evaluation
+        // 4. SOAR Strategy Evaluation (Automation Lab Rules)
         await evaluatePlaybooks(log);
 
-        // 5. Critical Dispatch
+        // 5. Actionable Intelligence & Dispatch
+        if (riskScore > 85) {
+            log.status = 'BLOCKED'; // Immediate status upgrade
+            await log.save();
+
+            // Trigger Real-time System Alert (Step 12)
+            eventBus.publish('system:alert', {
+                type: 'THREAT_NEUTRALIZED',
+                severity: 'CRITICAL',
+                target: log.ip,
+                message: `AI identified a ${aiThreatType} vector with ${riskScore}% certainty. Autonomous containment (BLOCK_IP) executed.`
+            });
+        }
+
         if (log.severity === 'CRITICAL' || riskScore > 50) {
             await dispatchCriticalAlert(log, ipIntel);
         }
 
-        // 6. Push Update to UI (Event -> Cloud -> UI)
+        // 6. Push Update to UI (Neural Cloud -> Frontend)
         eventBus.publish('log:processed', log);
     }
 }

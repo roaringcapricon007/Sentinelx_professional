@@ -122,16 +122,21 @@ router.post('/request-otp', async (req, res) => {
             return res.status(400).json({ error: 'ALREADY_REGISTERED', message: 'Email already registered. Redirecting to login.' });
         }
 
+        const storeKey = `reg_${email}`;
+        if (otpStore[storeKey] && otpStore[storeKey].resendCount >= 3) {
+            return res.status(429).json({ error: 'LIMIT', message: 'Maximum retries reached. Try later.' });
+        }
+
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
         // --- RELIABLE BROADCAST (MASTER ONLY) ---
         const mailer = await getTransporter();
-        const authMode = 'MASTER';
 
-        otpStore[`reg_${email}`] = {
+        otpStore[storeKey] = {
             otp,
             userData: { name, email, password },
-            expires: Date.now() + 300000 // Exact 5-minute security window requested
+            resendCount: (otpStore[storeKey]?.resendCount || 0) + 1,
+            expires: Date.now() + 300000
         };
         console.log(`[AUTH] Sequence Refreshed: New Registration OTP broadcast sequence active for ${email}`);
 
@@ -173,22 +178,25 @@ router.post('/request-otp', async (req, res) => {
     }
 });
 
+// --- LOGIN HANDSHAKE (JWT, Audit & Device Tracking) ---
+const UAParser = require('ua-parser-js');
+const auditService = require('../services/audit.service');
 const jwt = require('jsonwebtoken');
-const { LoginHistory } = require('../models');
-
-// JWT Configuration
+const { LoginHistory, AuditLog, ActiveSession } = require('../models');
 const JWT_SECRET = process.env.JWT_SECRET || 'sentinelx_neural_secret_2026';
 
-// --- LOGIN HANDSHAKE (JWT & Audit Tracking) ---
 router.post('/login', async (req, res) => {
     let { email, password } = req.body;
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const ua = req.headers['user-agent'];
+    const uaString = req.headers['user-agent'];
+    const parser = new UAParser(uaString);
+    const device = parser.getDevice().model || 'Generic PC';
+    const browser = parser.getBrowser().name || 'Unknown Browser';
 
     if (!email || !password) return res.status(400).json({ error: 'Identity credentials missing.' });
 
     try {
-        console.log(`[AUTH] Access request received for: ${email} from ${ip}`);
+        console.log(`[AUTH] Access request: ${email} from ${ip} [${device}]`);
 
         const user = await User.findOne({
             where: sequelize.where(
@@ -199,18 +207,42 @@ router.post('/login', async (req, res) => {
         });
 
         if (!user) {
-            await LoginHistory.create({ ipAddress: ip, userAgent: ua, status: 'FAILED', location: 'Unknown' });
+            await LoginHistory.create({ 
+                ipAddress: ip, 
+                userAgent: uaString, 
+                deviceName: device,
+                browserName: browser,
+                status: 'FAILED', 
+                location: 'Unknown' 
+            });
             return res.status(401).json({ error: 'NOT_FOUND', message: 'Identity not found.' });
         }
 
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) {
-            await LoginHistory.create({ UserId: user.id, ipAddress: ip, userAgent: ua, status: 'FAILED' });
+            await LoginHistory.create({ 
+                UserId: user.id, 
+                ipAddress: ip, 
+                userAgent: uaString,
+                deviceName: device,
+                browserName: browser,
+                status: 'FAILED' 
+            });
+            await auditService.log('LOGIN_FAILED', `Failed attempt for ${email}`, req, 'SECURITY', user.id);
             return res.status(401).json({ error: 'PASSWORD_INCORRECT', message: 'Credentials mismatch.' });
         }
 
         // --- SUCCESSFUL AUTH ---
-        await LoginHistory.create({ UserId: user.id, ipAddress: ip, userAgent: ua, status: 'SUCCESS' });
+        await LoginHistory.create({ 
+            UserId: user.id, 
+            ipAddress: ip, 
+            userAgent: uaString,
+            deviceName: device,
+            browserName: browser,
+            status: 'SUCCESS' 
+        });
+
+        await auditService.log('USER_LOGIN', `Successful login: ${device}/${browser}`, req, 'AUTH', user.id);
 
         // Generate JWT
         const token = jwt.sign(
@@ -221,12 +253,14 @@ router.post('/login', async (req, res) => {
 
         console.log(`[AUTH] JWT ISSUED: ${email} [${user.role}]`);
         
-        req.session.user = user; // Partial fallback for legacy compat
+        req.user = user;
+        req.session.user = { id: user.id, name: user.name, email: user.email, role: user.role };
+        
         req.session.save(() => {
             res.json({ 
                 success: true, 
                 token, 
-                user: { id: user.id, name: user.name, email: user.email, role: user.role } 
+                user: req.session.user
             });
         });
 
@@ -336,6 +370,43 @@ router.get('/audit', async (req, res) => {
             include: [{ model: User, attributes: ['name', 'email'] }]
         });
         res.json(history);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// --- SESSION MANAGEMENT ---
+// List Active Sessions
+router.get('/sessions', async (req, res) => {
+    if (!req.isAuthenticated() && !req.session.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user?.id || req.session.user?.id;
+
+    try {
+        const sessions = await LoginHistory.findAll({
+            where: { UserId: userId, status: 'SUCCESS' },
+            limit: 10,
+            order: [['timestamp', 'DESC']]
+        });
+        res.json(sessions);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Logout of All Other Devices
+router.post('/logout-others', async (req, res) => {
+    if (!req.isAuthenticated() && !req.session.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user?.id || req.session.user?.id;
+    const currentSid = req.sessionID;
+
+    try {
+        const { sequelize } = require('../models');
+        // Delete all persistent sessions except the current one for this user
+        // Using a manual query since raw session data is tricky with Sequelize models
+        await sequelize.query(`DELETE FROM Sessions WHERE UserId = ${userId} AND sid != '${currentSid}'`);
+        
+        await auditService.log('SESSIONS_PURGED', 'Remote logout from other devices executed.', req, 'SECURITY', userId);
+        res.json({ success: true, message: 'Sessions cleared.' });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

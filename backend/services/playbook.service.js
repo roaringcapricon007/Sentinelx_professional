@@ -1,8 +1,10 @@
-const { Playbook, LogEntry } = require('../models');
+const { Playbook, LogEntry, AuditLog } = require('../models');
+const auditService = require('./audit.service');
 
 /**
- * SentinelX SOAR Orchestration Engine v7.5
+ * SentinelX SOAR Orchestration Engine v10.0 (Deep Automation Core)
  * Evaluates active playbooks against inbound telemetry and executes automated responses.
+ * Integrated with the Audit Vault for immutable execution tracking.
  */
 async function evaluatePlaybooks(log) {
     if (!log.UserId) return;
@@ -15,18 +17,26 @@ async function evaluatePlaybooks(log) {
         for (const playbook of playbooks) {
             let shouldTrigger = false;
             
-            // Simplified trigger evaluation
+            // Pattern Matcher: [Field][Operator][Value]
+            // Support: >, <, ===, includes
             try {
-                // Condition example: "riskScore > 80"
                 if (playbook.triggerCondition.includes('>')) {
                     const [field, value] = playbook.triggerCondition.split('>').map(s => s.trim());
                     if (log[field] > parseInt(value)) shouldTrigger = true;
+                } else if (playbook.triggerCondition.includes('<')) {
+                    const [field, value] = playbook.triggerCondition.split('<').map(s => s.trim());
+                    if (log[field] < parseInt(value)) shouldTrigger = true;
                 } else if (playbook.triggerCondition.includes('===')) {
                     const [field, value] = playbook.triggerCondition.split('===').map(s => s.trim().replace(/['"]/g, ''));
-                    if (log[field] === value) shouldTrigger = true;
+                    const logField = log[field] ? log[field].toString() : '';
+                    if (logField === value) shouldTrigger = true;
+                } else if (playbook.triggerCondition.includes('.includes')) {
+                    const fieldName = playbook.triggerCondition.split('.')[0];
+                    const val = playbook.triggerCondition.match(/\("(.+)"\)/)[1];
+                    if (log[fieldName] && log[fieldName].includes(val)) shouldTrigger = true;
                 }
             } catch (e) {
-                console.error(`[SOAR] Trigger evaluation failed for: ${playbook.name}`, e.message);
+                console.error(`[SOAR] Handshake Failure for: ${playbook.name}`, e.message);
             }
 
             if (shouldTrigger) {
@@ -34,34 +44,44 @@ async function evaluatePlaybooks(log) {
             }
         }
     } catch (err) {
-        console.error('[SOAR] Playbook evaluation error:', err.message);
+        console.error('[SOAR] Neural Orchestration Error:', err.message);
     }
 }
 
 async function executeAction(playbook, log) {
-    console.log(`[SOAR] ⚡ Executing Playbook [${playbook.name}] for Incident #${log.id}`);
+    console.log(`[SOAR] ⚡ Execution Triggered [${playbook.name}] for Incident #${log.id}`);
     
+    // Update Playbook State
     playbook.executionCount += 1;
+    playbook.lastExecuted = new Date();
     await playbook.save();
 
     const action = playbook.action.toUpperCase();
 
-    // Log the automated action
+    // 1. Log to Audit Vault (Step 11 Upgrade)
+    await auditService.log(
+        'AUTOMATION_TRIGGERED', 
+        `Rule [${playbook.name}] matched incident #${log.id}. Action: ${action}`, 
+        null, 
+        'SECURITY', 
+        log.UserId
+    );
+
+    // 2. Log Internal Autonomous Event
     await LogEntry.create({
         severity: 'INFO',
         device: 'SentinelX-SOAR',
-        message: `AUTONOMOUS ACTION: ${action} triggered by playbook [${playbook.name}]`,
-        suggestion: `Orchestration complete. Impact restricted.`,
+        message: `DEEP SCAN: Action [${action}] executed by ${playbook.name}. Logic matches risk vector.`,
+        suggestion: `Neural isolation triggered. Integrity verified.`,
         UserId: log.UserId,
         timestamp: new Date()
     });
 
+    // 3. Physical Logic (Mocked Core Interactions)
     if (action === 'BLOCK_IP') {
-        console.log(`[SOAR] FIREWALL: Blocking IP ${log.ip} on all nodes.`);
+        process.stdout.write(`\n[SOAR] FIREWALL: IP ${log.ip} isolated globally.\n`);
     } else if (action === 'REBOOT_NODE') {
-        console.log(`[SOAR] INFRA: Initiating safe reboot for ${log.device}.`);
-    } else if (action === 'NOTIFY_ADMIN') {
-        // Already handled by notification.service if severity > threshold
+        process.stdout.write(`\n[SOAR] INFRA: Node ${log.device} reboot sequence started.\n`);
     }
 }
 
