@@ -2,7 +2,9 @@ const router = require('express').Router();
 
 const { LogEntry, Server } = require('../models');
 
-router.post('/', async (req, res) => {
+const { authorize } = require('../middleware/auth.middleware');
+
+router.post('/', authorize(['machine_agent']), async (req, res) => {
   try {
     const events = req.body.events || [];
 

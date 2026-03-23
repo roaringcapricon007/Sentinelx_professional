@@ -107,12 +107,23 @@ module.exports = function (io) {
         }
     });
 
-    // POST /api/logs/block-ip (Step 7)
+    // POST /api/logs/block-ip (Manual Quarantine)
     router.post('/block-ip', authorize(['admin', 'super_admin']), async (req, res) => {
-        const { ip } = req.body;
-        console.warn(`[FIREWALL_SIM] Blocking IP address: ${ip}`);
-        // In a real env, we'd add to a DB table checked by a firewall module
-        res.json({ message: `IP Address ${ip} has been added to the Global Denial List.` });
+        const { ip, reason } = req.body;
+        const { DeniedIP } = require('../models');
+        try {
+            await DeniedIP.findOrCreate({
+                where: { ip },
+                defaults: { 
+                    reason: reason || 'Manual Administrator Intervention',
+                    UserId: req.user.id 
+                }
+            });
+            console.warn(`[FIREWALL] IP ${ip} manually quarantined.`);
+            res.json({ message: `IP Address ${ip} has been added to the Global Denial List.` });
+        } catch (e) {
+            res.status(500).json({ error: 'Manual quarantine failed' });
+        }
     });
 
     // POST /api/logs/disable-user (Step 7)

@@ -41,7 +41,7 @@ server.listen(PORT, '0.0.0.0', () => {
   =================================================
   `);
 
-    sequelize.sync().then(async () => {
+    sequelize.sync({ alter: true }).then(async () => {
         console.log('--- DATABASE HANDSHAKE COMPLETED ---');
         
         // --- SEEDING LOGIC (Internal) ---

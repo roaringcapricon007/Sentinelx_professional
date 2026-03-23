@@ -14,12 +14,22 @@ class LogWorker {
     async initialize() {
         console.log('[WORKER] Neural Processing Layer Online.');
         
-        // Listen for new logs ingested by the API
+        // 1. Listen for new logs ingested by the API
         eventBus.on('log:ingest', async (payload) => {
             try {
                 await this.processLog(payload.logId, payload.userId);
             } catch (err) {
                 console.error('[WORKER] Processing Error:', err.message);
+            }
+        });
+
+        // 2. Listen for repeated logs (high-velocity triggers)
+        eventBus.on('log:repeat', async (log) => {
+            try {
+                console.log(`[WORKER] 🔄 Re-evaluating Playbooks for Incident #${log.id} (Repeat Count: ${log.attempts})`);
+                await evaluatePlaybooks(log);
+            } catch (err) {
+                console.error('[WORKER] Repeat Processing Error:', err.message);
             }
         });
     }

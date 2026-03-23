@@ -11,6 +11,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Sovereign Firewall (SOAR Enforcement Layer)
+const firewall = require('./middleware/firewall.middleware');
+app.use(firewall);
+
 // Session Config with Database Persistence
 const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const sequelize = require('./database');

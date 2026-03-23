@@ -78,10 +78,45 @@ async function executeAction(playbook, log) {
     });
 
     // 3. Physical Logic (Mocked Core Interactions)
-    if (action === 'BLOCK_IP') {
-        process.stdout.write(`\n[SOAR] FIREWALL: IP ${log.ip} isolated globally.\n`);
-    } else if (action === 'REBOOT_NODE') {
-        process.stdout.write(`\n[SOAR] INFRA: Node ${log.device} reboot sequence started.\n`);
+    if (action === 'BLOCK_IP' && log.ip) {
+        const { DeniedIP } = require('../models');
+        try {
+            await DeniedIP.findOrCreate({
+                where: { ip: log.ip },
+                defaults: { 
+                    reason: `Quarantined by Playbook: ${playbook.name}`,
+                    UserId: log.UserId 
+                }
+            });
+            console.log(`[SOAR] FIREWALL: IP ${log.ip} isolated via DeniedIP registry.`);
+        } catch (e) {
+            console.error('[SOAR] Firewall Sync Error:', e.message);
+        }
+    } else if (action === 'REBOOT_NODE' && log.device) {
+        const { Server } = require('../models');
+        try {
+            const server = await Server.findOne({ where: { hostname: log.device } });
+            if (server) {
+                server.status = 'warning';
+                await server.save();
+                console.warn(`[SOAR] INFRA: Node ${log.device} reboot sequence initiated.`);
+                
+                // Orchestration Bridge: Restore after 10s simulation
+                setTimeout(async () => {
+                    try {
+                        const s = await Server.findByPk(server.id);
+                        if (s) {
+                            s.status = 'online';
+                            s.lastSeen = new Date();
+                            await s.save();
+                            console.log(`[SOAR] INFRA: Node ${log.device} recovery sequence complete.`);
+                        }
+                    } catch (err) { /* silent restore jitter */ }
+                }, 10000);
+            }
+        } catch (e) {
+            console.error('[SOAR] Infrastructure Orchestration Error:', e.message);
+        }
     }
 }
 

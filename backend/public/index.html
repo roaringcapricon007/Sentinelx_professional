@@ -225,11 +225,14 @@
             style="background: #00ff88; color: black; border: none; width: 100%;">Verify & Proceed</button>
 
           <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-            <button type="button" class="btn-primary" onclick="resendOTP()"
-              style="background: transparent; border: 1px solid var(--secondary); color: var(--secondary); font-size: 0.8rem; padding: 8px;">
+            <div id="otp-countdown-container" style="margin-top: 15px; font-size: 0.8rem; color: var(--primary); font-family: var(--font-mono);">
+              OTP expires in: <span id="otp-timer">00:30</span>
+            </div>
+            <button type="button" id="resend-otp-btn" class="btn-primary" onclick="resendOTP()"
+              style="background: transparent; border: 1px solid var(--secondary); color: var(--secondary); font-size: 0.8rem; padding: 8px; margin-top: 10px; display: none;">
               <i class="fas fa-redo"></i> Resend OTP
             </button>
-            <p style="font-size: 0.75rem; cursor: pointer; color: #666;" onclick="resetRegister()">Back to details</p>
+            <p style="font-size: 0.75rem; cursor: pointer; color: #666; margin-top: 10px;" onclick="resetRegister()">Back to details</p>
           </div>
         </div>
 

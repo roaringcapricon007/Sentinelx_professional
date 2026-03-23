@@ -465,7 +465,9 @@ async function handleRegister(formRef, name, email, password) {
                 if (otpLayer) {
                     otpLayer.style.display = 'block';
                     // Scroll to otp input for better UX
-                    const otpInput = document.getElementById('otp-input');
+                    // startOtpTimer logic
+                    startOtpTimer(30);
+
                     if (otpInput) otpInput.focus();
                 }
 
@@ -473,9 +475,9 @@ async function handleRegister(formRef, name, email, password) {
                     showToast(`[SIMULATION] LOCAL OTP: <strong>${data.otp}</strong>`, "success");
                     logMsg(`Simulation OTP obtained: ${data.otp}`);
                 } else {
-                    showToast(`Quantum-OTP broadcasted to ${email}. Fallback: <strong>${data.otp}</strong>`, "info");
+                    showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
                 }
-            }, 50); // Instant Interface Swap
+            }, 50); 
         } else {
             console.warn("[AUTH] Handshake REJECTED:", data);
             logMsg(`Handshake rejected: ${data.message || data.error}`);
@@ -513,6 +515,31 @@ async function handleRegister(formRef, name, email, password) {
     }
 }
 
+let otpTimerInterval = null;
+function startOtpTimer(seconds) {
+    if (otpTimerInterval) clearInterval(otpTimerInterval);
+    const timerDisplay = document.getElementById('otp-timer');
+    const resendBtn = document.getElementById('resend-otp-btn');
+    if (resendBtn) resendBtn.style.display = 'none';
+    
+    let remaining = seconds;
+    const update = () => {
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        if (timerDisplay) timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+    update();
+
+    otpTimerInterval = setInterval(() => {
+        remaining--;
+        update();
+        if (remaining <= 0) {
+            clearInterval(otpTimerInterval);
+            if (resendBtn) resendBtn.style.display = 'block';
+        }
+    }, 1000);
+}
+
 async function resendOTP() {
     if (!regSessionData) return;
     showToast("Re-broadcasting sequence...", "info");
@@ -523,6 +550,7 @@ async function resendOTP() {
     });
     const data = await res.json();
     if (res.ok) {
+        startOtpTimer(30);
         if (data.mode === 'simulation') {
             showToast(`[NEW] LOCAL OTP: ${data.otp}`, "success");
         } else {
@@ -1003,9 +1031,9 @@ function setupSocket() {
         updateOverviewCharts(servers);
 
         // 2. Update Topology if it's currently rendered
-        const topoNodes = document.getElementById('dynamic-nodes');
-        if (topoNodes) {
-            updateTopologyNodes(servers);
+        const topoContainer = document.getElementById('topo-d3-container');
+        if (topoContainer && typeof initTopologyGraph === 'function') {
+            initTopologyGraph(servers);
         }
 
         // 3. Update Infrastructure Table if it's currently rendered
@@ -1022,6 +1050,9 @@ function setupSocket() {
         if (log.severity === 'CRITICAL' || log.severity === 'ERROR') {
             showToast(`🚨 Alert [${log.severity}] from ${log.device || 'Unknown Node'}: ${(log.message || '').substring(0, 80)}`, 'error');
         }
+
+        // --- PHASE 3: Update Global Security Feed ---
+        if (typeof updateLiveFeedUI === 'function') updateLiveFeedUI(log);
 
         // Update Log Table if it's currently rendered
         const analysisView = document.getElementById('analysis-view');
@@ -1409,6 +1440,13 @@ function renderOverview() {
                 }
             });
 
+            // Live Feed Initialization (Phase 3)
+            const feed = document.getElementById('global-live-feed');
+            if (feed && state.liveLogs) {
+                feed.innerHTML = '';
+                [...state.liveLogs].reverse().forEach(l => updateLiveFeedUI(l));
+            }
+
             // Pie Chart (Server Status) - Initial Load
             updateOverviewCharts(state.infraData || []);
 
@@ -1617,6 +1655,25 @@ function renderAnalysis() {
             </div>
         </div>
 
+        <!-- NEURAL SEARCH SYSTEM (Step 5 Upgrade) -->
+        <div class="card glass-card" style="margin-bottom: 25px; padding: 15px 25px; display: flex; align-items: center; gap: 20px;">
+            <div style="flex-grow: 1; position: relative;">
+                <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--primary); opacity: 0.6;"></i>
+                <input type="text" id="log-search-query" onkeypress="if(event.key==='Enter') execNeuralSearch()"
+                    placeholder="Search Logs (CIDR, Device hostname, or Regex pattern)..." 
+                    style="width: 100%; padding: 12px 12px 12px 45px; background: rgba(0,0,0,0.2); border: 1px solid rgba(var(--primary-rgb), 0.2); border-radius: 8px; color: #fff; font-family: var(--font-mono); font-size: 0.9rem;">
+            </div>
+            <select id="log-filter-severity" style="padding: 12px; background: rgba(0,0,0,0.2); color: #fff; border: 1px solid rgba(var(--primary-rgb), 0.2); border-radius: 8px; font-family: var(--font-mono);">
+                <option value="">All Severities</option>
+                <option value="CRITICAL">CRITICAL</option>
+                <option value="WARN">WARN</option>
+                <option value="INFO">INFO</option>
+            </select>
+            <button class="btn-primary" onclick="execNeuralSearch()" style="margin: 0; padding: 12px 25px; white-space: nowrap;">
+                <i class="fas fa-microchip"></i> EXECUTE QUERY
+            </button>
+        </div>
+
         <!-- Deep Packet Ingestion Zone -->
         <div class="card glass-card" style="margin-bottom: 30px; padding: 40px; background: radial-gradient(circle at top right, rgba(var(--primary-rgb), 0.05) 0%, transparent 100%);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
@@ -1757,139 +1814,111 @@ function switchAlertTab(tab) {
 }
 window.switchAlertTab = switchAlertTab;
 
-async function updateAnalysisTable(viewContainer) {
-    const analysisActive = !!state.analysisData;
-    const tbody = viewContainer.querySelector('#logTableBody');
-    if (!tbody) return;
-
-    if (analysisActive) {
-        const issues = state.analysisData.issues || [];
-        const pill = viewContainer.querySelector('#log-count-pill');
-        if (pill) pill.innerText = `${issues.length} Issues Detected`;
+async function execNeuralSearch() {
+    const query = document.getElementById('log-search-query').value;
+    const severity = document.getElementById('log-filter-severity').value;
+    
+    showToast("Neural Search Executing...", "info");
+    
+    try {
+        const url = `/api/logs/search?query=${encodeURIComponent(query)}&severity=${severity}`;
+        const res = await fetch(url);
+        const data = await res.json();
         
-        // Populate SOC Dashboard Widgets with Uploaded Data
-        renderSOCPanels(issues, viewContainer);
+        if (data.logs) {
+            state.analysisData = { logs: data.logs, totalHit: data.totalHit };
+            // Ensure UI areas are visible
+            const resultsArea = document.getElementById('analysis-dashboard-grid');
+            const alertTable = document.querySelector('.table-container.glass-card');
+            if (resultsArea) resultsArea.style.display = 'grid';
+            if (alertTable) alertTable.style.display = 'block';
+            
+            updateAnalysisTable(data.logs);
+            showToast(`Found ${data.totalHit} matches.`, "success");
+        }
+    } catch (e) {
+        showToast("Search Failure: Link Unstable", "error");
+    }
+}
 
-        if (issues.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-check-circle"></i> Neural scrub complete. No anomalies detected.</td></tr>`;
+async function updateAnalysisTable(manualLogs) {
+    const tbody = document.getElementById('logTableBody');
+    const viewContainer = document.getElementById('analysis-view');
+    if (!tbody || !viewContainer) return;
+
+    let logs = manualLogs;
+
+    // If no manual logs provided, fetch from live history
+    if (!logs) {
+        try {
+            const res = await fetch(`/api/logs/history?status=${alertTab}`);
+            if (!res.ok) throw new Error('Not authorized');
+            logs = await res.json();
+        } catch (e) {
+            console.error("[SOC] History fetch failed:", e.message);
             return;
         }
+    }
 
-        tbody.innerHTML = issues.map((log, idx) => {
-            const sev = (log.severity || 'INFO').toUpperCase();
-            const riskColor = sev === 'ERROR' ? '#ff0055' : sev === 'WARN' ? '#ffcc00' : '#00ff88';
-            
-            return `
-            <tr class="fade-in">
-                <td><span class="badge-severity ${sev}">${sev}</span></td>
-                <td>
-                    <div style="font-size: 0.85rem; font-weight:700;">${log.device || 'Neural Core'}</div>
-                    <div style="font-size: 0.65rem; color: var(--text-muted); font-family: var(--font-mono); margin: 3px 0;">Sequence #${idx+1}</div>
-                </td>
-                <td style="text-align:center;"><span style="color:var(--text-muted)">1st Event</span></td>
-                <td>
-                    <div style="font-weight: 900; color: ${riskColor}; font-size: 1.1rem; text-shadow: 0 0 10px ${riskColor}33;">AI</div>
-                    <div style="font-size: 0.65rem; color: var(--text-muted);">Assessment</div>
-                </td>
-                <td style="font-size:0.8rem; color:#888; white-space: nowrap;">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'Now'}</td>
-                <td style="font-family: 'Space Mono', monospace; font-size: 0.8rem; max-width: 350px;">
-                    <div style="color: #fff; line-height: 1.3;">${log.message || ''}</div>
-                    <div style="margin-top: 10px; padding: 10px; background: rgba(var(--primary-rgb), 0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); border-left: 2px solid var(--primary);">
-                        <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--primary); letter-spacing: 1.5px; font-weight:800; margin-bottom: 5px;">
-                            <i class="fas fa-microchip"></i> Prime_AI Interpretation
-                        </div>
-                        <div style="font-size:0.85rem; color: var(--text-main); line-height: 1.4;">${log.suggestion}</div>
-                    </div>
-                </td>
-                <td style="border-left: 1px solid rgba(255,255,255,0.05); text-align:center;">
-                    <span style="color:var(--text-muted); font-size:0.7rem;">REPORT MODE</span>
-                </td>
-            </tr>
-            `;
-        }).join('');
+    const pill = viewContainer.querySelector('#log-count-pill');
+    if (pill) pill.innerText = `${logs.length} ${alertTab === 'ACTIVE' ? 'Active Alerts' : 'Resolved Alerts'}`;
+
+    if (logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--text-muted);"><i class="fas fa-shield-check"></i> Neural link stable. No anomalies found.</td></tr>`;
+        renderSOCPanels([], viewContainer);
         return;
     }
 
-    try {
-        const res = await fetch(`/api/logs/history?status=${alertTab}`);
-        if (!res.ok) throw new Error('Not authorized');
-        const logs = await res.json();
+    renderSOCPanels(logs.filter(l => l.status === 'ACTIVE'), viewContainer);
 
-        const pill = viewContainer.querySelector('#log-count-pill');
-        if (pill) pill.innerText = `${logs.length} ${alertTab === 'ACTIVE' ? 'Active Alerts' : 'Resolved Alerts'}`;
+    tbody.innerHTML = logs.map((log, idx) => {
+        const sev = (log.severity || 'INFO').toUpperCase();
+        const riskColor = log.riskScore > 40 ? '#ff0055' : log.riskScore > 15 ? '#ffcc00' : '#00ff88';
+        const attempts = log.attempts > 1 ? `<span style="color:#ff0055; font-weight:bold; display:block; font-size: 1.1rem; margin-top:5px;">${log.attempts}x ATTEMPTS</span>` : '<span style="color:var(--text-muted)">1st Event</span>';
 
-        if (logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-${alertTab === 'ACTIVE' ? 'shield-alt' : 'check-circle'}"></i> No ${alertTab.toLowerCase()} alerts found.</td></tr>`;
-            if (alertTab === 'ACTIVE') renderSOCPanels([], viewContainer);
-            return;
-        }
+        const hasLocation = log.ip && log.ip.includes('(');
+        const locationText = hasLocation ? log.ip.split('(')[1].replace(')', '') : 'N/A';
+        const locationChip = hasLocation ? `<span class="stat-pill" style="font-size: 0.65rem; background: rgba(var(--primary-rgb),0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb),0.3);"><i class="fas fa-map-marker-alt"></i> ${locationText}</span>` : '<span class="stat-pill" style="font-size:0.65rem; background:rgba(255,255,255,0.05); color:var(--text-muted);"><i class="fas fa-globe"></i> LOCAL</span>';
 
-        renderSOCPanels(logs.filter(l => l.status === 'ACTIVE'), viewContainer);
+        const resolveBtn = alertTab === 'ACTIVE'
+            ? `<button onclick="resolveAlert(${log.id}, this)" class="btn-primary" style="padding: 6px 12px; font-size: 0.72rem; width:100%; margin-bottom: 8px; box-shadow: 0 0 10px rgba(var(--primary-rgb),0.2);"><i class="fas fa-check-double"></i> RESOLVE</button>`
+            : `<span style="color: #00ff88; font-size: 0.8rem; font-weight:700;"><i class="fas fa-check-circle"></i> ARCHIVED</span>`;
 
-        tbody.innerHTML = logs.map(log => {
-            const sev = (log.severity || 'INFO').toUpperCase();
-            const riskColor = log.riskScore > 40 ? '#ff0055' : log.riskScore > 15 ? '#ffcc00' : '#00ff88';
-            const attempts = log.attempts > 1 ? `<span style="color:#ff0055; font-weight:bold; display:block; font-size: 1.1rem; margin-top:5px;">${log.attempts}x ATTEMPTS</span>` : '<span style="color:var(--text-muted)">1st Event</span>';
+        const blockBtn = (alertTab === 'ACTIVE' && log.ip && !log.ip.includes('LOCAL'))
+            ? `<button onclick="blockIP('${log.ip}', this)" style="background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.72rem; width:100%; margin-bottom: 8px; font-weight:600; transition: all 0.3s;"><i class="fas fa-shield-virus"></i> BLOCK SOURCE</button>`
+            : '';
 
-            const hasLocation = log.ip && log.ip.includes('(');
-            const locationText = hasLocation ? log.ip.split('(')[1].replace(')', '') : 'N/A';
-            const locationChip = hasLocation ? `<span class="stat-pill" style="font-size: 0.65rem; background: rgba(var(--primary-rgb),0.1); color: var(--primary); border: 1px solid rgba(var(--primary-rgb),0.3);"><i class="fas fa-map-marker-alt"></i> ${locationText}</span>` : '<span class="stat-pill" style="font-size:0.65rem; background:rgba(255,255,255,0.05); color:var(--text-muted);"><i class="fas fa-globe"></i> LOCAL</span>';
-
-            const resolveBtn = alertTab === 'ACTIVE'
-                ? `<button onclick="resolveAlert(${log.id}, this)" class="btn-primary" style="padding: 6px 12px; font-size: 0.72rem; width:100%; margin-bottom: 8px; box-shadow: 0 0 10px rgba(var(--primary-rgb),0.2);"><i class="fas fa-check-double"></i> RESOLVE</button>`
-                : `<span style="color: #00ff88; font-size: 0.8rem; font-weight:700;"><i class="fas fa-check-circle"></i> ARCHIVED</span>`;
-
-            // ENTERPRISE ACTION BUTTONS (Action Tab / Seventh Option)
-            const blockBtn = (alertTab === 'ACTIVE' && log.ip && !log.ip.includes('LOCAL'))
-                ? `<button onclick="blockIP('${log.ip}', this)" style="background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.72rem; width:100%; margin-bottom: 8px; font-weight:600; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,0,85,0.2)'" onmouseout="this.style.background='rgba(255,0,85,0.1)'"><i class="fas fa-shield-virus"></i> BLOCK SOURCE</button>`
-                : (alertTab === 'ACTIVE' ? '<div style="font-size:0.65rem; color:var(--text-muted); text-align:center; padding-bottom:5px;"><i class="fas fa-info-circle"></i> Local IP / No Source</div>' : '');
-
-            const suspendBtn = (alertTab === 'ACTIVE' && (log.message || '').includes('@'))
-                ? `<button onclick="suspendUserFromAlert('${log.message}', this)" style="background: rgba(255,204,0,0.1); border: 1px solid #ffcc00; color: #ffcc00; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.72rem; width:100%; font-weight:600; transition: all 0.3s;" onmouseover="this.style.background='rgba(255,204,0,0.2)'" onmouseout="this.style.background='rgba(255,204,0,0.1)'"><i class="fas fa-user-slash"></i> SUSPEND USER</button>`
-                : (alertTab === 'ACTIVE' ? '<div style="font-size:0.65rem; color:var(--text-muted); text-align:center;"><i class="fas fa-user-shield"></i> System Process</div>' : '');
-
-            return `
-            <tr id="log-row-${log.id}" class="fade-in">
-                <td><span class="badge-severity ${sev}">${sev}</span></td>
-                <td>
-                    <div style="font-size: 0.85rem; font-weight:700;">${log.device || 'Unknown Node'}</div>
-                    <div style="font-size: 0.77rem; color: var(--text-muted); font-family: var(--font-mono); margin: 3px 0;">${log.ip || '-'}</div>
-                    ${locationChip}
-                </td>
-                <td style="text-align:center;">${attempts}</td>
-                <td>
-                    <div style="font-weight: 900; color: ${riskColor}; font-size: 1.1rem; text-shadow: 0 0 10px ${riskColor}33;">${log.riskScore || 0}%</div>
-                    <div style="font-size: 0.65rem; color: var(--text-muted);">Points</div>
-                </td>
-                <td style="font-size:0.8rem; color:#888; white-space: nowrap;">${new Date(log.timestamp || log.createdAt).toLocaleTimeString()}</td>
-                <td style="font-family: 'Space Mono', monospace; font-size: 0.8rem; max-width: 350px;">
-                    <div style="color: #fff; line-height: 1.3;">${log.message || ''}</div>
-                    <div style="margin-top: 10px; padding: 10px; background: rgba(var(--primary-rgb), 0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); border-left: 2px solid ${log.isAnomaly ? '#ff0055' : 'var(--primary)'};">
-                        <div style="font-size: 0.7rem; text-transform: uppercase; color: ${log.isAnomaly ? '#ff0055' : 'var(--primary)'}; letter-spacing: 1.5px; font-weight:800; margin-bottom: 5px; display:flex; justify-content:space-between;">
-                            <span><i class="fas fa-${log.isAnomaly ? 'radiation' : 'microchip'}"></i> Prime_AI ${log.isAnomaly ? 'Anomaly Detection' : 'Interpretation'}</span>
-                            <span>Threat Type: ${log.threatType || 'Unknown'}</span>
-                        </div>
-                        <div style="font-size:0.85rem; color: var(--text-main); line-height: 1.4;">${formatSuggestion(log.suggestion)}</div>
+        return `
+        <tr id="log-row-${log.id || idx}" class="fade-in">
+            <td><span class="badge-severity ${sev}">${sev}</span></td>
+            <td>
+                <div style="font-size: 0.85rem; font-weight:700;">${log.device || 'Neural Core'}</div>
+                <div style="font-size: 0.77rem; color: var(--text-muted); font-family: var(--font-mono); margin: 3px 0;">${log.ip || '-'}</div>
+                ${locationChip}
+            </td>
+            <td style="text-align:center;">${attempts}</td>
+            <td>
+                <div style="font-weight: 900; color: ${riskColor}; font-size: 1.1rem; text-shadow: 0 0 10px ${riskColor}33;">${log.riskScore || 0}%</div>
+                <div style="font-size: 0.65rem; color: var(--text-muted);">Points</div>
+            </td>
+            <td style="font-size:0.8rem; color:#888; white-space: nowrap;">${new Date(log.timestamp || log.createdAt).toLocaleTimeString()}</td>
+            <td style="font-family: 'Space Mono', monospace; font-size: 0.8rem; max-width: 350px;">
+                <div style="color: #fff; line-height: 1.3;">${log.message || ''}</div>
+                <div style="margin-top: 10px; padding: 10px; background: rgba(var(--primary-rgb), 0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); border-left: 2px solid ${log.isAnomaly ? '#ff0055' : 'var(--primary)'};">
+                    <div style="font-size: 0.7rem; text-transform: uppercase; color: ${log.isAnomaly ? '#ff0055' : 'var(--primary)'}; letter-spacing: 1.5px; font-weight:800; margin-bottom: 5px; display:flex; justify-content:space-between;">
+                        <span><i class="fas fa-${log.isAnomaly ? 'radiation' : 'microchip'}"></i> Prime_AI ${log.isAnomaly ? 'Anomaly Detection' : 'Interpretation'}</span>
                     </div>
-                </td>
-                <td style="width: 130px; background: rgba(255,255,255,0.01); border-left: 1px solid rgba(255,255,255,0.05); vertical-align: middle;">
-                    <div style="display:flex; flex-direction:column; gap:8px;">
-                        ${resolveBtn}
-                        ${blockBtn}
-                        ${suspendBtn}
-                    </div>
-                </td>
-            </tr>`;
-        }).join('');
-    } catch (e) {
-        const logs = (state.liveLogs || []).filter(l => (l.status || 'ACTIVE') === alertTab);
-        const pill = viewContainer.querySelector('#log-count-pill');
-        if (pill) pill.innerText = `${logs.length} Events`;
-        if (logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Unauthorized: Login as Admin to view Enterprise Alerts.</td></tr>';
-            return;
-        }
-    }
+                    <div style="font-size:0.85rem; color: var(--text-main); line-height: 1.4;">${typeof formatSuggestion === 'function' ? formatSuggestion(log.suggestion) : (log.suggestion || 'Analyzing vector...')}</div>
+                </div>
+            </td>
+            <td style="width: 130px; background: rgba(255,255,255,0.01); border-left: 1px solid rgba(255,255,255,0.05); vertical-align: middle;">
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    ${resolveBtn}
+                    ${blockBtn}
+                </div>
+            </td>
+        </tr>`;
+    }).join('');
 }
 
 // --- SOC Observability Handlers ---
@@ -2175,15 +2204,39 @@ async function renderTimeline() {
             const time = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const date = new Date(log.timestamp).toLocaleDateString();
             const color = log.severity === 'CRITICAL' ? '#ff0055' : log.severity === 'ERROR' ? '#ffcc00' : 'var(--primary)';
+            
+            // Phase Mapping Strategy (v8.0 Blueprint)
+            const msg = (log.message || '').toLowerCase();
+            let phaseIcon = 'fa-circle-info';
+            let phaseLabel = 'SYSTEM_EVENT';
+            
+            if (msg.includes('breach') || log.severity === 'CRITICAL') {
+                phaseIcon = 'fa-radiation';
+                phaseLabel = 'THREAT_EXFIL';
+            } else if (msg.includes('fail') || msg.includes('deny') || msg.includes('block')) {
+                phaseIcon = 'fa-shield-halved';
+                phaseLabel = 'INCIDENT_MITIGATION';
+            } else if (msg.includes('probe') || msg.includes('scan') || msg.includes('port')) {
+                phaseIcon = 'fa-crosshairs';
+                phaseLabel = 'RECON_DISCOVERY';
+            }
 
             return `
                     <div class="timeline-item" style="position: relative; margin-bottom: 40px;">
-                        <div class="timeline-dot" style="position: absolute; left: -36px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: ${color}; box-shadow: 0 0 10px ${color};"></div>
+                        <div class="timeline-dot" style="position: absolute; left: -36px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: ${color}; box-shadow: 0 0 15px ${color};"></div>
                         <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">${date} | ${time}</div>
-                        <div class="card glass-card" style="margin-top: 10px; padding: 15px; max-width: 600px; border: 1px solid rgba(255,255,255,0.05);">
-                            <div style="font-weight: 700; color: ${color}; margin-bottom: 5px;">${log.severity} Alert: ${log.device || 'SYSTEM'}</div>
-                            <div style="font-size: 0.85rem;">${log.message}</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px; font-style: italic;"><i class="fas fa-lightbulb"></i> AI Explanation: ${log.suggestion || 'Routine operation captured.'}</div>
+                        <div class="card glass-card" style="margin-top: 10px; padding: 20px; max-width: 650px; border-left: 3px solid ${color};">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                                <div style="font-weight: 900; color: #fff; letter-spacing: 0.5px;">${log.device || 'SYSTEM'} <i class="fas fa-chevron-right" style="font-size:0.6rem; opacity:0.3; margin:0 8px;"></i> ${log.severity}</div>
+                                <span class="stat-pill" style="font-size:0.65rem; background:rgba(255,255,255,0.05); color:${color}; border:1px solid ${color}33;">
+                                    <i class="fas ${phaseIcon}"></i> ${phaseLabel}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: #eee; line-height: 1.5; font-family: 'Space Mono', monospace;">${log.message}</div>
+                            <div style="margin-top: 15px; padding: 12px; background: rgba(var(--primary-rgb), 0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                                <div style="font-size: 0.65rem; color: var(--primary); text-transform: uppercase; font-weight: 900; margin-bottom: 5px; letter-spacing: 1px;">AI Neural Synthesis</div>
+                                <div style="font-size: 0.85rem; color: var(--text-main); font-style: italic;">"${log.suggestion || 'Analyzing event telemetry...'}"</div>
+                            </div>
                         </div>
                     </div>
                     `;
@@ -2834,6 +2887,33 @@ async function initTopologyGraph() {
         .attr("stroke-width", 1)
         .attr("stroke-dasharray", d => d.value < 1 ? "4,4" : "0");
 
+    // --- Phase 2: Neural Traffic Particles (WOW Factor) ---
+    const particleGroup = svg.append("g").attr("class", "traffic-particles");
+    const spawnParticle = () => {
+        if (!document.getElementById('topo-d3-container') || links.length === 0) return;
+        const l = links[Math.floor(Math.random() * links.length)];
+        if (!l.source.x || !l.target.x) return; // Wait for simulation cold-start
+
+        const p = particleGroup.append("circle")
+            .attr("r", 1.5)
+            .attr("fill", "var(--secondary)")
+            .style("opacity", 0.8)
+            .style("filter", "drop-shadow(0 0 3px var(--secondary))");
+
+        p.transition()
+            .duration(1500 + Math.random() * 2000)
+            .ease(d3.easeLinear)
+            .attrTween("transform", () => t => {
+                const x = l.source.x + (l.target.x - l.source.x) * t;
+                const y = l.source.y + (l.target.y - l.source.y) * t;
+                return `translate(${x},${y})`;
+            })
+            .on("end", function() { d3.select(this).remove(); });
+
+        setTimeout(spawnParticle, 800 + Math.random() * 1000);
+    };
+    setTimeout(spawnParticle, 2000); // Wait for simulation to settle
+
     const node = svg.append("g")
         .selectAll("g")
         .data(nodes)
@@ -2917,6 +2997,22 @@ function renderReports() {
                                         </a>
                                         <a href="javascript:void(0)" onclick="generateReportDirect('availability', 'pdf')">
                                             <i class="fas fa-file-pdf" style="color: #eb5757;"></i> PDF Document
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="report-card glass-card" style="border-top: 4px solid var(--secondary);">
+                                <i class="fas fa-balance-scale"></i>
+                                <h3 class="font-transformers">NIST/ISO Alignment</h3>
+                                <p>Regulatory compliance audit against NIST 800-53 controls.</p>
+                                <div class="stat-pill" style="margin-bottom:15px; border-color:var(--secondary); color:var(--secondary)">82% Compliance Match</div>
+                                <div class="report-download-group">
+                                    <button class="btn-primary" style="padding: 10px 25px; display: flex; align-items: center; gap: 10px; background: rgba(var(--secondary-rgb), 0.1); border: 1px solid var(--secondary); color: var(--secondary);">
+                                        Audit Report <i class="fas fa-chevron-down" style="font-size: 0.8rem;"></i>
+                                    </button>
+                                    <div class="report-dropdown-menu">
+                                        <a href="javascript:void(0)" onclick="generateReportDirect('compliance', 'pdf')">
+                                            <i class="fas fa-file-invoice" style="color: var(--secondary);"></i> Full Compliance Audit
                                         </a>
                                     </div>
                                 </div>
@@ -3081,22 +3177,44 @@ function renderPowerBI() {
                                     </div>
                                 </div>
                                 <!-- Dynamic Content for other tabs can be added here -->
-                                <div id="pbi-resource-grid" style="display:none; padding: 20px; text-align: center; color: #888;">
-                                    <h3>Resource Utilization Details</h3>
-                                    <p>Detailed breakdown of server-level metrics coming soon.</p>
-                                </div>
-                                <div id="pbi-security-grid" style="display:none; padding: 20px; text-align: center; color: #888;">
-                                    <h3>Security Threat Trends</h3>
-                                    <p>Advanced security vectors and heatmaps coming soon.</p>
-                                </div>
-                            </main>
-                        </div>
-                    </div>
-                    `;
+                                <div id="pbi-resource-grid" style="display:none; width: 100%;">
+                                     <!-- JS Rendered -->
+                                 </div>
+                                 <div id="pbi-security-grid" style="display:none; width: 100%;">
+                                     <!-- JS Rendered -->
+                                 </div>
+                             </main>
+                         </div>
+                     </div>
+                     `;
+    
+    // 1. ADD TAB EVENT LISTENERS
+    const tabContainer = view.querySelector('#pbi-tab-container');
+    if (tabContainer) {
+        tabContainer.querySelectorAll('.pbi-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Switch Active Tab Class
+                tabContainer.querySelectorAll('.pbi-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Toggle Grids
+                const target = tab.getAttribute('data-tab');
+                const grids = ['pbi-overview-grid', 'pbi-resource-grid', 'pbi-security-grid'];
+                grids.forEach(g => {
+                   const el = document.getElementById(g);
+                   if (el) el.style.display = g === `pbi-${target}-grid` ? 'grid' : 'none';
+                });
+
+                // Initialize Tab Specific Data
+                if (target === 'resource') initResourcePBITab();
+                if (target === 'security') initSecurityPBITab();
+            });
+        });
+    }
 
     view.setAttribute('data-rendered', 'true');
 
-    // Initialize Charts with PowerBI styling
+    // Initialize Charts with PowerBI styling (Initial Tab: Overview)
     setTimeout(() => {
         initPowerBICharts();
     }, 100);
@@ -4012,55 +4130,84 @@ function renderProfile() {
          <div class="card glass-card">
             <div class="card-title">Session Intelligence</div>
             <div style="margin-top: 20px;">
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Recent Secure Access Tokens:</p>
-                <ul style="list-style: none; padding: 0;">
-                    <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 0.85rem; color: white;">Local Workstation</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted);">127.0.0.1 • Windows 11</div>
-                        </div>
-                        <span style="font-size: 0.7rem; color: #00ff88;">Active</span>
-                    </li>
-                    <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 0.85rem; color: white;">Mobile Console</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted);">172.64.1.42 • iOS 17</div>
-                        </div>
-                        <span style="font-size: 0.7rem; color: var(--text-muted);">6h ago</span>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Active Secure Access Tokens:</p>
+                <ul id="active-sessions-list" style="list-style: none; padding: 0;">
+                    <li style="text-align:center; padding: 20px; color: var(--text-muted); font-size: 0.8rem;">
+                        <i class="fas fa-satellite fa-spin"></i> Querying Session Registry...
                     </li>
                 </ul>
                 <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-                    <button class="btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="showToast('Security configuration saved', 'success')">Enable 2FA Protection</button>
-                    <button class="btn-primary" style="width: 100%; background: transparent; border: 1px solid #ff0055; color: #ff0055; font-size: 0.9rem;" onclick="logout()">Terminate All Sessions</button>
+                    <button class="btn-primary" style="width: 100%; font-size: 0.9rem;" onclick="showToast('MFA Setup Initiated', 'info')">Enable MFA Protection</button>
+                    <button class="btn-primary" style="width: 100%; background: transparent; border: 1px solid #ff0055; color: #ff0055; font-size: 0.9rem;" onclick="terminateOtherSessions()">Destroy Other Access Tokens</button>
                 </div>
+            </div>
             </div>
         </div>
 
-        <!--Advanced Metadata-->
-            <div class="card glass-card" style="grid-column: span 2;">
-                <div class="card-title">Organizational metadata</div>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 20px;">
-                    <div>
-                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Infrastructure Tier</h4>
-                        <p style="font-size: 0.95rem; color: white; margin-top: 5px;">SentinelX Enterprise Elite</p>
-                    </div>
-                    <div>
-                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">deployment Region</h4>
-                        <p style="font-size: 0.95rem; color: white; margin-top: 5px;">US-EAST-1 (Northern Virginia)</p>
-                    </div>
-                    <div>
-                        <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Neural Key Signature</h4>
-                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; font-family: 'Space Mono';">SX-2025-PX-V6-992AB1-CC03</p>
-                    </div>
+        <!--Advanced Metadata Area-->
+         <div class="card glass-card" style="grid-column: span 2;">
+            <div class="card-title">Organizational metadata</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 20px;">
+                <div>
+                    <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Infrastructure Tier</h4>
+                    <p style="font-size: 0.95rem; color: white; margin-top: 5px;">SentinelX Enterprise Elite</p>
                 </div>
-                <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; display: flex; gap: 15px;">
-                    <button class="btn-primary" onclick="editProfile()"><i class="fas fa-edit"></i> Edit Core Identity</button>
-                    <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Exporting encryption keys...', 'info')">Export Key Bundle</button>
+                <div>
+                    <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">deployment Region</h4>
+                    <p style="font-size: 0.95rem; color: white; margin-top: 5px;">US-EAST-1 (Northern Virginia)</p>
+                </div>
+                <div>
+                    <h4 style="font-size: 0.8rem; color: var(--primary); text-transform: uppercase;">Neural Key Signature</h4>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px; font-family: 'Space Mono';">SX-2025-PX-V6-992AB1-CC03</p>
                 </div>
             </div>
+            <div style="margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; display: flex; gap: 15px;">
+                <button class="btn-primary" onclick="editProfile()"><i class="fas fa-edit"></i> Edit Core Identity</button>
+                <button class="btn-primary" style="background: transparent; border: 1px solid var(--primary); color: var(--primary);" onclick="showToast('Exporting encryption keys...', 'info')">Export Key Bundle</button>
+            </div>
+         </div>
     </div>
-            `;
+    `;
+
+    fetchSessions(); // Call initial session load
     view.setAttribute('data-rendered', 'true');
+}
+
+async function fetchSessions() {
+    const list = document.getElementById('active-sessions-list');
+    if (!list) return;
+    try {
+        const res = await fetch('/api/auth/sessions');
+        const sessions = await res.json();
+        list.innerHTML = sessions.map(s => {
+            const isCurrent = s.isCurrent ? ' <span style="color: #00ff88; font-weight:bold;">[CURRENT]</span>' : '';
+            return `
+            <li style="padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 0.85rem; color: white;">${s.device || 'Neural Workstation'}${isCurrent}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-muted); font-family: var(--font-mono);">${s.ip} • ${s.browser} • ${s.location || 'Unknown'}</div>
+                    <div style="font-size: 0.65rem; color: #666; margin-top: 3px;">${new Date(s.lastAccess).toLocaleString()}</div>
+                </div>
+                ${!s.isCurrent ? `<button onclick="terminateSession('${s.sessionId}')" style="background:none; border:none; color:#ff0055; cursor:pointer;"><i class="fas fa-times"></i></button>` : '<i class="fas fa-shield-alt" style="color:#00ff88"></i>'}
+            </li>`;
+        }).join('');
+    } catch (e) { list.innerHTML = '<li>Vault Desync: Session retrieval failed.</li>'; }
+}
+
+async function terminateSession(id) {
+    if(!confirm("Destroy this access token?")) return;
+    try {
+        const res = await fetch(`/api/auth/sessions/${id}`, { method: 'DELETE' });
+        if (res.ok) { showToast("Security token destroyed.", "success"); fetchSessions(); }
+    } catch (e) { showToast("Termination failed", "error"); }
+}
+
+async function terminateOtherSessions() {
+    if(!confirm("Purge all other security tokens?")) return;
+    try {
+        const res = await fetch('/api/auth/sessions', { method: 'DELETE' });
+        if (res.ok) { showToast("Global session purge successful.", "success"); fetchSessions(); }
+    } catch (e) { showToast("Purge failed", "error"); }
 }
 
 async function editProfile() {
@@ -4570,10 +4717,9 @@ function renderBotProfile() {
                 <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Currently monitoring <strong>Global Node Signature 12-B</strong> and optimizing regional packet flow for Europe-A Cluster.</p>
             </div>
         </div>
+        </div>
     </div>
-        }
-}
-`;
+    `;
     view.setAttribute('data-rendered', 'true');
 }
 
@@ -4676,5 +4822,115 @@ document.addEventListener('click', (e) => {
         logout(e);
     }
 });
+
+
+/**
+ * SentinelX Live Feed Engine v10.0
+ * Injects real-time security events into the Overview dashboard.
+ */
+function updateLiveFeedUI(log) {
+    const feed = document.getElementById('global-live-feed');
+    if (!feed) return;
+
+    // Remove the placeholder if it exists (first item)
+    if (feed.querySelector('i.fa-satellite')) feed.innerHTML = '';
+
+    const timestamp = new Date(log.timestamp || new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const color = log.severity === 'CRITICAL' ? '#ff0055' : log.severity === 'ERROR' ? '#ffcc00' : 'var(--primary)';
+
+    const item = document.createElement('div');
+    item.className = 'fade-in';
+    item.style.marginBottom = '12px';
+    item.style.padding = '10px 15px';
+    item.style.borderLeft = `3px solid ${color}`;
+    item.style.background = 'rgba(255,255,255,0.03)';
+    item.style.borderRadius = '8px';
+    item.style.fontSize = '0.78rem';
+    item.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+
+    item.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <span style="color:${color}; font-weight:900; letter-spacing:1px; font-size: 0.65rem;">${(log.severity || 'INFO').toUpperCase()}</span>
+            <span style="color:#666; font-size:0.65rem; font-family:var(--font-mono);">${timestamp}</span>
+        </div>
+        <div style="color:#fff; line-height:1.4;">
+            <span style="color:var(--text-muted); font-family:var(--font-mono); font-size:0.7rem;">${log.device || 'CORE'}</span>
+            <i class="fas fa-chevron-right" style="font-size:0.6rem; color:#444; margin:0 5px;"></i> ${log.message}
+        </div>
+    `;
+
+    feed.prepend(item);
+    
+    // Maintain max 15 items for performance
+    if (feed.children.length > 15) feed.lastElementChild.remove();
+}
+
+/**
+ * Multi-Factor Authentication (MFA) Setup 
+ * Simulates a cryptographic handshake and QR code generation.
+ */
+async function setupMFA() {
+    // 1. Create Glass Modal
+    const modal = document.createElement('div');
+    modal.className = 'modal-backdrop fade-in';
+    modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; z-index:10000; backdrop-filter:blur(10px);';
+    
+    modal.innerHTML = `
+        <div class="card glass-card fade-in-up" style="width: 450px; padding: 40px; border: 1px solid var(--primary);">
+            <div style="text-align:center; margin-bottom:30px;">
+                <div style="font-size: 3rem; color: var(--primary); margin-bottom: 20px;"><i class="fas fa-shield-halved fa-pulse"></i></div>
+                <h2 class="font-transformers" style="font-size: 1.5rem; color: #fff;">Quantum MFA Setup</h2>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top:10px;">Secure your identity with a cryptographic secondary layer.</p>
+            </div>
+
+            <div style="background: white; width: 170px; height: 170px; margin: 0 auto 30px; padding: 10px; border-radius: 12px; display: flex; justify-content:center; align-items:center;">
+                <!-- Simulating QR Code -->
+                <div style="width:100%; height:100%; background: #000; display:flex; justify-content:center; align-items:center; color:white; font-size:0.5rem; text-align:center;">
+                   MFA_TOKEN_GENERATED<br>[SECURE_BLOB]
+                </div>
+            </div>
+
+            <div style="margin-bottom: 25px;">
+                <label style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase; font-weight: 800; display: block; margin-bottom: 8px;">Enter 6-Digit Matrix Code</label>
+                <input type="text" id="mfa-verify-code" class="form-input" placeholder="000000" maxlength="6" style="text-align:center; letter-spacing: 5px; font-size: 1.5rem;">
+            </div>
+
+            <div style="display:flex; gap:15px;">
+                <button class="btn-primary" style="flex:1" id="mfa-verify-btn">ACTIVATE TOKEN</button>
+                <button class="btn-primary" style="flex:1; background:transparent; border:1px solid #444;" onclick="this.closest('.modal-backdrop').remove()">CANCEL</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const verifyBtn = document.getElementById('mfa-verify-btn');
+    verifyBtn.onclick = async () => {
+        const code = document.getElementById('mfa-verify-code').value;
+        if (code.length === 6) {
+           verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCING...';
+           verifyBtn.disabled = true;
+           
+           // Real API call (Phase 1 logic)
+           try {
+               const res = await fetch('/api/auth/mfa/setup', { method: 'POST' });
+               if (res.ok) {
+                   modal.remove();
+                   showToast("MFA Activated: Neural signature synced.", "success");
+                   state.user.mfaEnabled = true;
+                   renderProfile(); // Re-render to show active
+               } else {
+                   throw new Error("Handshake failed");
+               }
+           } catch (e) {
+               showToast("Cryptographic link failed. Try again.", "error");
+               verifyBtn.disabled = false;
+               verifyBtn.innerHTML = 'ACTIVATE TOKEN';
+           }
+        } else {
+           showToast("Invalid sequence detected. Try again.", "error");
+        }
+    };
+}
 
 console.log('Scripts fully loaded!')

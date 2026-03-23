@@ -141,6 +141,17 @@ const Playbook = sequelize.define('Playbook', {
     }
 });
 
+// --- Denied IP (Firewall Simulation Core) ---
+const DeniedIP = sequelize.define('DeniedIP', {
+    ip: { type: DataTypes.STRING, allowNull: false, unique: true },
+    reason: { type: DataTypes.STRING, defaultValue: 'Automated SOAR Quarantine' },
+    expires: { type: DataTypes.DATE, allowNull: true },
+    UserId: {
+        type: DataTypes.INTEGER,
+        references: { model: 'User', key: 'id' }
+    }
+});
+
 // --- ASSOCIATIONS ---
 User.hasMany(LoginHistory, { foreignKey: 'UserId' });
 LoginHistory.belongsTo(User, { foreignKey: 'UserId' });
@@ -160,10 +171,13 @@ Server.belongsTo(User, { foreignKey: 'UserId' });
 User.hasMany(Playbook, { foreignKey: 'UserId' });
 Playbook.belongsTo(User, { foreignKey: 'UserId' });
 
+User.hasMany(DeniedIP, { foreignKey: 'UserId' });
+DeniedIP.belongsTo(User, { foreignKey: 'UserId' });
+
 Server.hasMany(SystemMetric, { foreignKey: 'ServerId' });
 SystemMetric.belongsTo(Server, { foreignKey: 'ServerId' });
 
 Server.hasMany(LogEntry, { foreignKey: 'ServerId' });
 LogEntry.belongsTo(Server, { foreignKey: 'ServerId' });
 
-module.exports = { User, LoginHistory, AuditLog, ActiveSession, SystemMetric, LogEntry, Server, Playbook };
+module.exports = { User, LoginHistory, AuditLog, ActiveSession, SystemMetric, LogEntry, Server, Playbook, DeniedIP };
