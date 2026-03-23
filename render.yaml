@@ -11,6 +11,7 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     autoDeploy: true
+    healthCheckPath: /api/healthcheck
     envVars:
       - key: NODE_VERSION
         value: 18
@@ -42,8 +43,9 @@ services:
     plan: free
     rootDir: backend/python_service
     buildCommand: pip install -r requirements.txt
-    startCommand: python app.py
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     autoDeploy: true
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0

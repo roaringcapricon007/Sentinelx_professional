@@ -78,4 +78,19 @@ app.use('/api/soar', soarRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- MONITORING HOOK (Phase 4 Reliability) ---
+app.get('/api/healthcheck', (req, res) => {
+  res.json({
+    status: 'ACTIVE',
+    handshake: 'PRODUCED',
+    timestamp: new Date(),
+    service: 'SentinelX PROFESSIONAL CORE'
+  });
+});
+
+// SPA Catch-all (Phase 1 UI Persistence)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 module.exports = app;
