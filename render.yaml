@@ -11,7 +11,7 @@ services:
     buildCommand: npm install
     startCommand: node server.js
     autoDeploy: true
-    healthCheckPath: /api/healthcheck
+    healthCheckPath: /
     envVars:
       - key: NODE_VERSION
         value: 18
