@@ -8,12 +8,32 @@ require('dotenv').config();
 const app = express();
 
 // Standard Middleware
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 // Sovereign Firewall (SOAR Enforcement Layer)
 const firewall = require('./middleware/firewall.middleware');
 app.use(firewall);
+
+// 🔥 Best Debug Setup (MANDATORY GATEWAY LOGGING)
+app.use((req, res, next) => {
+  console.log(`[DEBUG] ${req.method} ${req.url}`);
+  next();
+});
+
+// ✅ ROOT EXPOSURE (Point 1)
+app.get("/", (req, res) => {
+  res.json({
+    status: "SentinelX Backend Running 🚀",
+    message: "Server live",
+    time: new Date()
+  });
+});
+
+// ✅ MANDATORY HEALTH CHECK (Point 5)
+app.get("/health", (req, res) => {
+    res.status(200).send("OK");
+});
 
 // Session Config with Database Persistence
 const SequelizeStore = require('connect-session-sequelize')(session.Store);
@@ -48,33 +68,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Route Definitions
-const ingestRoutes = require('./routes/ingest.routes');
-const analysisRoutes = require('./routes/analysis.routes');
-const authRoutes = require('./routes/auth.routes');
-const metricsRoutes = require('./routes/metrics.routes');
-const aiRoutes = require('./routes/ai.routes');
-const automationRoutes = require('./routes/automation.routes');
-const maintenanceRoutes = require('./routes/maintenance.routes');
-const testingRoutes = require('./routes/testing.routes');
-const soarRoutes = require('./routes/soar.routes');
-
-// Sockets requirement for these routes (will use global.io anyway)
-const infrastructureRoutes = require('./routes/infrastructure.routes')(null);
-const logsRoutes = require('./routes/logs.routes')(null);
-
-// Mount
-app.use('/api/ingest', ingestRoutes);
-app.use('/api/analysis', analysisRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/metrics', metricsRoutes);
-app.use('/api/infrastructure', infrastructureRoutes);
-app.use('/api/logs', logsRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/automation', automationRoutes);
-app.use('/api/maintenance', maintenanceRoutes);
-app.use('/api/testing', testingRoutes);
-app.use('/api/soar', soarRoutes);
+// API Route Orchestrator (Point 10)
+const apiRoutes = require('./routes/api');
+app.use('/api', apiRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 

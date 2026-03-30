@@ -33,6 +33,7 @@ global.eventBus.on('metrics:update', (data) => io.emit('metrics_update', data));
 // 4. DATABASE & SEEDING (Initialization Layer)
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on ${PORT}`);
     console.log(`
   =================================================
   SentinelX Professional v10.0 (Event-Driven Core)
