@@ -10,26 +10,25 @@ router.get("/", (req, res) => {
   });
 });
 
-// ✅ RECEIVE LOG (Point 6)
+// ✅ LOGGING & FORENSICS (Point 10 Premium)
 router.post("/log", logController.receiveLog);
-
-// ✅ SEARCH LOGS (Point 10 Premium Filter)
 router.get("/logs", logController.getLogs);
+router.get("/logs/search", logController.searchLogs);
+router.post("/logs/resolve/:id", logController.resolveLog);
+router.post("/logs/block-ip", logController.blockIP);
 
 // ✅ TEST ROUTE
 router.get("/test", (req, res) => {
     res.json({ success: true, message: "Test route working 🚀" });
 });
 
-// --- 1. CORE AUTH & INGEST ---
+// --- 1. CORE AUTH ---
 const authRoutes = require('./auth.routes');
-const ingestRoutes = require('./ingest.routes');
 
 // --- 2. INTELLIGENCE & TELEMETRY ---
 const aiRoutes = require('./ai.routes');
 const metricsRoutes = require('./metrics.routes');
 const infrastructureRoutes = require('./infrastructure.routes')(null);
-const logsRoutes = require('./logs.routes')(null);
 
 // --- 3. ANALYSIS & SOAR ---
 const analysisRoutes = require('./analysis.routes');
@@ -42,11 +41,9 @@ const testingRoutes = require('./testing.routes');
 
 // --- MOUNTING (MANDATORY Point 10) ---
 router.use('/auth', authRoutes);
-router.use('/ingest', ingestRoutes);
 router.use('/ai', aiRoutes);
 router.use('/metrics', metricsRoutes);
 router.use('/infrastructure', infrastructureRoutes);
-router.use('/logs', logsRoutes);
 router.use('/analysis', analysisRoutes);
 router.use('/soar', soarRoutes);
 router.use('/automation', automationRoutes);
