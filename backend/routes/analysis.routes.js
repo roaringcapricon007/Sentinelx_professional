@@ -76,4 +76,24 @@ router.post('/upload', authorize(['super_admin', 'admin', 'analyst']), upload.si
   }
 });
 
+// GET /api/analysis/report
+// Generates Forensic Security PDF (Phase 4 Premium)
+const reportingService = require('../services/reporting.service');
+router.get('/report', authorize(['super_admin', 'admin', 'analyst']), async (req, res) => {
+    try {
+        const { limit } = req.query;
+        const pdfBuffer = await reportingService.generateForensicReport(req.user.id, { limit: parseInt(limit) || 100 });
+        
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `SentinelX_Forensic_Report_${timestamp}.pdf`;
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(pdfBuffer);
+    } catch (err) {
+        console.error('Report Generation Error:', err.message);
+        res.status(500).json({ success: false, error: "Neural PDF Generation Failed" });
+    }
+});
+
 module.exports = router;

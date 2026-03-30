@@ -9,7 +9,8 @@ import glob
 
 # --- 1. CONFIGURATION ---
 print("--- PRIME_AI NEURAL CORE: LAYER 2 TRAINING (AUGMENTED PATTERNS) ---")
-uploads_dir = os.path.join(os.path.dirname(__file__), '..', 'uploads', 'datasets')
+# Pointing to the forensic data vault (re-synchronized)
+uploads_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'training_vault')
 folders = ['Linux', 'Windows', 'Apache', 'Android', 'HDFS', 'Zookeeper', 'HPC', 'Proxifier', 'HealthApp', 'Mac', 'OpenSSH', 'Spark', 'Thunderbird', 'BGL', 'Hadoop', 'OpenStack']
 
 data = [
@@ -33,11 +34,10 @@ def extract_features(msg):
 
 # --- 2. DATA AUGMENTATION ---
 for folder in folders:
-    folder_path = os.path.join(uploads_dir, folder)
-    if not os.path.exists(folder_path):
-        continue
+    # --- HANDLES FLAT STRUCTURE IN VAULT ---
+    search_pattern = os.path.join(uploads_dir, f"{folder}_2k.log_structured.csv")
+    csv_files = glob.glob(search_pattern)
     
-    csv_files = glob.glob(os.path.join(folder_path, "*_structured.csv"))
     if csv_files:
         print(f"Deep Analysis: Indexing {folder} neural patterns...")
         try:
