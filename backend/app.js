@@ -31,12 +31,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ ROOT ROUTE (MUST HAVE)
+// ✅ ROOT ROUTE (Point 7)
 app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "SentinelX Backend LIVE 🚀"
-  });
+    res.send("SentinelX Running 🚀");
 });
 
 // ✅ HEALTH CHECK
@@ -76,6 +73,9 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// ✅ DEVICE REGISTER (Point 7)
+app.use("/device", require("./routes/device.routes"));
 
 // ✅ DEBUG TEST ROUTER (STEP 2 MANDATORY)
 app.get("/debug", (req, res) => {

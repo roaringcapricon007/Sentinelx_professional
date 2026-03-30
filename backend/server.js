@@ -25,7 +25,10 @@ infraWorker.initialize().catch(err => console.error('[WATCHDOG] Init Serialized 
  * Translates internal Neural Stream events to Socket.io UI pushes.
  * This is the 'Push' layer (Step 3 of the Perfectionist Flow).
  */
-global.eventBus.on('log:processed', (log) => io.emit('new_log', log));
+global.eventBus.on('log:processed', (log) => {
+    io.emit('new_log', log);
+    io.emit('live_log', log); // Point 10 — Premium Live Tail
+});
 global.eventBus.on('log:repeat', (log) => io.emit('log_repeat', log));
 global.eventBus.on('system:alert', (alert) => io.emit('system:alert', alert));
 global.eventBus.on('infrastructure:update', (servers) => io.emit('infrastructure_update', servers));

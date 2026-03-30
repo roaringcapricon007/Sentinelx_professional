@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const logController = require("../controllers/log.controller");
 
 // ✅ API ROOT (Point 2)
 router.get("/", (req, res) => {
@@ -9,12 +10,15 @@ router.get("/", (req, res) => {
   });
 });
 
+// ✅ RECEIVE LOG (Point 6)
+router.post("/log", logController.receiveLog);
+
+// ✅ SEARCH LOGS (Point 10 Premium Filter)
+router.get("/logs", logController.getLogs);
+
 // ✅ TEST ROUTE
 router.get("/test", (req, res) => {
-  res.json({
-    success: true,
-    message: "Test route working 🚀"
-  });
+    res.json({ success: true, message: "Test route working 🚀" });
 });
 
 // --- 1. CORE AUTH & INGEST ---

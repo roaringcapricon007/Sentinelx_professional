@@ -33,34 +33,20 @@ async function streamTelemetry() {
     try {
         const [cpu, mem] = await Promise.all([si.currentLoad(), si.mem()]);
         
-        const payload = {
-            apiKey: API_KEY,
-            events: [
-                {
-                    type: 'heartbeat',
-                    hostname: HOSTNAME,
-                    cpu: Math.round(cpu.currentLoad),
-                    ram: Math.round((mem.active / mem.total) * 100),
-                    ip: getLocalIP()
-                }
-            ]
+        // --- NEW CORE FLOW (Point 5) ---
+        const logPayload = {
+            message: `Neural scan completed on ${HOSTNAME}. Matrix stable.`,
+            level: Math.random() > 0.9 ? "warning" : "info",
+            source: HOSTNAME,
+            cpu: Math.round(cpu.currentLoad),
+            ram: Math.round((mem.active / mem.total) * 100),
+            ip: getLocalIP()
         };
 
-        // Occasional simulated activity log
-        if (Math.random() > 0.7) {
-            payload.events.push({
-                type: 'log',
-                hostname: HOSTNAME,
-                severity: 'INFO',
-                message: `Heuristic scan completed on ${HOSTNAME}. Neural buffers stable.`,
-                timestamp: new Date()
-            });
-        }
-
-        const res = await axios.post(`${SERVER_URL}/api/ingest`, payload);
-        process.stdout.write(`\r[SENTINEL_PULSE] System Synchronized (${res.data.processed} events) | CPU: ${payload.events[0].cpu}% | RAM: ${payload.events[0].ram}%   `);
+        const res = await axios.post(`${SERVER_URL}/api/log`, logPayload);
+        process.stdout.write(`\r[SENTINEL_PULSE] Uplink Active | CPU: ${logPayload.cpu}% | Status: ${res.data.success ? 'ACK' : 'FAIL'}   `);
     } catch (err) {
-        process.stdout.write(`\r[ERROR] Uplink Interrupted: ${err.message.substring(0, 50)}...   `);
+        process.stdout.write(`\r[ERROR] Agent Link Interrupted: ${err.message.substring(0, 50)}...   `);
     }
 }
 

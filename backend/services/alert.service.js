@@ -1,56 +1,30 @@
-const eventBus = require('./event.service');
-
+const eventBus = global.eventBus;
 /**
- * SentinelX Alert Engine v9.0
- * Real-time monitoring of machine metrics to detect high-stress conditions.
+ * --- NEURAL ALERT SYSTEM (PHASE 2) ---
+ * Real-time threat detection and autonomous notification.
  */
-class AlertEngine {
-    constructor() {
-        this.thresholds = {
-            cpu: 90,
-            ram: 95,
-            disk: 98
-        };
-    }
-
-    /**
-     * Inspect telemetry for violations
-     */
-    analyzeTelemetry(machine) {
-        if (machine.cpu > this.thresholds.cpu) {
-            this.triggerAlert('CRITICAL_LOAD', {
-                target: machine.hostname,
-                metric: 'CPU',
-                value: machine.cpu,
-                message: `Neural overload detected on ${machine.hostname}. Thread saturation at ${machine.cpu}%.`
-            });
-        }
-
-        if (machine.ram > this.thresholds.ram) {
-            this.triggerAlert('MEMORY_EXHAUSTION', {
-                target: machine.hostname,
-                metric: 'RAM',
-                value: machine.ram,
-                message: `Memory leak suspected on ${machine.hostname}. Available buffers near zero.`
-            });
-        }
-    }
-
-    triggerAlert(type, data) {
-        console.warn(`[ALERT_ENGINE] 🚨 ${type}: ${data.message}`);
-        
-        // Publish to stream
-        eventBus.publish('system:alert', {
-            type,
-            severity: 'CRITICAL',
-            ...data,
-            timestamp: new Date()
+function checkThreats(log) {
+    // 1. Critical Level Check
+    if (log.severity === "CRITICAL" || log.level === "critical") {
+        console.log(`[ALERT] CRITICAL Log detected from ${log.device || log.source}`);
+        eventBus.publish("system:alert", {
+            type: "SEVERITY_ALERT",
+            severity: "CRITICAL",
+            message: `Node ${log.device || log.source} reported a critical failure: ${log.message}`
         });
+    }
 
-        // Trigger notification bridge if needed
-        const { sendEmailAlert } = require('./notification.service');
-        // sendEmailAlert can be called here for truly critical alerts
+    // 2. Pattern Matching (Basic Heuristic)
+    const patterns = ["failure", "denied", "unauthorized", "refused", "attack"];
+    const message = (log.message || "").toLowerCase();
+    
+    if (patterns.some(p => message.includes(p))) {
+        eventBus.publish("system:alert", {
+            type: "PATTERN_MATCH",
+            severity: "WARNING",
+            message: `Neural scan identified suspicious pattern in logs from ${log.device || log.source}`
+        });
     }
 }
 
-module.exports = new AlertEngine();
+module.exports = { checkThreats };
