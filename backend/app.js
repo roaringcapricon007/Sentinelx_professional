@@ -77,8 +77,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// ✅ DEBUG TEST ROUTER (STEP 2 MANDATORY)
+app.get("/debug", (req, res) => {
+  res.send("DEBUG WORKING ✅");
+});
+
 // API Route Orchestrator (Point 10)
 const apiRoutes = require('./routes/api');
+console.log("ROUTES LOADING STATUS:", typeof apiRoutes === 'function' ? '✅ CORRECT [Function: router]' : '❌ ERROR: Export was ' + typeof apiRoutes);
 app.use('/api', apiRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
