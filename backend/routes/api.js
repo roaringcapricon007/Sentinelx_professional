@@ -1,6 +1,22 @@
 const express = require('express');
 const router = express.Router();
 
+// ✅ API ROOT (Point 2)
+router.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "API working ✅"
+  });
+});
+
+// ✅ TEST ROUTE
+router.get("/test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Test route working 🚀"
+  });
+});
+
 // --- 1. CORE AUTH & INGEST ---
 const authRoutes = require('./auth.routes');
 const ingestRoutes = require('./ingest.routes');

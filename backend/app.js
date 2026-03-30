@@ -3,13 +3,23 @@ const path = require('path');
 const cors = require('cors');
 const session = require('express-session');
 const passport = require('passport');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
 
 // Standard Middleware
+app.use(helmet());
 app.use(cors({ origin: "*" }));
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
+
+// 🚦 Rate Limiter
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 100
+});
+app.use(limiter);
 
 // Sovereign Firewall (SOAR Enforcement Layer)
 const firewall = require('./middleware/firewall.middleware');
@@ -21,18 +31,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ ROOT EXPOSURE (Point 1)
+// ✅ ROOT ROUTE (MUST HAVE)
 app.get("/", (req, res) => {
   res.json({
-    status: "SentinelX Backend Running 🚀",
-    message: "Server live",
-    time: new Date()
+    success: true,
+    message: "SentinelX Backend LIVE 🚀"
   });
 });
 
-// ✅ MANDATORY HEALTH CHECK (Point 5)
+// ✅ HEALTH CHECK
 app.get("/health", (req, res) => {
-    res.status(200).send("OK");
+  res.send("OK ✅");
 });
 
 // Session Config with Database Persistence
@@ -74,19 +83,21 @@ app.use('/api', apiRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- MONITORING HOOK (Phase 4 Reliability) ---
-app.get('/api/healthcheck', (req, res) => {
-  res.json({
-    status: 'ACTIVE',
-    handshake: 'PRODUCED',
-    timestamp: new Date(),
-    service: 'SentinelX PROFESSIONAL CORE'
+// ❌ 404 HANDLER
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found ❌"
   });
 });
 
-// SPA Catch-all (Phase 1 UI Persistence)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// ❌ GLOBAL ERROR HANDLER
+app.use((err, req, res, next) => {
+  console.error("🔥 ERROR:", err);
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error"
+  });
 });
 
 module.exports = app;
