@@ -31,9 +31,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// ✅ ROOT ROUTE (Point 7)
+// ✅ ROOT UI (Serve Dashboard)
 app.get("/", (req, res) => {
-    res.send("SentinelX Running 🚀");
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ✅ HEALTH CHECK
