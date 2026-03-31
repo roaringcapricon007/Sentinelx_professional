@@ -189,13 +189,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'sentinelx_neural_secret_2026';
 
 router.post('/login', async (req, res) => {
     let { email, password } = req.body;
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    const geo = geoip.lookup(ip === '::1' || ip === '127.0.0.1' ? '1.1.1.1' : ip);
-    const location = geo ? `${geo.city}, ${geo.country}` : 'Local Infrastructure';
+    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    
+    // Render/Proxy Support: Extract primary IP from multi-hop list (Step 2 Mandatory)
+    if (ip && ip.includes(',')) {
+        ip = ip.split(',')[0].trim();
+    }
+    
+    const normalizedIp = (ip === '::1' || ip === '127.0.0.1') ? '1.1.1.1' : ip;
+    
+    let location = 'Local Infrastructure';
+    let device = 'Neural Workstation';
+    let browser = 'System Interface';
 
-    const parser = new UAParser(req.headers['user-agent']);
-    const device = parser.getDevice().model || 'Neural Workstation';
-    const browser = parser.getBrowser().name || 'System Interface';
+    try {
+        const geo = geoip.lookup(normalizedIp);
+        if (geo) location = `${geo.city || 'Unknown'}, ${geo.country || 'Unknown'}`;
+
+        const parser = new UAParser(req.headers['user-agent']);
+        device = parser.getDevice().model || 'Neural Workstation';
+        browser = parser.getBrowser().name || 'System Interface';
+    } catch (e) {
+        console.warn(`[AUTH] Telemetry parsing fallback active: ${e.message}`);
+    }
 
     if (!email || !password) return res.status(400).json({ error: 'Identity credentials missing.' });
 
