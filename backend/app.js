@@ -10,30 +10,24 @@ require('dotenv').config();
 const app = express();
 
 // Standard Middleware
-app.use(helmet());
+// app.use(helmet()); 
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "10kb" }));
 
-// 🚦 Rate Limiter
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 mins
-  max: 100
-});
-app.use(limiter);
+// UI Rate Limiting & Firewall Neutralized for SOC Sync (v10.9)
+// app.use(limiter); 
+// app.use(firewall);
 
-// Sovereign Firewall (SOAR Enforcement Layer)
-const firewall = require('./middleware/firewall.middleware');
-app.use(firewall);
+// ✅ ROOT UI (Serve Dashboard - PRIORITY 1)
+app.get("/", (req, res) => {
+    console.log("🔥 SENTINELX CORE: SERVING DASHBOARD UI...");
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // 🔥 Best Debug Setup (MANDATORY GATEWAY LOGGING)
 app.use((req, res, next) => {
   console.log(`[DEBUG] ${req.method} ${req.url}`);
   next();
-});
-
-// ✅ ROOT UI (Serve Dashboard)
-app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ✅ HEALTH CHECK
