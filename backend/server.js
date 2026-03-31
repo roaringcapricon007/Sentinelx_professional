@@ -1,5 +1,6 @@
-console.log("🔥 SENTINELX CORE: THIS SERVER FILE IS RUNNING (POINT 2 VERIFIED)");
+console.log("🔥 SENTINELX CORE: STARTING INITIALIZATION...");
 const app = require('./app'); 
+console.log("🔥 SENTINELX CORE: APP MODULE LOADED.");
 const http = require('http');
 const socketIo = require('socket.io');
 const sequelize = require('./database');
@@ -7,6 +8,7 @@ const { Server, User } = require('./models');
 
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: '*' } });
+console.log("🔥 SENTINELX CORE: HTTP SERVER & SOCKETS CREATED.");
 
 // 1. GLOBAL ACCESS
 global.io = io;

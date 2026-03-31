@@ -61,7 +61,8 @@ app.use(session({
   cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }
 }));
 
-sessionStore.sync();
+// Session synchronization handled asynchronously to prevent startup deadlock
+// sessionStore.sync();
 
 app.use(passport.initialize());
 app.use(passport.session());

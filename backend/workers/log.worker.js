@@ -1,7 +1,7 @@
 const eventBus = require('../services/event.service');
 const { LogEntry } = require('../models');
 const { Op } = require('sequelize');
-const { getIpIntelligence } = require('../services/log.service');
+const { getIpIntelligence } = require('../services/intel.service');
 const { evaluatePlaybooks } = require('../services/playbook.service');
 const { dispatchCriticalAlert } = require('../services/notification.service');
 const { ingestLog } = require('../services/ingest.service');
