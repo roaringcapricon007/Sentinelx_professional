@@ -51,6 +51,11 @@ server.listen(PORT, "0.0.0.0", () => {
     sequelize.sync({ alter: true }).then(async () => {
         console.log('--- DATABASE HANDSHAKE COMPLETED ---');
         
+        // --- ENSURE SESSION VAULT (v13.2) ---
+        if (app.sessionStore) {
+            app.sessionStore.sync().catch(e => console.error('[AUTH] Session Sync Error:', e.message));
+        }
+
         // --- SEEDING LOGIC (Internal) ---
         await seedEnterpriseRoles();
         await seedInfrastructureNodes();

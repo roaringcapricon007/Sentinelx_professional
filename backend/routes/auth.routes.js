@@ -218,53 +218,59 @@ router.post('/login', async (req, res) => {
     try {
         console.log(`[AUTH] Access request: ${email} from ${ip} [${device}]`);
 
+        // Standard 'where' for better Postgres/SQLITE compatibility
         const user = await User.findOne({
-            where: sequelize.where(
-                sequelize.fn('LOWER', sequelize.col('email')),
-                '=',
-                email.toLowerCase()
-            )
+            where: { email: email.toLowerCase() }
         });
 
         if (!user) {
-            await LoginHistory.create({ 
-                ipAddress: ip, 
-                userAgent: req.headers['user-agent'], 
-                deviceName: device,
-                browserName: browser,
-                status: 'FAILED', 
-                location: location 
-            });
+            try {
+                await LoginHistory.create({ 
+                    ipAddress: ip, 
+                    userAgent: req.headers['user-agent'], 
+                    deviceName: device,
+                    browserName: browser,
+                    status: 'FAILED', 
+                    location: location 
+                });
+            } catch (e) {}
             return res.status(401).json({ error: 'NOT_FOUND', message: 'Identity not found.' });
+        }
+
+        if (!user.password) {
+            return res.status(401).json({ error: 'SOCIAL_ONLY', message: 'Please login using your social provider.' });
         }
 
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) {
+            try {
+                await LoginHistory.create({ 
+                    UserId: user.id, 
+                    ipAddress: ip, 
+                    userAgent: req.headers['user-agent'],
+                    deviceName: device,
+                    browserName: browser,
+                    status: 'FAILED',
+                    location: location
+                });
+                await auditService.log('LOGIN_FAILED', `Failed attempt for ${email}`, req, 'SECURITY', user.id);
+            } catch (e) {}
+            return res.status(401).json({ error: 'PASSWORD_INCORRECT', message: 'Credentials mismatch.' });
+        }
+
+        // --- SUCCESSFUL AUTH ---
+        try {
             await LoginHistory.create({ 
                 UserId: user.id, 
                 ipAddress: ip, 
                 userAgent: req.headers['user-agent'],
                 deviceName: device,
                 browserName: browser,
-                status: 'FAILED',
+                status: 'SUCCESS',
                 location: location
             });
-            await auditService.log('LOGIN_FAILED', `Failed attempt for ${email}`, req, 'SECURITY', user.id);
-            return res.status(401).json({ error: 'PASSWORD_INCORRECT', message: 'Credentials mismatch.' });
-        }
-
-        // --- SUCCESSFUL AUTH ---
-        await LoginHistory.create({ 
-            UserId: user.id, 
-            ipAddress: ip, 
-            userAgent: req.headers['user-agent'],
-            deviceName: device,
-            browserName: browser,
-            status: 'SUCCESS',
-            location: location
-        });
-
-        await auditService.log('USER_LOGIN', `Successful login: ${device}/${browser}`, req, 'AUTH', user.id);
+            await auditService.log('USER_LOGIN', `Successful login: ${device}/${browser}`, req, 'AUTH', user.id);
+        } catch (e) {}
 
         // Generate JWT
         const token = jwt.sign(
@@ -287,8 +293,11 @@ router.post('/login', async (req, res) => {
         });
 
     } catch (err) {
-        console.error("[AUTH] Login Handshake FATAL:", err.message);
-        res.status(500).json({ error: 'Core Authentication System Error' });
+        console.error("[AUTH] Login Handshake FATAL STACK:", err);
+        res.status(500).json({ 
+            error: 'Core Authentication System Error',
+            details: process.env.NODE_ENV === 'development' ? err.message : undefined 
+        });
     }
 });
 

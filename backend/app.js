@@ -56,7 +56,8 @@ app.use(session({
 }));
 
 // Session synchronization handled asynchronously to prevent startup deadlock
-// sessionStore.sync();
+// sessionStore.sync(); 
+app.sessionStore = sessionStore; // Export for external lifecycle management
 
 app.use(passport.initialize());
 app.use(passport.session());
