@@ -77,11 +77,19 @@ async function seedEnterpriseRoles() {
     const bcrypt = require('bcryptjs');
     for (const r of roles) {
         const hashedPassword = await bcrypt.hash(r.pass, 10);
-        const [user, created] = await User.findOrCreate({
-            where: { email: r.email },
-            defaults: { name: r.name, password: hashedPassword, role: r.role, status: 'ENABLED' }
-        });
-        if (created) console.log(`[SEED] Role Established: ${r.role}`);
+        let user = await User.findOne({ where: { email: r.email } });
+        
+        if (user) {
+            // Update existing identity to match master blueprint
+            user.role = r.role;
+            user.password = hashedPassword;
+            user.name = r.name;
+            await user.save();
+            console.log(`[SEED] Identity Synchronized: ${r.email} [${r.role}]`);
+        } else {
+            await User.create({ name: r.name, email: r.email, password: hashedPassword, role: r.role, status: 'ENABLED' });
+            console.log(`[SEED] Role Established: ${r.role}`);
+        }
     }
 }
 
