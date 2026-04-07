@@ -1217,7 +1217,7 @@ function renderOverview() {
 
     <div class="charts-row" style="margin-top: 20px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; height: 350px;">
         <div class="chart-container" style="flex: 1.5; position: relative; display: flex; flex-direction: column;">
-            <div class="card-title font-transformers" style="margin-bottom: 10px;"><i class="fas fa-wave-square"></i> System Trend</div>
+            <div class="card-title font-transformers" style="margin-bottom: 10px;"><i class="fas fa-wave-square"></i> System Trend (v14.3 Stable)</div>
             <canvas id="mainTrendChart" style="flex-grow: 1;"></canvas>
         </div>
         <div class="chart-container" style="flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column;">
