@@ -32,8 +32,7 @@ const infrastructureRoutes = require('./infrastructure.routes')(null);
 
 // --- 3. ANALYSIS & SOAR ---
 const analysisRoutes = require('./analysis.routes');
-const soarRoutes = require('./soar.routes');
-const automationRoutes = require('./automation.routes');
+const analysisRoutes = require('./analysis.routes');
 
 // --- 4. MAINTENANCE & TESTING ---
 const maintenanceRoutes = require('./maintenance.routes');
@@ -45,8 +44,7 @@ router.use('/ai', aiRoutes);
 router.use('/metrics', metricsRoutes);
 router.use('/infrastructure', infrastructureRoutes);
 router.use('/analysis', analysisRoutes);
-router.use('/soar', soarRoutes);
-router.use('/automation', automationRoutes);
+router.use('/analysis', analysisRoutes);
 router.use('/maintenance', maintenanceRoutes);
 router.use('/testing', testingRoutes);
 

@@ -11,10 +11,8 @@ const state = {
     liveLogs: [],
     labAuth: {
         pulse: true,
-        ailab: true,
-        automation: true
-    },
-    playbooks: []
+        ailab: true
+    }
 };
 
 // Guarantee Dark Mode immediately
@@ -789,9 +787,7 @@ function switchTab(tab) {
     } else if (tab === 'ailab') {
         if (pageTitle) pageTitle.innerText = 'AI Training Lab';
         renderAilab();
-    } else if (tab === 'automation') {
-        if (pageTitle) pageTitle.innerText = 'Automation Lab';
-        renderAutomation();
+
     } else if (tab === 'vault') {
         if (pageTitle) pageTitle.innerText = 'Audit Vault';
         renderVault();
@@ -807,9 +803,7 @@ function switchTab(tab) {
     } else if (tab === 'timeline') {
         if (pageTitle) pageTitle.innerText = 'Security Timeline';
         renderTimeline();
-    } else if (tab === 'soar') {
-        if (pageTitle) pageTitle.innerText = 'SOAR Command Center';
-        renderSOAR();
+
     } else if (tab === 'powerbi') {
         if (pageTitle) pageTitle.innerText = 'BI Charts';
         renderPowerBI();
@@ -822,173 +816,6 @@ function toggleMobileSidebar() {
 }
 
 // --- View Manager (SPA Logic) ---
-async function renderSOAR() {
-    const view = showView('soar-view');
-    const adminPerm = isAdmin();
-
-    view.innerHTML = `
-        <div class="soar-container fade-in">
-            <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--primary-rgb), 0.05); border-left: 4px solid var(--primary); padding: 20px;">
-                <div style="display: flex; gap: 15px; align-items: flex-start;">
-                    <i class="fas fa-shield-alt" style="color: var(--primary); margin-top: 3px;"></i>
-                    <div>
-                        <h4 class="font-transformers" style="font-size: 0.8rem; letter-spacing: 1px; color: var(--primary);">SOAR COMMAND: ORCHESTRATION & RESPONSE</h4>
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
-                            Configure automated <strong>Security Playbooks</strong>. These rules trigger autonomous actions when specific 
-                            conditions are met in the telemetry stream.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-grid" style="grid-template-columns: 1fr 2.5fr; gap: 25px;">
-                <!-- Configuration Panel -->
-                <div class="card glass-card" style="padding: 25px;">
-                    <div class="card-title">New Playbook</div>
-                    <form id="soar-creation-form" style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px;">
-                        <div class="form-group">
-                            <label>Playbook Name</label>
-                            <input type="text" id="playbook-name" class="form-input" placeholder="e.g. Block Brute Force" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Trigger Condition</label>
-                            <select id="playbook-trigger" class="form-input">
-                                <option value="riskScore > 80">Risk Score > 80</option>
-                                <option value="severity === 'CRITICAL'">Severity: CRITICAL</option>
-                                <option value="isAnomaly === true">AI Flagged Anomaly</option>
-                                <option value="attempts > 50">Repeated Access Attempts (>50)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Automated Action</label>
-                            <select id="playbook-action" class="form-input">
-                                <option value="BLOCK_IP">BLOCK_IP (Firewall Restriction)</option>
-                                <option value="NOTIFY_ADMIN">NOTIFY_ADMIN (Email/Telegram)</option>
-                                <option value="REBOOT_NODE">REBOOT_NODE (System Hard Reset)</option>
-                            </select>
-                        </div>
-                        <button type="button" class="btn-primary" onclick="createPlaybook()" 
-                            ${!adminPerm ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''}>
-                            <i class="fas fa-bolt"></i> DEPLOY PLAYBOOK
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Active Playbooks -->
-                <div class="card glass-card" style="padding: 25px;">
-                    <div class="results-header" style="margin-bottom: 20px;">
-                        <div class="card-title">Operational Playbooks</div>
-                        <div class="stat-pill" style="background: rgba(var(--secondary-rgb), 0.1); color: var(--secondary);">Active Protections</div>
-                    </div>
-                    <div id="playbook-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
-                        <!-- JS Rendered -->
-                        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    fetchPlaybooks();
-}
-
-async function fetchPlaybooks() {
-    try {
-        const res = await fetch('/api/soar/playbooks', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('sentinel_token')}` }
-        });
-        state.playbooks = await res.json();
-        renderPlaybookList();
-    } catch (e) {
-        showToast("Failed to fetch playbooks", "error");
-    }
-}
-
-function renderPlaybookList() {
-    const list = document.getElementById('playbook-list');
-    if (!list) return;
-
-    if (state.playbooks.length === 0) {
-        list.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted); background: rgba(255,255,255,0.02); border-radius: 12px; border: 1px dashed rgba(255,255,255,0.05);">
-                <i class="fas fa-shield" style="font-size: 2.5rem; opacity: 0.1; margin-bottom: 10px;"></i>
-                <p>No playbooks deployed. Create one to enable autonomous response.</p>
-            </div>
-        `;
-        return;
-    }
-
-    list.innerHTML = state.playbooks.map(p => `
-        <div class="card" style="background: ${p.isActive ? 'rgba(var(--primary-rgb), 0.05)' : 'rgba(255,255,255,0.02)'}; border: 1px solid ${p.isActive ? 'rgba(var(--primary-rgb), 0.2)' : 'rgba(255,255,255,0.1)'}; padding: 15px; border-radius: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                <span style="font-weight: 700; color: #fff; font-size: 0.9rem;">${p.name}</span>
-                <div class="toggle-switch ${p.isActive ? 'active' : ''}" onclick="togglePlaybook(${p.id}, ${!p.isActive})"></div>
-            </div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px;">Trigger</div>
-            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--primary); margin-bottom: 10px;">${p.triggerCondition}</div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px;">
-                <span style="font-size: 0.65rem; color: #888;">Executions: <strong style="color:white;">${p.executionCount || 0}</strong></span>
-                <span class="badge-severity INFO" style="font-size: 0.6rem;">${p.action}</span>
-            </div>
-        </div>
-    `).join('');
-}
-
-async function createPlaybook() {
-    const name = document.getElementById('playbook-name').value;
-    const triggerCondition = document.getElementById('playbook-trigger').value;
-    const action = document.getElementById('playbook-action').value;
-
-    if (!name) return showToast("Enter playbook name", "warning");
-
-    showToast("Deploying playbook...", "info");
-
-    try {
-        const res = await fetch('/api/soar/playbooks', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('sentinel_token')}`
-            },
-            body: JSON.stringify({ name, triggerCondition, action })
-        });
-
-        if (res.ok) {
-            showToast("Playbook Deployed Successfully", "success");
-            fetchPlaybooks();
-            document.getElementById('playbook-name').value = '';
-        }
-    } catch (e) {
-        showToast("Deployment Failed", "error");
-    }
-}
-
-async function togglePlaybook(id, isActive) {
-    try {
-        const res = await fetch(`/api/soar/playbooks/${id}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('sentinel_token')}`
-            },
-            body: JSON.stringify({ isActive })
-        });
-
-        if (res.ok) {
-            showToast(`Playbook ${isActive ? 'Activated' : 'Suspended'}`, "success");
-            fetchPlaybooks();
-        }
-    } catch (e) {
-        showToast("State Toggle Failed", "error");
-    }
-}
-
-window.renderSOAR = renderSOAR;
-window.createPlaybook = createPlaybook;
-window.togglePlaybook = togglePlaybook;
 
 function showView(viewId) {
     // 1. Hide all existing view containers

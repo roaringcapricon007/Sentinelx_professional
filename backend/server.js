@@ -71,8 +71,8 @@ server.listen(PORT, "0.0.0.0", () => {
 
 async function seedEnterpriseRoles() {
     const roles = [
-        { name: 'Root Administrator', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: '12345SuperAdmin!' },
-        { name: 'Senior Security Analyst', role: 'analyst', email: 'analyst@sentinelx.com', pass: '12345Analyst!' }
+        { name: 'Root Administrator', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: 'admin123' },
+        { name: 'Senior Security Analyst', role: 'analyst', email: 'analyst@sentinelx.com', pass: 'analyst123' }
     ];
     const bcrypt = require('bcryptjs');
     for (const r of roles) {
@@ -80,15 +80,14 @@ async function seedEnterpriseRoles() {
         let user = await User.findOne({ where: { email: r.email } });
         
         if (user) {
-            // Update existing identity to match master blueprint
             user.role = r.role;
             user.password = hashedPassword;
             user.name = r.name;
             await user.save();
-            console.log(`[SEED] Identity Synchronized: ${r.email} [${r.role}]`);
+            console.log(`[SEED] Identity Recovered: ${r.email} [${r.role}]`);
         } else {
             await User.create({ name: r.name, email: r.email, password: hashedPassword, role: r.role, status: 'ENABLED' });
-            console.log(`[SEED] Role Established: ${r.role}`);
+            console.log(`[SEED] Admin Established: ${r.role}`);
         }
     }
 }
