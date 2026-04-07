@@ -71,23 +71,24 @@ server.listen(PORT, "0.0.0.0", () => {
 
 async function seedEnterpriseRoles() {
     const roles = [
-        { name: 'Root Administrator', role: 'super_admin', email: 'Superadmin@SentinelX.com', pass: 'admin123' },
+        { name: 'Root Administrator', role: 'super_admin', email: 'superadmin@sentinelx.com', pass: 'admin123' },
         { name: 'Senior Security Analyst', role: 'analyst', email: 'analyst@sentinelx.com', pass: 'analyst123' }
     ];
     const bcrypt = require('bcryptjs');
     for (const r of roles) {
         const hashedPassword = await bcrypt.hash(r.pass, 10);
-        let user = await User.findOne({ where: { email: r.email } });
+        const normalizedEmail = r.email.toLowerCase();
+        let user = await User.findOne({ where: { email: normalizedEmail } });
         
         if (user) {
             user.role = r.role;
             user.password = hashedPassword;
             user.name = r.name;
             await user.save();
-            console.log(`[SEED] Identity Recovered: ${r.email} [${r.role}]`);
+            console.log(`[SEED] Identity Synchronized: ${normalizedEmail} [${r.role}]`);
         } else {
-            await User.create({ name: r.name, email: r.email, password: hashedPassword, role: r.role, status: 'ENABLED' });
-            console.log(`[SEED] Admin Established: ${r.role}`);
+            await User.create({ name: r.name, email: normalizedEmail, password: hashedPassword, role: r.role, status: 'ENABLED' });
+            console.log(`[SEED] Admin Established: ${r.role} (${normalizedEmail})`);
         }
     }
 }
