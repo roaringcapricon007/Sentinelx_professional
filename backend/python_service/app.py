@@ -407,6 +407,6 @@ def analyze_single_log():
     return jsonify(result)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
-    print(f"Starting Python AI Service on port {port}...", file=sys.stderr)
-    app.run(host='0.0.0.0', port=port, debug=False)
+    PORT = int(os.getenv("PORT", 5000))
+    print(f"Starting Python AI Service on port {PORT}...", file=sys.stderr)
+    app.run(host="0.0.0.0", port=PORT)
