@@ -80,12 +80,12 @@ app.use('/api', apiRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ❌ 404 HANDLER
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found ❌"
-  });
+// ✅ SPA FALLBACK ROUTING (React Router / Client-Side Routing Support)
+// This ensures that deep links (e.g., /analysis) work on refresh by serving index.html
+app.get("*", (req, res) => {
+    // If request is specifically for an API that doesn't exist, we could handle it, 
+    // but standard SPA behavior is to fallback to index.html
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ❌ GLOBAL ERROR HANDLER

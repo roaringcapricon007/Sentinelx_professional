@@ -1,3 +1,5 @@
+const API_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_URL) ? process.env.REACT_APP_API_URL : "http://localhost:5000";
+
 const state = {
     isLoggedIn: false,
     user: null,
@@ -35,7 +37,7 @@ let regSessionData = null; // Store for verification context
 
 
 
-const socket = io();
+const socket = io(API_URL);
 
 
 // --- DOM Elements ---
@@ -340,7 +342,7 @@ async function handleLogin(formRef, email, password) {
         // Wait for "Scanning" effect to feel real (500ms for snappiness)
         await new Promise(r => setTimeout(r, 500));
 
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch(API_URL + '/api/auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -432,7 +434,7 @@ async function handleRegister(formRef, name, email, password) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for complex SMTP handshakes
 
-        const res = await fetch('/api/auth/request-otp', {
+        const res = await fetch(API_URL + '/api/auth/request-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password }),
@@ -541,7 +543,7 @@ function startOtpTimer(seconds) {
 async function resendOTP() {
     if (!regSessionData) return;
     showToast("Re-broadcasting sequence...", "info");
-    const res = await fetch('/api/auth/request-otp', {
+    const res = await fetch(API_URL + '/api/auth/request-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(regSessionData)
@@ -571,7 +573,7 @@ async function verifyOTP() {
     verifyBtn.disabled = true;
 
     try {
-        const res = await fetch('/api/auth/verify-registration', {
+        const res = await fetch(API_URL + '/api/auth/verify-registration', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: regSessionData.email, otp: otpInput })
@@ -644,7 +646,7 @@ function login(user, token) {
  */
 async function checkSession() {
     try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch(API_URL + '/api/auth/me');
         const data = await res.json();
         if (res.ok && data.authenticated) {
             console.log("[SESSION] Active link detected. Resuming session for:", data.user.email);
@@ -680,7 +682,7 @@ function logout(e) {
     sessionStorage.clear();
 
     // Direct navigation to server logout — server destroys session + cookie, then redirects to /?logout=true
-    window.location.href = '/api/auth/logout';
+    window.location.href = API_URL + '/api/auth/logout';
 }
 
 window.logout = logout;
@@ -1017,7 +1019,7 @@ async function updateNeuralPulse(metrics) {
     if (!pulseEl) return;
 
     try {
-        const res = await fetch('/api/ai/health');
+        const res = await fetch(API_URL + '/api/ai/health');
         const data = await res.json();
         const span = pulseEl.querySelector('span');
         const dot = pulseEl.querySelector('.pulse-dot');
@@ -1224,7 +1226,7 @@ function renderOverview() {
         if (typeof Chart === 'undefined') return;
         try {
             // Trend Chart
-            const hRes = await fetch('/api/metrics/history');
+            const hRes = await fetch(API_URL + '/api/metrics/history');
             const history = await hRes.json();
             const labels = history.length ? history.map(h => new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })) : ['Now'];
             const cpuData = history.length ? history.map(h => h.cpuLoad) : [0];
@@ -1264,7 +1266,7 @@ function renderOverview() {
             updateOverviewCharts(state.infraData || []);
 
             if (!state.infraData) {
-                const infRes = await fetch('/api/infrastructure');
+                const infRes = await fetch(API_URL + '/api/infrastructure');
                 if (infRes.ok) {
                     state.infraData = await infRes.json();
                     updateOverviewCharts(state.infraData);
@@ -1275,7 +1277,7 @@ function renderOverview() {
 
         // --- Live Predictive Analysis (Step 10) ---
         try {
-            const predRes = await fetch('/api/metrics/predict');
+            const predRes = await fetch(API_URL + '/api/metrics/predict');
             const predData = await predRes.json();
             const predBox = document.getElementById('ai-prediction-content');
             if (predBox && predData.predictions) {
@@ -1345,7 +1347,7 @@ async function syncAIWeights(btn) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCING...';
 
     try {
-        const res = await fetch('/api/ai/sync', { method: 'POST' });
+        const res = await fetch(API_URL + '/api/ai/sync', { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
             showToast(`Quantum Weights Synced: ${data.weights_version}`, 'success');
@@ -1368,7 +1370,7 @@ async function retrainAIModel(btn) {
     showToast('Initiating Heuristic Synthesis...', 'info');
 
     try {
-        const res = await fetch('/api/ai/train', { method: 'POST' });
+        const res = await fetch(API_URL + '/api/ai/train', { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
             showToast(`Retraining Complete. Accuracy: ${data.accuracy}%`, 'success');
@@ -1879,7 +1881,7 @@ async function blockIP(ip, btn) {
     btn.disabled = true;
     showToast(`Initiating Protocol: FW - SHIELD on ${cleanIp}...`, 'info');
     try {
-        const res = await fetch('/api/logs/block-ip', {
+        const res = await fetch(API_URL + '/api/logs/block-ip', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ip: cleanIp })
@@ -1903,7 +1905,7 @@ async function suspendUserFromAlert(msg, btn) {
     const email = emailMatch[0];
     btn.disabled = true;
     try {
-        const res = await fetch('/api/logs/disable-user', {
+        const res = await fetch(API_URL + '/api/logs/disable-user', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
@@ -1993,7 +1995,7 @@ async function renderInfrastructure() {
     }
 
     try {
-        const res = await fetch('/api/infrastructure');
+        const res = await fetch(API_URL + '/api/infrastructure');
         if (res.ok) {
             const servers = await res.json();
             state.infraData = servers;
@@ -2026,7 +2028,7 @@ async function renderTimeline() {
                     `;
 
     try {
-        const res = await fetch('/api/logs/timeline');
+        const res = await fetch(API_URL + '/api/logs/timeline');
         const logs = await res.json();
         const narrativeBody = document.getElementById('narrative-content');
 
@@ -2288,7 +2290,7 @@ async function checkAIStatus() {
     if (!el) return;
 
     try {
-        const res = await fetch('/api/ai/status');
+        const res = await fetch(API_URL + '/api/ai/status');
         const data = await res.json();
         el.innerText = data.model;
         if (data.gptEnabled) el.style.color = '#00ff88';
@@ -2308,7 +2310,7 @@ async function handleFileUpload(input) {
     formData.append('log', file);
 
     try {
-        const res = await fetch('/api/analysis/upload', {
+        const res = await fetch(API_URL + '/api/analysis/upload', {
             method: 'POST',
             body: formData
         });
@@ -2374,7 +2376,7 @@ async function handleAnalysisUpload(input) {
     formData.append('log', file);
 
     try {
-        const res = await fetch('/api/analysis/upload', {
+        const res = await fetch(API_URL + '/api/analysis/upload', {
             method: 'POST',
             body: formData
         });
@@ -2968,7 +2970,7 @@ async function loadVaultData(filter = '') {
     const tbody = document.getElementById('vault-table-body');
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Accessing Neural Archives...</td></tr>';
     try {
-        const res = await fetch('/api/logs/history?status=RESOLVED');
+        const res = await fetch(API_URL + '/api/logs/history?status=RESOLVED');
         if (!res.ok) throw new Error('Not authorized');
         const logs = await res.json();
 
@@ -3021,7 +3023,7 @@ window.searchVault = searchVault;
 // --- Enterprise Risk Score Banner (Step 4) ---
 async function refreshRiskScore() {
     try {
-        const res = await fetch('/api/logs/risk-score');
+        const res = await fetch(API_URL + '/api/logs/risk-score');
         if (!res.ok) return;
         const data = await res.json();
 
@@ -3062,7 +3064,7 @@ async function renderAutomation() {
     // Always re-fetch tools
     let tools = [];
     try {
-        const res = await fetch('/api/testing/tools');
+        const res = await fetch(API_URL + '/api/testing/tools');
         tools = await res.json();
     } catch (e) { console.error("Failed to load tools", e); }
 
@@ -3174,7 +3176,7 @@ async function executeAutomationTest() {
     showToast(`Executing ${toolId} suite...`, "info");
 
     try {
-        const res = await fetch('/api/testing/run', {
+        const res = await fetch(API_URL + '/api/testing/run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ toolId })
@@ -3385,7 +3387,7 @@ async function fetchSessions() {
     const list = document.getElementById('active-sessions-list');
     if (!list) return;
     try {
-        const res = await fetch('/api/auth/sessions');
+        const res = await fetch(API_URL + '/api/auth/sessions');
         const sessions = await res.json();
         list.innerHTML = sessions.map(s => {
             const isCurrent = s.isCurrent ? ' <span style="color: #00ff88; font-weight:bold;">[CURRENT]</span>' : '';
@@ -3413,7 +3415,7 @@ async function terminateSession(id) {
 async function terminateOtherSessions() {
     if(!confirm("Purge all other security tokens?")) return;
     try {
-        const res = await fetch('/api/auth/sessions', { method: 'DELETE' });
+        const res = await fetch(API_URL + '/api/auth/sessions', { method: 'DELETE' });
         if (res.ok) { showToast("Global session purge successful.", "success"); fetchSessions(); }
     } catch (e) { showToast("Purge failed", "error"); }
 }
@@ -3422,7 +3424,7 @@ async function editProfile() {
     const name = prompt("Enter new Display Name:", state.user.name);
     if (name && name !== state.user.name) {
         try {
-            const res = await fetch('/api/auth/profile', {
+            const res = await fetch(API_URL + '/api/auth/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
@@ -3526,7 +3528,7 @@ function initHeaderActions() {
             showToast("Analyzing system cache...", "info");
 
             try {
-                const res = await fetch('/api/maintenance/clear-cache', { method: 'POST' });
+                const res = await fetch(API_URL + '/api/maintenance/clear-cache', { method: 'POST' });
                 const data = await res.json();
 
                 if (data.status === 'Success') {
@@ -3695,19 +3697,19 @@ async function generateReport(format) {
         let data, title;
 
         if (targetType === 'availability') {
-            const res = await fetch('/api/infrastructure');
+            const res = await fetch(API_URL + '/api/infrastructure');
             data = await res.json();
             title = "Weekly Availability Report";
         } else if (targetType === 'security') {
-            const res = await fetch('/api/logs/history');
+            const res = await fetch(API_URL + '/api/logs/history');
             data = await res.json();
             title = "Security Audit Logs";
         } else if (targetType === 'performance') {
-            const res = await fetch('/api/metrics/history');
+            const res = await fetch(API_URL + '/api/metrics/history');
             data = await res.json();
             title = "Performance Trends";
         } else if (targetType === 'powerbi') {
-            const res = await fetch('/api/metrics/history'); // Use metrics for BI demo
+            const res = await fetch(API_URL + '/api/metrics/history'); // Use metrics for BI demo
             data = await res.json();
             title = "PowerBI Intelligence Dataset";
         }
@@ -3895,7 +3897,7 @@ async function handleForgotPassword() {
 
     // 2. BACKGROUND TRANSMISSION
     try {
-        const res = await fetch('/api/auth/forgot-password', {
+        const res = await fetch(API_URL + '/api/auth/forgot-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
@@ -3930,7 +3932,7 @@ async function resetPasswordFull() {
     btn.innerText = "Saving...";
 
     try {
-        const res = await fetch('/api/auth/reset-password', {
+        const res = await fetch(API_URL + '/api/auth/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, otp, password })
@@ -4066,7 +4068,7 @@ async function setupMFA() {
            
            // Real API call (Phase 1 logic)
            try {
-               const res = await fetch('/api/auth/mfa/setup', { method: 'POST' });
+               const res = await fetch(API_URL + '/api/auth/mfa/setup', { method: 'POST' });
                if (res.ok) {
                    modal.remove();
                    showToast("MFA Activated: Neural signature synced.", "success");
