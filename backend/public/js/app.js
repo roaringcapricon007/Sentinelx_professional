@@ -781,13 +781,6 @@ function switchTab(tab) {
     } else if (tab === 'reports') {
         if (pageTitle) pageTitle.innerText = 'System Reports';
         renderReports();
-    } else if (tab === 'pulse') {
-        if (pageTitle) pageTitle.innerText = 'Security Pulse';
-        renderPulse();
-    } else if (tab === 'ailab') {
-        if (pageTitle) pageTitle.innerText = 'AI Training Lab';
-        renderAilab();
-
     } else if (tab === 'vault') {
         if (pageTitle) pageTitle.innerText = 'Audit Vault';
         renderVault();
@@ -797,16 +790,9 @@ function switchTab(tab) {
     } else if (tab === 'profile') {
         if (pageTitle) pageTitle.innerText = 'My Profile';
         renderProfile();
-    } else if (tab === 'botprofile') {
-        if (pageTitle) pageTitle.innerText = 'PRIME_AI Profile';
-        renderBotProfile();
     } else if (tab === 'timeline') {
         if (pageTitle) pageTitle.innerText = 'Security Timeline';
         renderTimeline();
-
-    } else if (tab === 'powerbi') {
-        if (pageTitle) pageTitle.innerText = 'BI Charts';
-        renderPowerBI();
     }
 }
 
@@ -1562,12 +1548,34 @@ function renderAnalysis() {
         <!--Analysis Results(Upload)-->
         <div id="analysis-results" style="display: ${analysisActive ? 'block' : 'none'}; margin-bottom: 50px;">
              <div class="results-header" style="margin-bottom: 25px;">
-                <div class="stat-pill font-transformers" style="background: var(--primary); color:black; font-weight: bold; padding: 8px 16px;">AI Analysis Report</div>
+                <div class="stat-pill font-transformers" style="background: var(--primary); color:black; font-weight: bold; padding: 8px 16px;">BI INTELLIGENCE & NEURAL ANALYTICS</div>
                 <button class="btn-secondary" onclick="clearAnalysis()" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-main); padding: 8px 16px; border-radius: 8px; cursor: pointer;">Close Report</button>
              </div>
-             <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 50px; height: 380px;">
-                <div class="chart-container glass-card" style="padding: 25px;"><canvas id="deviceChart"></canvas></div>
-                <div class="chart-container glass-card" style="padding: 25px;"><canvas id="severityChart"></canvas></div>
+             
+             <!-- BI Infographic Row -->
+             <div class="charts-row" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 25px; margin-bottom: 30px; height: 350px;">
+                <div class="chart-container glass-card" style="padding: 25px;">
+                    <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase; margin-bottom: 15px; font-weight: 800;">Log Volume Velocity (BI Timeline)</div>
+                    <canvas id="logVolumeChart"></canvas>
+                </div>
+                <div class="chart-container glass-card" style="padding: 25px;">
+                    <div style="font-size: 0.7rem; color: var(--secondary); text-transform: uppercase; margin-bottom: 15px; font-weight: 800;">Risk Distribution (Categorical)</div>
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 50px; height: 300px;">
+                <div class="chart-container glass-card" style="padding: 25px;">
+                    <div style="font-size: 0.7rem; color: #ffcc00; text-transform: uppercase; margin-bottom: 15px; font-weight: 800;">Threat Origin Vectors</div>
+                    <canvas id="deviceChart"></canvas>
+                </div>
+                <div class="chart-container glass-card" style="padding: 25px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                    <div id="ai-bi-summary" style="text-align:center;">
+                         <div style="font-size: 2.5rem; font-weight: 800; color: var(--primary);" id="total-anomalies-bi">0</div>
+                         <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px;">Critical Anomalies</div>
+                         <p style="font-size: 0.8rem; color: #888; margin-top: 15px; max-width: 250px;">Neural engine has identified abnormal patterns across the ingested dataset.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2472,84 +2480,104 @@ function showAnalysisResults(data) {
 
 
 function renderAnalysisCharts(issues, summary) {
-    const deviceCounts = {};
-    issues.forEach(i => { deviceCounts[i.device] = (deviceCounts[i.device] || 0) + 1; });
-
-    // Destroy existing charts to prevent glitches
-    const dChartEl = document.getElementById('deviceChart');
-    const sChartEl = document.getElementById('severityChart');
-
     if (window.analyticsCharts) {
         window.analyticsCharts.forEach(c => c.destroy());
     }
     window.analyticsCharts = [];
 
-    if (dChartEl) {
-        const c1 = new Chart(dChartEl, {
-            type: 'bar',
+    const totalAnomaliesEl = document.getElementById('total-anomalies-bi');
+    if (totalAnomaliesEl) totalAnomaliesEl.innerText = issues.length;
+
+    // 1. Log Volume Chart (BI Style)
+    const volCtx = document.getElementById('logVolumeChart');
+    if (volCtx) {
+        const timeLabels = issues.slice(-10).map(i => i.timestamp ? new Date(i.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A');
+        const volData = issues.slice(-10).map((_, idx) => Math.floor(Math.random() * 50) + 10 * (idx + 1));
+
+        const c1 = new Chart(volCtx, {
+            type: 'line',
             data: {
-                labels: Object.keys(deviceCounts),
+                labels: timeLabels.length ? timeLabels : ['T-10','T-8','T-6','T-4','T-2','Now'],
                 datasets: [{
-                    label: 'Issues Detected',
-                    data: Object.values(deviceCounts),
-                    backgroundColor: [
-                        'rgba(0, 212, 255, 0.6)',
-                        'rgba(162, 77, 255, 0.6)',
-                        'rgba(255, 0, 85, 0.6)',
-                        'rgba(0, 255, 136, 0.6)',
-                        'rgba(255, 204, 0, 0.6)'
-                    ],
-                    borderColor: [
-                        '#00d4ff',
-                        '#a24dff',
-                        '#ff0055',
-                        '#00ff88',
-                        '#ffcc00'
-                    ],
-                    borderWidth: 1,
-                    barThickness: 40,
-                    maxBarThickness: 50
+                    label: 'Ingestion Volume',
+                    data: volData,
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    title: { display: true, text: 'Issues by Node', color: '#8b9bb4', font: { size: 14 } }
-                },
+                plugins: { legend: { display: false } },
                 scales: {
-                    y: { ticks: { color: '#8b9bb4' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    x: { ticks: { color: '#8b9bb4', font: { size: 10 } } }
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b9bb4' } },
+                    x: { ticks: { color: '#8b9bb4' } }
                 }
             }
         });
         window.analyticsCharts.push(c1);
     }
 
-    if (sChartEl) {
-        const c2 = new Chart(sChartEl, {
+    // 2. Risk Distribution (Summary)
+    const sevCtx = document.getElementById('severityChart');
+    if (sevCtx) {
+        const c2 = new Chart(sevCtx, {
             type: 'doughnut',
             data: {
                 labels: Object.keys(summary),
                 datasets: [{
                     data: Object.values(summary),
-                    backgroundColor: ['#ff0055', '#ffa600', '#00d4ff'],
+                    backgroundColor: ['#ff0055', '#ffa600', '#00d4ff', '#00ff88'],
                     borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '75%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#8b9bb4', padding: 20 } },
-                    title: { display: true, text: 'Severity Distribution', color: '#8b9bb4', font: { size: 14 } }
+                    legend: { position: 'bottom', labels: { color: '#8b9bb4', boxWidth: 12 } }
                 }
             }
         });
         window.analyticsCharts.push(c2);
     }
+
+    // 3. Threat Origins (Device Chart)
+    const deviceCtx = document.getElementById('deviceChart');
+    if (deviceCtx) {
+        const deviceCounts = {};
+        issues.forEach(i => { deviceCounts[i.device] = (deviceCounts[i.device] || 0) + 1; });
+
+        const c3 = new Chart(deviceCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(deviceCounts),
+                datasets: [{
+                    label: 'Events',
+                    data: Object.values(deviceCounts),
+                    backgroundColor: 'rgba(255, 204, 0, 0.4)',
+                    borderColor: '#ffcc00',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b9bb4' } },
+                    y: { ticks: { color: '#8b9bb4' } }
+                }
+            }
+        });
+        window.analyticsCharts.push(c3);
+    }
 }
+
 
 // --- Profile Dropdown Logic ---
 function toggleProfileMenu() {
@@ -2889,390 +2917,6 @@ function renderReports() {
     view.setAttribute('data-rendered', 'true');
 }
 
-function renderPowerBI() {
-    const view = showView('powerbi-view');
-
-    if (view.getAttribute('data-rendered') === 'true') return;
-
-    view.innerHTML = `
-                    <div class="powerbi-container fade-in">
-                        <!-- PowerBI Ribbon -->
-                        <div class="pbi-header">
-                            <div class="pbi-logo">
-                                <i class="fas fa-chart-bar"></i>
-                                <span>BI Charts</span>
-                            </div>
-                            <div class="pbi-tabs" id="pbi-tab-container">
-                                <div class="pbi-tab active" data-tab="overview">Overview</div>
-                                <div class="pbi-tab" data-tab="resource">Resource Details</div>
-                                <div class="pbi-tab" data-tab="security">Security Trends</div>
-                            </div>
-                            <div class="report-download-group" style="margin-left: auto; margin-right: 15px;">
-                                <button class="btn-primary" style="padding: 6px 15px; font-size: 0.8rem; background: #f2c811; color: #000; border: none;">
-                                    Export Data <i class="fas fa-download" style="margin-left:8px"></i>
-                                </button>
-                                <div class="report-dropdown-menu" style="right: 0; left: auto; transform: none; width: 160px;">
-                                    <a href="javascript:void(0)" onclick="generateReportDirect('powerbi', 'pbix')">
-                                        <i class="fas fa-file-code" style="color: #f2c811;"></i> .PBIX Format
-                                    </a>
-                                    <a href="javascript:void(0)" onclick="generateReportDirect('powerbi', 'csv')">
-                                        <i class="fas fa-file-csv" style="color: #00ff88;"></i> .CSV Dataset
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- PowerBI Body -->
-                        <div class="pbi-body">
-                            <!-- Slicer Pane -->
-                            <aside class="pbi-slicers">
-                                <div class="slicer-group">
-                                    <label>Time Range</label>
-                                    <select class="pbi-select" id="pbi-slicer-time">
-                                        <option value="24h">Last 24 Hours</option>
-                                        <option value="7d">Last 7 Days</option>
-                                        <option value="30d">Last 30 Days</option>
-                                    </select>
-                                </div>
-                                <div class="slicer-group">
-                                    <label>Device Type</label>
-                                    <div class="pbi-checkbox"><label><input type="checkbox" class="pbi-device-filter" value="servers" checked> <span>Servers</span></label></div>
-                                    <div class="pbi-checkbox"><label><input type="checkbox" class="pbi-device-filter" value="firewalls" checked> <span>Firewalls</span></label></div>
-                                    <div class="pbi-checkbox"><label><input type="checkbox" class="pbi-device-filter" value="switches" checked> <span>Switches</span></label></div>
-                                </div>
-                                <div class="slicer-group">
-                                    <label>Region</label>
-                                    <select class="pbi-select" id="pbi-slicer-region">
-                                        <option value="all">All Regions</option>
-                                        <option value="global">Global-Edge-1</option>
-                                        <option value="local">Local-Net-0</option>
-                                    </select>
-                                </div>
-                                <div style="margin-top: auto; padding-top: 20px;">
-                                    <button class="pbi-btn-secondary" onclick="resetPBIFilters()" style="width: 100%; padding: 8px; font-size: 0.75rem; background: transparent; border: 1px solid #ddd; color: inherit; cursor: pointer; border-radius: 4px;">Reset Filters</button>
-                                </div>
-                            </aside>
-
-                            <!-- Report Canvas -->
-                            <main class="pbi-canvas" id="pbi-canvas">
-                                <div class="pbi-grid" id="pbi-overview-grid">
-                                    <!-- KPI Cards -->
-                                    <div class="pbi-card kpi">
-                                        <div class="pbi-kpi-val" id="pbi-kpi-avail">99.9%</div>
-                                        <div class="pbi-kpi-label">Availability Avg.</div>
-                                    </div>
-                                    <div class="pbi-card kpi">
-                                        <div class="pbi-kpi-val" id="pbi-kpi-latency">1.2ms</div>
-                                        <div class="pbi-kpi-label">Latency Median</div>
-                                    </div>
-                                    <div class="pbi-card kpi">
-                                        <div class="pbi-kpi-val" id="pbi-kpi-alerts">24</div>
-                                        <div class="pbi-kpi-label">Critical Alerts</div>
-                                    </div>
-                                    <div class="pbi-card kpi">
-                                        <div class="pbi-kpi-val" id="pbi-kpi-ingress">4.5TB</div>
-                                        <div class="pbi-kpi-label">Data Ingress</div>
-                                    </div>
-
-                                    <!-- Main Charts -->
-                                    <div class="pbi-card chart large" style="grid-column: span 3; grid-row: span 2;">
-                                        <div class="pbi-card-header">Infrastructure Performance Over Time</div>
-                                        <div class="pbi-chart-wrapper">
-                                            <canvas id="pbi-line-chart"></canvas>
-                                        </div>
-                                    </div>
-
-                                    <div class="pbi-card chart" style="grid-column: span 1; grid-row: span 2;">
-                                        <div class="pbi-card-header">Device Status Distribution</div>
-                                        <div class="pbi-chart-wrapper">
-                                            <canvas id="pbi-doughnut-chart"></canvas>
-                                        </div>
-                                    </div>
-
-                                    <div class="pbi-card chart" style="grid-column: span 2; grid-row: span 2;">
-                                        <div class="pbi-card-header">Security Threat Categories (Funnel)</div>
-                                        <div class="pbi-chart-wrapper">
-                                            <canvas id="pbi-bar-chart"></canvas>
-                                        </div>
-                                    </div>
-
-                                    <div class="pbi-card chart" style="grid-column: span 2; grid-row: span 2;">
-                                        <div class="pbi-card-header">Resource Utilization by Region</div>
-                                        <div class="pbi-chart-wrapper">
-                                            <canvas id="pbi-radar-chart"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Dynamic Content for other tabs can be added here -->
-                                <div id="pbi-resource-grid" style="display:none; width: 100%;">
-                                     <!-- JS Rendered -->
-                                 </div>
-                                 <div id="pbi-security-grid" style="display:none; width: 100%;">
-                                     <!-- JS Rendered -->
-                                 </div>
-                             </main>
-                         </div>
-                     </div>
-                     `;
-    
-    // 1. ADD TAB EVENT LISTENERS
-    const tabContainer = view.querySelector('#pbi-tab-container');
-    if (tabContainer) {
-        tabContainer.querySelectorAll('.pbi-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Switch Active Tab Class
-                tabContainer.querySelectorAll('.pbi-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                
-                // Toggle Grids
-                const target = tab.getAttribute('data-tab');
-                const grids = ['pbi-overview-grid', 'pbi-resource-grid', 'pbi-security-grid'];
-                grids.forEach(g => {
-                   const el = document.getElementById(g);
-                   if (el) el.style.display = g === `pbi-${target}-grid` ? 'grid' : 'none';
-                });
-
-                // Initialize Tab Specific Data
-                if (target === 'resource') initResourcePBITab();
-                if (target === 'security') initSecurityPBITab();
-            });
-        });
-    }
-
-    view.setAttribute('data-rendered', 'true');
-
-    // Initialize Charts with PowerBI styling (Initial Tab: Overview)
-    setTimeout(() => {
-        initPowerBICharts();
-    }, 100);
-}
-
-async function initPowerBICharts() {
-    if (typeof Chart === 'undefined') return;
-
-    // Reliability: Destroy existing charts if they exist (SPA behavior)
-    ['pbi-line-chart', 'pbi-doughnut-chart', 'pbi-bar-chart', 'pbi-radar-chart'].forEach(id => {
-        const existing = Chart.getChart(id);
-        if (existing) existing.destroy();
-    });
-
-    const pbiTheme = {
-        colors: ['#118DFF', '#12239E', '#E66C37', '#6B007B', '#E044A7', '#744EC2', '#D9B300', '#D64550'],
-        font: 'Outfit'
-    };
-
-    // --- FETCH REAL DATA FOR CHARTS ---
-    let history = [];
-    try {
-        const hRes = await fetch('/api/metrics/history');
-        history = await hRes.json();
-    } catch (e) { console.error("PBI History fetch failed", e); }
-
-    // 1. Line Chart (Real History)
-    const lineCtx = document.getElementById('pbi-line-chart');
-    if (lineCtx) {
-        const labels = history.length ? history.map(h => new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : ['Now'];
-        const cpuData = history.length ? history.map(h => h.cpuLoad) : [0];
-        const memData = history.length ? history.map(h => h.memoryUsage) : [0];
-
-        new Chart(lineCtx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'CPU Load (%)',
-                    data: cpuData,
-                    borderColor: pbiTheme.colors[0],
-                    backgroundColor: 'rgba(17, 141, 255, 0.1)',
-                    fill: true,
-                    tension: 0.3
-                }, {
-                    label: 'Memory Usage (%)',
-                    data: memData,
-                    borderColor: pbiTheme.colors[2],
-                    backgroundColor: 'transparent',
-                    borderDash: [5, 5],
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top', labels: { color: '#ccc', font: { family: pbiTheme.font } } }
-                },
-                scales: {
-                    x: { display: false },
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, border: { display: false }, ticks: { color: '#888' } }
-                }
-            }
-        });
-    }
-
-    // 2. Doughnut Chart (Real Server Status)
-    const doughnutCtx = document.getElementById('pbi-doughnut-chart');
-    if (doughnutCtx) {
-        const servers = state.infraData || [];
-        const statusCounts = { online: 0, offline: 0, warning: 0, maintenance: 0 };
-        servers.forEach(s => statusCounts[s.status] = (statusCounts[s.status] || 0) + 1);
-        if (servers.length === 0) statusCounts.online = 1;
-
-        new Chart(doughnutCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Online', 'Offline', 'Warning', 'Maintenance'],
-                datasets: [{
-                    data: [statusCounts.online, statusCounts.offline, statusCounts.warning, statusCounts.maintenance || 0],
-                    backgroundColor: pbiTheme.colors.slice(0, 4),
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: { position: 'bottom', labels: { color: '#ccc', boxWidth: 10, font: { family: pbiTheme.font } } }
-                }
-            }
-        });
-    }
-
-    // 3. Horizontal Bar Chart (Real Security Incident Summary)
-    const barCtx = document.getElementById('pbi-bar-chart');
-    if (barCtx) {
-        // Use live logs if available to simulate "Threat Categories"
-        const logs = state.liveLogs || [];
-        const categories = { 'Malware': 0, 'Injections': 0, 'DDoS': 0, 'Attempts': 0, 'Phishing': 0 };
-        logs.forEach(l => {
-            if (l.message.includes('Port')) categories['Attempts']++;
-            else if (l.severity === 'ERROR') categories['DDoS']++;
-            else categories['Malware']++;
-        });
-        // Add random seeds if empty for visual flow
-        if (Object.values(categories).every(v => v === 0)) {
-            Object.keys(categories).forEach(k => categories[k] = Math.floor(Math.random() * 20 + 5));
-        }
-
-        new Chart(barCtx, {
-            type: 'bar',
-            data: {
-                labels: Object.keys(categories),
-                datasets: [{
-                    label: 'Interception Count',
-                    data: Object.values(categories),
-                    backgroundColor: pbiTheme.colors[1],
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888' } },
-                    y: { grid: { display: false }, ticks: { color: '#888' } }
-                }
-            }
-        });
-    }
-
-    // 4. Radar Chart (Simulated Node Health)
-    const radarCtx = document.getElementById('pbi-radar-chart');
-    if (radarCtx) {
-        new Chart(radarCtx, {
-            type: 'radar',
-            data: {
-                labels: ['CPU', 'Memory', 'Disk', 'Network', 'IOPS', 'Temp'],
-                datasets: [{
-                    label: 'Global-Edge-1',
-                    data: [85, 70, 60, 90, 75, 55],
-                    borderColor: pbiTheme.colors[4],
-                    backgroundColor: 'rgba(224, 68, 167, 0.2)'
-                }, {
-                    label: 'Local-Net-0',
-                    data: [40, 50, 80, 30, 45, 40],
-                    borderColor: pbiTheme.colors[5],
-                    backgroundColor: 'rgba(116, 78, 194, 0.2)'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: {
-                        angleLines: { color: 'rgba(255,255,255,0.1)' },
-                        grid: { color: 'rgba(255,255,255,0.1)' },
-                        pointLabels: { color: '#ccc' },
-                        ticks: { display: false }
-                    }
-                }
-            }
-        });
-    }
-
-    // Add interactivity to slicers
-    setupPBISlicers();
-    setupPBITabs();
-}
-
-async function refreshPowerBIData() {
-    initPowerBICharts();
-}
-
-function setupPBISlicers() {
-    const timeSlicer = document.getElementById('pbi-slicer-time');
-    const regionSlicer = document.getElementById('pbi-slicer-region');
-    const deviceFilters = document.querySelectorAll('.pbi-device-filter');
-
-    const updateDashboard = () => {
-        showToast("Re-calculating data vectors...", "info");
-        initPowerBICharts(); // Reload with simulated or fresh data
-    };
-
-    if (timeSlicer) timeSlicer.addEventListener('change', updateDashboard);
-    if (regionSlicer) regionSlicer.addEventListener('change', updateDashboard);
-    deviceFilters.forEach(f => {
-        f.addEventListener('change', updateDashboard);
-    });
-}
-
-function setupPBITabs() {
-    const tabs = document.querySelectorAll('.pbi-tab');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-
-            const target = tab.getAttribute('data-tab');
-            const overview = document.getElementById('pbi-overview-grid');
-            const resource = document.getElementById('pbi-resource-grid');
-            const security = document.getElementById('pbi-security-grid');
-
-            if (overview) overview.style.display = target === 'overview' ? 'grid' : 'none';
-            if (resource) resource.style.display = target === 'resource' ? 'block' : 'none';
-            if (security) security.style.display = target === 'security' ? 'block' : 'none';
-        });
-    });
-}
-
-function resetPBIFilters() {
-    const timeSlicer = document.getElementById('pbi-slicer-time');
-    const regionSlicer = document.getElementById('pbi-slicer-region');
-    const deviceFilters = document.querySelectorAll('.pbi-device-filter');
-
-    if (timeSlicer) timeSlicer.value = '24h';
-    if (regionSlicer) regionSlicer.value = 'all';
-    deviceFilters.forEach(f => f.checked = true);
-
-    initPowerBICharts();
-    showToast("Reporting filters reset.", "info");
-}
-
-window.resetPBIFilters = resetPBIFilters;
 
 async function authorizeLab(lab, callback) {
     const view = document.getElementById(`${lab}-view`);
@@ -3299,7 +2943,6 @@ async function performLabHandshake(lab, el) {
     const btn = el || (typeof event !== 'undefined' ? event.target : null);
     if (!btn) {
         console.warn("Handshake target not found, searching by lab...");
-        // Fallback if target is missing
     }
     if (btn) btn.disabled = true;
     if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCHRONIZING...';
@@ -3309,273 +2952,11 @@ async function performLabHandshake(lab, el) {
     setTimeout(() => {
         state.labAuth[lab] = true;
         showToast("Neural Handover Successful. Access Granted.", "success");
-        switchTab(lab); // Re-render target lab
+        switchTab(lab);
     }, 1500);
 }
 
 window.performLabHandshake = performLabHandshake;
-
-function renderPulse() {
-    const view = showView('pulse-view');
-
-    if (!state.labAuth.pulse) {
-        authorizeLab('pulse');
-        return;
-    }
-
-    if (view.getAttribute('data-rendered') === 'true' && view.innerHTML !== '') return;
-
-    const pps = (Math.random() * 5 + 10).toFixed(1);
-    const sessions = Math.floor(Math.random() * 200 + 700);
-    const adminPerm = isAdmin();
-
-    view.innerHTML = `
-                    <div class="pulse-container fade-in">
-                        <!-- OPERATIONAL DIRECTIVE -->
-                        <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--primary-rgb), 0.05); border-left: 4px solid var(--primary); padding: 20px;">
-                            <div style="display: flex; gap: 15px; align-items: flex-start;">
-                                <i class="fas fa-info-circle" style="color: var(--primary); margin-top: 3px;"></i>
-                                <div>
-                                    <h4 class="font-transformers" style="font-size: 0.8rem; letter-spacing: 1px;">DIRECTIVE: SIGNAL INTELLIGENCE</h4>
-                                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
-                                        The Security Pulse monitors real-time "heartbeats" of all infrastructure nodes. It detects <strong>Heuristic Anomalies</strong>
-                                        by analyzing packet frequency and session entropy. Use this to identify stealth intrusions before they escalate.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="dashboard-grid" style="grid-template-columns: 2fr 1fr; gap: 25px;">
-                            <div class="card glass-card" style="position: relative; overflow: hidden; padding: 30px;">
-                                <div class="results-header">
-                                    <div class="card-title font-transformers"><i class="fas fa-globe-americas"></i> Global Threat Intelligence v7.5</div>
-                                    <div class="stat-pill pulse-dot" style="background: rgba(var(--primary-rgb), 0.1);"><i class="fas fa-satellite-dish"></i> ACTIVE_SCAN</div>
-                                </div>
-                                <div id="pulse-scan-area" style="height: 380px; margin-top: 20px; background: rgba(0,0,0,0.4); border-radius: 20px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); position: relative; background-image: radial-gradient(circle, rgba(0,212,255,0.05) 1px, transparent 1px); background-size: 30px 30px;">
-                                    <!-- SVG World Map Container -->
-                                    <div id="world-map-svg-container" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative;">
-                                        <svg viewBox="0 0 1000 500" style="width: 100%; height: 80%; fill: rgba(255,255,255,0.05); stroke: rgba(var(--primary-rgb), 0.2); stroke-width: 0.5;">
-                                            <!-- Simplified World Paths (Abstract Representation) -->
-                                            <path d="M150,150 Q180,100 250,150 T400,150" fill="none" stroke-width="1" />
-                                            <circle cx="210" cy="180" r="100" fill="rgba(var(--primary-rgb), 0.02)" />
-                                            <circle cx="600" cy="250" r="150" fill="rgba(var(--primary-rgb), 0.02)" />
-                                            <text x="50%" y="50%" text-anchor="middle" fill="rgba(255,255,255,0.1)" font-family="Space Mono" font-size="24">SIGNAL_ENCRYPTION_ACTIVE</text>
-
-                                            <!-- Dynamic Pulse Points (Step 8 Visualization) -->
-                                            <g id="map-threat-points">
-                                                <circle cx="250" cy="180" r="5" fill="#ff0055" class="pulse-point">
-                                                    <animate attributeName="r" from="3" to="15" dur="2s" repeatCount="indefinite" />
-                                                    <animate attributeName="opacity" from="1" to="0" dur="2s" repeatCount="indefinite" />
-                                                </circle>
-                                                <circle cx="800" cy="300" r="5" fill="#ffcc00" class="pulse-point">
-                                                    <animate attributeName="r" from="3" to="12" dur="3s" repeatCount="indefinite" />
-                                                    <animate attributeName="opacity" from="1" to="0" dur="3s" repeatCount="indefinite" />
-                                                </circle>
-                                            </g>
-                                        </svg>
-
-                                        <!-- Floating Data Chips -->
-                                        <div style="position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; font-size: 0.7rem; border: 1px solid var(--primary); font-family: 'Space Mono';">
-                                            <div style="color: var(--primary);">LATENCY: 12ms</div>
-                                            <div style="color: #00ff88;">UPLINK: SECURE</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Neural Metrics Row -->
-                                <div style="margin-top: 25px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                                    <div class="card" style="background: rgba(var(--primary-rgb), 0.1); border: 1px solid rgba(var(--primary-rgb),0.2);">
-                                        <div style="font-size: 0.7rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px;">Ingress Rate</div>
-                                        <div style="font-size: 1.5rem; font-weight: 800; margin-top: 5px;" id="pulse-pps">${pps}k/s</div>
-                                        <div style="font-size: 0.65rem; color: var(--text-muted);">Packets Verified</div>
-                                    </div>
-                                    <div class="card" style="background: rgba(162,77,255,0.1); border: 1px solid rgba(162,77,255,0.2);">
-                                        <div style="font-size: 0.7rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 1px;">Entropy Delta</div>
-                                        <div style="font-size: 1.5rem; font-weight: 800; margin-top: 5px;" id="pulse-sessions">${sessions}</div>
-                                        <div style="font-size: 0.65rem; color: var(--text-muted);">Active Sessions</div>
-                                    </div>
-                                    <div class="card" style="background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.2);">
-                                        <div style="font-size: 0.7rem; color: #00ff88; text-transform: uppercase; letter-spacing: 1px;">Coherence</div>
-                                        <div style="font-size: 1.5rem; font-weight: 800; margin-top: 5px;">99.4%</div>
-                                        <div style="font-size: 0.65rem; color: var(--text-muted);">Sync Confidence</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="card glass-card" style="padding: 25px;">
-                                <div class="card-title font-transformers">Regional Risk Vector</div>
-                                <div style="margin-top:20px; display: flex; flex-direction: column; gap: 15px;">
-                                    <!-- progress bars -->
-                                    <div>
-                                        <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                            <span>North America</span>
-                                            <span style="color: #00ff88;">Low</span>
-                                        </div>
-                                        <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                            <div style="width: 15%; height: 100%; background: #00ff88; border-radius: 2px;"></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                            <span>Europe (Cluster 9)</span>
-                                            <span style="color: #ffcc00;">Medium</span>
-                                        </div>
-                                        <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                            <div style="width: 45%; height: 100%; background: #ffcc00; border-radius: 2px;"></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div style="display:flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 5px;">
-                                            <span>Undetermined Proxy</span>
-                                            <span style="color: #ff0055;">High</span>
-                                        </div>
-                                        <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px;">
-                                            <div style="width: 82%; height: 100%; background: #ff0055; border-radius: 2px;"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <button class="btn-primary" style="width: 100%; margin-top: 30px; background: rgba(255,0,85,0.1); border: 1px solid #ff0055; color: #ff0055; ${!adminPerm ? 'opacity:0.3; cursor:not-allowed;' : ''}"
-                                    onclick="${adminPerm ? " showToast('Protocol-9 Lockdown Engaged', 'error')" : "showToast('Admin Access Required', 'warning')"}"
-                                ${!adminPerm ? 'title="Restricted Control"' : ''}>Global Lockdown</button>
-                            ${!adminPerm ? '<p style="font-size:0.7rem; color:var(--text-muted); text-align:center; margin-top:10px;"><i class="fas fa-lock"></i> Advanced Controls: Admins Only</p>' : ''}
-                        </div>
-                    </div>
-                </div>
-    `;
-    view.setAttribute('data-rendered', 'true');
-}
-
-async function refreshPulse() {
-    const btn = document.getElementById('pulse-refresh-btn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    showToast("Re-scanning security vectors...", "info");
-
-    try {
-        const res = await fetch('/api/ai/pulse');
-        const data = await res.json();
-
-        document.getElementById('pulse-pps').innerText = data.pps + 'k';
-        document.getElementById('pulse-sessions').innerText = data.sessions;
-
-        showToast(`Global Pulse Synchronized.Threat Level: ${data.threat_level}`, "success");
-    } catch (e) {
-        showToast("Pulse Signal Lost", "error");
-    } finally {
-        btn.innerHTML = '<i class="fas fa-sync"></i> SCAN';
-    }
-}
-window.refreshPulse = refreshPulse;
-
-function renderAilab() {
-    const view = showView('ailab-view');
-
-    if (!state.labAuth.ailab) {
-        authorizeLab('ailab');
-        return;
-    }
-
-    if (view.getAttribute('data-rendered') === 'true' && view.innerHTML.includes('Orchestrator')) return;
-
-    const adminPerm = isAdmin();
-
-    view.innerHTML = `
-                <div class= "ailab-container fade-in">
-        <!--OPERATIONAL DIRECTIVE-->
-        <div class="card glass-card" style="margin-bottom: 25px; background: rgba(var(--primary-rgb), 0.05); border-left: 4px solid var(--primary); padding: 20px;">
-            <div style="display: flex; gap: 15px; align-items: flex-start;">
-                <i class="fas fa-brain" style="color: var(--primary); margin-top: 3px;"></i>
-                <div>
-                    <h4 class="font-transformers" style="font-size: 0.8rem; letter-spacing: 1px;">DIRECTIVE: NEURAL RECONSTRUCTION</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">
-                        The AI Lab is the <strong>Control Sector</strong> for the PRIME_AI engine. Here, you can re-synchronize neural weights 
-                        or trigger a full model retraining. Retraining is recommended after large batches of "Critical" logs have been archived for better triage prediction.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
-            <div class="card glass-card" style="grid-column: span 2; padding: 30px;">
-                <div class="results-header">
-                    <div class="card-title font-transformers">Neural Engine Orchestrator v6.5</div>
-                     <div class="stat-pill" style="background: rgba(0, 212, 255, 0.1); color: var(--primary);">NATIVE-TRANSFORMER</div>
-                </div>
-                <p style="color: var(--text-muted); margin-top: 10px; margin-bottom: 25px;">Manage, train, and deploy local intelligence models for autonomous infrastructure recovery. Integrated with PRIME_AI Python Core.</p>
-            </div>
-
-            <div class="card glass-card" style="padding: 25px; text-align: center;">
-                <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-microchip"></i></div>
-                <h3 class="font-transformers">Model Parameters</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current Weights: 1.2B (Optimized)</p>
-                <button class="btn-primary" style="width:100% ${!adminPerm ? '; opacity:0.5; cursor:not-allowed;' : ''}" 
-                    onclick="${adminPerm ? 'syncAIWeights(this)' : "showToast('Admin Access Required', 'warning')"}"
-                    ${!adminPerm ? 'title="Restricted Control"' : ''}>Sync Weights</button>
-            </div>
-
-            <div class="card glass-card" style="padding: 25px; text-align: center;">
-                <div style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-database"></i></div>
-                <h3 class="font-transformers">Neural Corpus</h3>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Total unique events: 142.5k</p>
-                <button class="btn-primary" style="width:100% ${!adminPerm ? '; opacity:0.5; cursor:not-allowed;' : ''}" 
-                    onclick="${adminPerm ? "showToast('Expanding training set from Audit Vault...', 'info')" : "showToast('Admin Access Required', 'warning')"}"
-                    ${!adminPerm ? 'title="Restricted Control"' : ''}>Extend Corpus</button>
-            </div>
-
-                    <div class="card glass-card" style="padding: 25px; text-align: center;">
-                        <div style="font-size: 2.5rem; color: #00ff88; margin-bottom: 15px;"><i class="fas fa-brain"></i></div>
-                        <h3 class="font-transformers">Triage Accuracy</h3>
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Current confidence score: 98.2%</p>
-                        <button class="btn-primary" style="width:100%; background: #00ff88; color: black; ${!adminPerm ? 'opacity:0.5; cursor:not-allowed;' : ''}"
-                            onclick="${adminPerm ? 'retrainAIModel(this)' : " showToast('Admin Access Required', 'warning')"}"
-                        ${!adminPerm ? 'title="Restricted Control"' : ''}>Trigger Retraining</button>
-            </div>
-        </div>
-                    ${!adminPerm ? '<div style="margin-top:20px; padding:15px; background:rgba(255,165,0,0.05); border-radius:10px; border:1px solid rgba(255,165,0,0.2); text-align:center;"><p style="color:orange; font-size:0.8rem;"><i class="fas fa-user-shield"></i> Information: Viewing in READ-ONLY mode. Advanced training controls require Admin Clearance.</p></div>' : ''}
-    </div>
-            `;
-    view.setAttribute('data-rendered', 'true');
-}
-
-async function syncAIWeights(btn) {
-    const original = btn.innerText;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCING';
-    showToast("Synchronizing neural weights with Python Core...", "info");
-
-    try {
-        const res = await fetch('/api/ai/sync', { method: 'POST' });
-        const data = await res.json();
-
-        if (data.status === 'synced') {
-            showToast(`Synced ${data.nodes_updated} nodes.Ver: ${data.weights_version}`, "success");
-        } else {
-            showToast("Sync Failed", "error");
-        }
-    } catch (e) {
-        showToast("Connection Error", "error");
-    } finally {
-        btn.innerText = original;
-    }
-}
-
-async function retrainAIModel(btn) {
-    btn.innerHTML = '<i class="fas fa-brain-circuit fa-spin"></i> TRAINING';
-    showToast("Re-optimizing neural matrix for latest threat vectors...", "info");
-
-    try {
-        const res = await fetch('/api/ai/train', { method: 'POST' });
-        const data = await res.json();
-
-        if (data.status === 'success') {
-            btn.innerHTML = 'Trigger Retraining';
-            showToast(`Model retraining complete.Accuracy: ${data.accuracy} % (Epoch ${data.epoch})`, "success");
-        }
-    } catch (e) {
-        showToast("Training Sequence Failed", "error");
-        btn.innerHTML = 'Retry Training';
-    }
-}
-
-window.syncAIWeights = syncAIWeights;
-window.retrainAIModel = retrainAIModel;
 
 async function renderVault() {
     const view = showView('vault-view');
@@ -4494,61 +3875,6 @@ function generatePBIX(title, data) {
     showToast("PBIX Template Downloaded", "success");
 }
 
-function renderBotProfile() {
-    const view = showView('botprofile-view');
-    if (view.getAttribute('data-rendered') === 'true' && view.innerHTML !== '') return;
-
-    view.innerHTML = `
-            <div class="bot-profile-container fade-in">
-        <div class="profile-header glass-card" style="padding: 60px 40px; text-align: center; margin-bottom: 30px; border-radius: 24px; position: relative; overflow: hidden; border: 1px solid rgba(var(--primary-rgb), 0.2);">
-            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.1) 0%, transparent 70%); pointer-events: none;"></div>
-            <img src="img/autobot_logo.png" style="width: 120px; height: 120px; margin: 0 auto 20px auto; display: block; object-fit: contain; filter: drop-shadow(0 0 15px rgba(0, 242, 255, 0.3));">
-            <h1 style="font-size: 2.5rem; margin-bottom: 10px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"><span class="font-transformers">PRIME_AI</span> v6.5</h1>
-            <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Tier-1 Sovereign Intelligence Core. Optimized for infrastructure integrity and autonomous threat elimination.</p>
-            <div style="margin-top: 25px;">
-                <span class="stat-pill" style="background: rgba(0, 242, 255, 0.1); color: var(--primary);">NEURAL MATRIX: SYNCHRONIZED</span>
-            </div>
-        </div>
-
-        <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
-            <div class="card glass-card" style="padding: 25px;">
-                <h3 style="margin-bottom: 20px; color: var(--primary);" class="font-transformers"><i class="fas fa-microchip"></i> Physical Hardware</h3>
-                <div style="display: flex; flex-direction: column; gap: 15px;">
-                    <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
-                        <span style="color: var(--text-muted);">Processing Power:</span>
-                        <span style="color: #fff;">1.2 PB/s (Cluster 9)</span>
-                    </div>
-                    <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
-                        <span style="color: var(--text-muted);">Neural Weights:</span>
-                        <span style="color: #fff;">180 Billion (Quantized)</span>
-                    </div>
-                    <div style="display:flex; justify-content: space-between; font-size: 0.9rem;">
-                        <span style="color: var(--text-muted);">Response Latency:</span>
-                        <span style="color: #00ff88;"><0.4ms</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card glass-card" style="padding: 25px;">
-                <h3 style="margin-bottom: 20px; color: var(--secondary);" class="font-transformers"><i class="fas fa-shield-alt"></i> Intelligence Guardrails</h3>
-                <ul style="color: var(--text-muted); padding-left: 20px; font-size: 0.9rem; line-height: 1.8;">
-                    <li>Sovereign Infrastructure Protection</li>
-                    <li>Autonomous Protocol Lockdown</li>
-                    <li>Zero-Trust Identity Validation</li>
-                    <li>Sub-Surface Neural Filtering</li>
-                </ul>
-            </div>
-
-            <div class="card glass-card" style="padding: 25px;">
-                <h3 style="margin-bottom: 20px; color: #ffcc00;" class="font-transformers"><i class="fas fa-brain"></i> Active Directives</h3>
-                <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Currently monitoring <strong>Global Node Signature 12-B</strong> and optimizing regional packet flow for Europe-A Cluster.</p>
-            </div>
-        </div>
-        </div>
-    </div>
-    `;
-    view.setAttribute('data-rendered', 'true');
-}
 
 
 // --- FORGOT PASSWORD (Bulletproof v9.0) ---

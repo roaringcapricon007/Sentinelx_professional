@@ -2,13 +2,12 @@ const eventBus = require('../services/event.service');
 const { LogEntry } = require('../models');
 const { Op } = require('sequelize');
 const { getIpIntelligence } = require('../services/intel.service');
-const { evaluatePlaybooks } = require('../services/playbook.service');
 const { dispatchCriticalAlert } = require('../services/notification.service');
 const { ingestLog } = require('../services/ingest.service');
 
 /**
- * SentinelX Log Worker v9.0
- * Handles high-cpu neural analysis and SOAR orchestration in the background.
+ * SentinelX Log Worker v9.1
+ * Handles high-cpu neural analysis and intelligence orchestration in the background.
  * This prevents the main API thread from blocking during heavy attacks.
  */
 class LogWorker {
@@ -27,8 +26,7 @@ class LogWorker {
         // 2. Listen for repeated logs (high-velocity triggers)
         eventBus.on('log:repeat', async (log) => {
             try {
-                console.log(`[WORKER] 🔄 Re-evaluating Playbooks for Incident #${log.id} (Repeat Count: ${log.attempts})`);
-                await evaluatePlaybooks(log);
+                console.log(`[WORKER] 🔄 Re-evaluating metadata for Incident #${log.id} (Repeat Count: ${log.attempts})`);
             } catch (err) {
                 console.error('[WORKER] Repeat Processing Error:', err.message);
             }
@@ -71,7 +69,7 @@ class LogWorker {
         }
 
         // 2. Intelligence Enrichment
-        const ipIntel = getIpIntelligence(log.ip.split(' ')[0]);
+        const ipIntel = getIpIntelligence(log.ip ? log.ip.split(' ')[0] : '127.0.0.1');
         if (ipIntel.risk === 'SUSPICIOUS') riskScore += 20;
 
         // 3. Persist Transformation
@@ -82,10 +80,7 @@ class LogWorker {
         log.recommendations = aiRecommendations;
         await log.save();
 
-        // 4. SOAR Strategy Evaluation (Automation Lab Rules)
-        await evaluatePlaybooks(log);
-
-        // 5. Actionable Intelligence & Dispatch
+        // 4. Actionable Intelligence & Dispatch
         if (riskScore > 85) {
             log.status = 'BLOCKED'; // Immediate status upgrade
             await log.save();
@@ -103,7 +98,7 @@ class LogWorker {
             await dispatchCriticalAlert(log, ipIntel);
         }
 
-        // 6. Push Update to UI (Neural Cloud -> Frontend)
+        // 5. Push Update to UI (Neural Cloud -> Frontend)
         eventBus.publish('log:processed', log);
     }
 }

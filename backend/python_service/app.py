@@ -7,6 +7,11 @@ import numpy as np
 import requests
 from sklearn.ensemble import IsolationForest
 
+# --- DECOUPLED AI MODULES ---
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from ai.anomaly import detect_anomaly
+from realtime.socket import send_log_to_clients
+
 # --- Train ML Anomaly Model (Isolation Forest) ---
 # For real-time SOC logs, we train an initial in-memory Isolation Forest 
 # using simulated baseline features (Length, Numeric Count, Error Keyword Count).
@@ -331,16 +336,12 @@ def analyze_single_log():
     ip = data.get('ip', '0.0.0.0')
     severity = data.get('severity', 'INFO')
     
-    # 1. Feature Extraction for ML Model
+    # 1. Feature Extraction
     msg_length = len(message)
-    num_count = sum(c.isdigit() for c in message)
-    err_keywords = sum(1 for w in ['fail', 'error', 'denied', 'timeout', 'crash', 'critical'] if w in message.lower())
-    
-    features = np.array([[msg_length, num_count, err_keywords]])
-    
-    # 2. Predict with Isolation Forest (-1 is Anomaly, 1 is Normal)
-    prediction = anomaly_model.predict(features)[0]
-    is_anomaly = bool(prediction == -1)
+    err_keywords = sum(1 for w in ['fail', 'error'] if w in message.lower())
+
+    # 2. Feature Extraction & Prediction (Modular Handover)
+    is_anomaly = detect_anomaly([msg_length, err_keywords])
     
     # Simple risk scoring logic based on ML prediction and severity
     risk_score = 5
@@ -391,13 +392,19 @@ def analyze_single_log():
         else:
             explanation = f"Routine {severity} telemetry recorded matching standard threshold boundaries."
 
-    return jsonify({
+    result = {
         "is_anomaly": is_anomaly,
         "risk_score": risk_score,
         "threat_type": threat_type,
+        "status": "anomaly" if is_anomaly else "normal",
         "explanation": explanation,
         "recommendations": rec
-    })
+    }
+    
+    # Push to WebSocket clients for real-time visualization
+    send_log_to_clients(result)
+    
+    return jsonify(result)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

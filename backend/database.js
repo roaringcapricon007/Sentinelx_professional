@@ -6,7 +6,7 @@ const isRemote = !!(process.env.DATABASE_URL || process.env.DB_HOST);
 
 const sequelizeConfig = process.env.DATABASE_URL
     ? {
-        // Standard for Render/Heroku Postgres
+        // Production Cloud Database Config
         dialect: 'postgres',
         protocol: 'postgres',
         dialectOptions: {

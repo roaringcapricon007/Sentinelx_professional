@@ -9,14 +9,9 @@ require('dotenv').config();
 
 const app = express();
 
-// Standard Middleware
-// app.use(helmet()); 
+// Standard Middleware (Configuration for SOC integrity)
 app.use(cors({ origin: "*" }));
 app.use(express.json({ limit: "10kb" }));
-
-// UI Rate Limiting & Firewall Neutralized for SOC Sync (v10.9)
-// app.use(limiter); 
-// app.use(firewall);
 
 // ✅ ROOT UI (Serve Dashboard - PRIORITY 1)
 app.get("/", (req, res) => {

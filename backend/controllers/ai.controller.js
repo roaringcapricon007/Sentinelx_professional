@@ -4,24 +4,10 @@ const path = require('path');
 const natural = require('natural');
 require('dotenv').config();
 
-// 1. Local AI Model (Natural)
-let classifier = null;
-const modelPath = path.join(__dirname, '../classifier.json');
-if (fs.existsSync(modelPath)) {
-    natural.BayesClassifier.load(modelPath, null, (err, loadedClassifier) => {
-        if (err) {
-            console.error('Error loading local AI model:', err);
-        } else {
-            classifier = loadedClassifier;
-            console.log('SentinelX v5.0 Local AI Model Loaded');
-        }
-    });
-}
-
 async function generateResponse(msg) {
     const lower = msg.toLowerCase();
 
-    // 1. Try Python PrimeBrain first
+    // 1. Primary Intelligence: Python PrimeBrain
     try {
         const pyResponse = await fetch('http://127.0.0.1:5001/chat', {
             method: 'POST',
@@ -33,45 +19,18 @@ async function generateResponse(msg) {
             return data.response;
         }
     } catch (err) {
-        console.warn('Python AI Engine Offline, using local fallback.');
+        console.warn('Python AI Engine Offline, using local heuristics.');
     }
 
-    // --- Local Logic Fallback ---
-    let intent = 'unknown';
-
-    // Predict Intent with NLP
-    if (classifier) {
-        intent = classifier.classify(lower);
-        console.log(`AI Prediction (Local): "${msg}" -> ${intent}`);
-    } else {
-        if (lower.includes('status')) intent = 'status';
-        else if (lower.includes('security') || lower.includes('alert')) intent = 'security';
-        else if (lower.includes('cpu') || lower.includes('load')) intent = 'performance';
-        else if (lower.includes('log')) intent = 'logs';
-        else if (lower.includes('hello')) intent = 'greeting';
-    }
-
-    // Execute Action based on Intent
-    switch (intent) {
-        case 'status':
-            return await checkSystemStatus();
-        case 'security':
-            return await checkSecurityStatus();
-        case 'performance':
-            return await checkPerformance();
-        case 'logs':
-            return await checkLogs();
-        case 'greeting':
-            return "Greetings Administrator. I am PRIME_AI. My neural network is monitoring the matrix of your infrastructure.";
-        case 'agent':
-            return "To add a new node, run the 'sentinelx_agent.js' script on the target machine pointing to this server.";
-        case 'maintenance':
-            return "I can initiate a system optimization routine. Would you like me to clear caches or restart monitoring buffers?";
-        case 'network':
-            return "Network Analysis: Global latency is stable within 25ms. You can view regional throughput in the Infrastructure tab.";
-        default:
-            return "I'm analyzing your request. Try asking about 'System Status', 'Security Alerts', or 'Performance Metrics'.";
-    }
+    // --- 2. Local Heuristic Fallback ---
+    if (lower.includes('status')) return await checkSystemStatus();
+    if (lower.includes('security') || lower.includes('alert')) return await checkSecurityStatus();
+    if (lower.includes('performance') || lower.includes('cpu') || lower.includes('load')) return await checkPerformance();
+    if (lower.includes('log')) return await checkLogs();
+    if (lower.includes('hello')) return "Greetings Administrator. I am PRIME_AI. My neural network is monitoring the matrix of your infrastructure.";
+    if (lower.includes('agent') || lower.includes('node')) return "To add a new node, run the 'sentinelx_agent.js' script on the target machine pointing to this server.";
+    
+    return "I'm analyzing your request. Try asking about 'System Status', 'Security Alerts', or 'Performance Metrics'.";
 }
 
 // --- Action Handlers ---

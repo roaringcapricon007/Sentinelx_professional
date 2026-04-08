@@ -30,13 +30,11 @@ const aiRoutes = require('./ai.routes');
 const metricsRoutes = require('./metrics.routes');
 const infrastructureRoutes = require('./infrastructure.routes')(null);
 
-// --- 3. ANALYSIS & SOAR ---
-const analysisRoutes = require('./analysis.routes');
+// --- 3. ANALYSIS ---
 const analysisRoutes = require('./analysis.routes');
 
-// --- 4. MAINTENANCE & TESTING ---
+// --- 4. MAINTENANCE ---
 const maintenanceRoutes = require('./maintenance.routes');
-const testingRoutes = require('./testing.routes');
 
 // --- MOUNTING (MANDATORY Point 10) ---
 router.use('/auth', authRoutes);
@@ -44,8 +42,6 @@ router.use('/ai', aiRoutes);
 router.use('/metrics', metricsRoutes);
 router.use('/infrastructure', infrastructureRoutes);
 router.use('/analysis', analysisRoutes);
-router.use('/analysis', analysisRoutes);
 router.use('/maintenance', maintenanceRoutes);
-router.use('/testing', testingRoutes);
 
 module.exports = router;
