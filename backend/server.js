@@ -1,4 +1,8 @@
 console.log("🔥 SENTINELX CORE: STARTING INITIALIZATION...");
+
+// 1. GLOBAL PRIMITIVES (Required by all sub-modules)
+global.eventBus = require('./services/event.service');
+
 const app = require('./app'); 
 console.log("🔥 SENTINELX CORE: APP MODULE LOADED.");
 const http = require('http');
@@ -12,7 +16,6 @@ console.log("🔥 SENTINELX CORE: HTTP SERVER & SOCKETS CREATED.");
 
 // 1. GLOBAL ACCESS
 global.io = io;
-global.eventBus = require('./services/event.service');
 
 // 2. INITIALIZE WORKERS (Process Layer)
 const logWorker = require('./workers/log.worker');

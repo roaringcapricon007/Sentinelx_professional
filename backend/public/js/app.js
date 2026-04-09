@@ -1,4 +1,4 @@
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+const API = "http://localhost:3000";
 
 const state = {
     isLoggedIn: false,
@@ -14,7 +14,8 @@ const state = {
     labAuth: {
         pulse: true,
         ailab: true
-    }
+    },
+    autoIsolation: localStorage.getItem('autoIsolation') === 'true'
 };
 
 // Guarantee Dark Mode immediately
@@ -37,7 +38,7 @@ let regSessionData = null; // Store for verification context
 
 
 
-const socket = io(API_URL);
+const socket = io(API);
 
 
 // --- DOM Elements ---
@@ -342,7 +343,7 @@ async function handleLogin(formRef, email, password) {
         // Wait for "Scanning" effect to feel real (500ms for snappiness)
         await new Promise(r => setTimeout(r, 500));
 
-        const res = await fetch(`${API_URL}/api/auth/login`, {
+        const res = await fetch(`${API}/api/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -434,7 +435,7 @@ async function handleRegister(formRef, name, email, password) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout for complex SMTP handshakes
 
-        const res = await fetch(`${API_URL}/api/auth/request-otp`, {
+        const res = await fetch(`${API}/api/auth/request-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email, password }),
@@ -543,7 +544,7 @@ function startOtpTimer(seconds) {
 async function resendOTP() {
     if (!regSessionData) return;
     showToast("Re-broadcasting sequence...", "info");
-    const res = await fetch(`${API_URL}/api/auth/request-otp`, {
+    const res = await fetch(`${API}/api/auth/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(regSessionData)
@@ -573,7 +574,7 @@ async function verifyOTP() {
     verifyBtn.disabled = true;
 
     try {
-        const res = await fetch(`${API_URL}/api/auth/verify-registration`, {
+        const res = await fetch(`${API}/api/auth/verify-registration`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: regSessionData.email, otp: otpInput })
@@ -646,7 +647,7 @@ function login(user, token) {
  */
 async function checkSession() {
     try {
-        const res = await fetch(`${API_URL}/api/auth/me`);
+        const res = await fetch(`${API}/api/auth/me`);
         const data = await res.json();
         if (res.ok && data.authenticated) {
             console.log("[SESSION] Active link detected. Resuming session for:", data.user.email);
@@ -682,7 +683,8 @@ function logout(e) {
     sessionStorage.clear();
 
     // Direct navigation to server logout — server destroys session + cookie, then redirects to /?logout=true
-    window.location.href = `${API_URL}/api/auth/logout`;
+    // Direct navigation to server logout — server destroys session + cookie, then redirects to /?logout=true
+    window.location.href = `${API}/api/auth/logout`;
 }
 
 window.logout = logout;
@@ -1019,7 +1021,7 @@ async function updateNeuralPulse(metrics) {
     if (!pulseEl) return;
 
     try {
-        const res = await fetch(`${API_URL}/api/ai/health`);
+        const res = await fetch(`${API}/api/ai/health`);
         const data = await res.json();
         const span = pulseEl.querySelector('span');
         const dot = pulseEl.querySelector('.pulse-dot');
@@ -1050,69 +1052,67 @@ function renderHome() {
 
     view.innerHTML = `
     <div class="home-container fade-in">
-    <!-- Moving background element -->
-    <div class="home-aura"></div>
+        <div class="home-aura"></div>
 
-    <div style="margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; z-index: 1;">
-        <div style="width: 100%; margin-bottom: 25px;">
-            <div class="hero-chip" style="display:inline-block; padding: 5px 15px; background: rgba(var(--primary-rgb), 0.1); border: 1px solid rgba(var(--primary-rgb), 0.3); border-radius: 50px; color: var(--primary); font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px;">v7.0 QUANTUM EDITION</div>
-            <h1 style="font-size: 4.5rem; margin-bottom: 10px; background: linear-gradient(270deg, var(--primary), var(--secondary), var(--quantum), var(--primary)); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientLoop 6s ease infinite; font-weight: 900; filter: drop-shadow(0 0 15px rgba(var(--primary-rgb), 0.3));"><span class="font-transformers">SENTINELX_NEXUS</span></h1>
-            <p style="color: var(--text-muted); font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase; max-width: 800px; margin: 0 auto;">Autonomous Infrastructure Intelligence Protocol</p>
+        <div style="margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; z-index: 1;">
+            <div style="width: 100%; margin-bottom: 25px;">
+                <div class="hero-chip">v7.0 QUANTUM EDITION</div>
+                <h1 style="font-size: 4.5rem; margin-bottom: 10px; background: linear-gradient(270deg, var(--primary), var(--secondary), var(--quantum), var(--primary)); background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientLoop 6s ease infinite; font-weight: 900;"><span class="font-transformers">SENTINELX_NEXUS</span></h1>
+                <p style="color: var(--text-muted); font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase;">Autonomous Infrastructure Intelligence Protocol</p>
+            </div>
+            <div style="display: flex; gap: 20px; margin-top: 10px;">
+                <button class="btn-primary-mega" onclick="switchTab('topology')">ACCESS MESH</button>
+                <button class="btn-secondary-mega" onclick="switchTab('ailab')">NEURAL CORE</button>
+            </div>
         </div>
-        <div style="display: flex; gap: 20px; margin-top: 10px;">
-            <button class="btn-primary-mega" onclick="switchTab('topology')" style="padding: 15px 40px; font-size: 1rem; cursor: pointer; border-radius: 12px; background: var(--primary); color: #000; border: none; font-weight: 800; transition: all 0.3s var(--ease-elastic);">ACCESS MESH</button>
-            <button class="btn-secondary-mega" onclick="switchTab('ailab')" style="padding: 15px 40px; font-size: 1rem; cursor: pointer; border-radius: 12px; background: rgba(0,255,163,0.1); border: 1px solid var(--quantum); color: var(--quantum); font-weight: 800; transition: all 0.3s var(--ease-elastic);">NEURAL CORE</button>
+
+        <div class="dashboard-grid">
+            <div class="card premium-card" onclick="switchTab('botprofile')">
+                <div class="card-glow"></div>
+                <h3 class="font-transformers">PRIME_AI Quantum</h3>
+                <p>Next-generation Nexus Transformer core.</p>
+            </div>
+            <div class="card premium-card" onclick="switchTab('topology')">
+                <div class="card-glow"></div>
+                <h3 class="font-transformers">Neural Mesh</h3>
+                <p>Real-time visualization of global nodes.</p>
+            </div>
+        </div>
+
+        <div class="home-stat-banner">
+            <div class="stat-item">
+                <span class="stat-value" id="home-stat-devices">--</span>
+                <span class="stat-label">Identified Nodes</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="home-stat-anomalies">--</span>
+                <span class="stat-label">Active Anomalies</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="home-stat-logs">--</span>
+                <span class="stat-label">Events Processed</span>
+            </div>
         </div>
     </div>
+    `;
 
-    <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; position: relative; z-index: 1; margin-top: 40px;">
-        <div class="card premium-card" onclick="switchTab('botprofile')">
-            <div class="card-glow"></div>
-            <div style="position: absolute; top: 15px; right: 15px; font-size: 0.7rem; color: var(--quantum); font-family: var(--font-mono);">SYNC: 98%</div>
-            <div style="margin-bottom: 20px;"><img src="img/autobot_logo.png" style="width: 50px; height: 50px; object-fit: contain; filter: drop-shadow(0 0 10px var(--primary));"></div>
-            <h3 class="font-transformers"><span class="font-transformers">PRIME_AI</span> Quantum</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Next-generation <strong>Nexus Transformer</strong> core. Operating with sub-1ms predictive response latency.</p>
-        </div>
-        <div class="card premium-card" onclick="switchTab('topology')">
-            <div class="card-glow" style="background: radial-gradient(circle at top right, rgba(var(--primary-rgb), 0.15), transparent 70%);"></div>
-            <div style="font-size: 2.2rem; color: var(--primary); margin-bottom: 15px;"><i class="fas fa-project-diagram"></i></div>
-            <h3 class="font-transformers">Neural Mesh</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Real-time visualization of 142 global nodes synchronized via quantum-secure handshakes.</p>
-        </div>
-        <div class="card premium-card" style="border: 1px dashed var(--secondary); background: rgba(var(--secondary-rgb), 0.05);">
-            <div class="card-glow" style="background: radial-gradient(circle at top right, rgba(var(--secondary-rgb), 0.1), transparent 70%);"></div>
-            <div style="font-size: 2.2rem; color: var(--secondary); margin-bottom: 15px;"><i class="fas fa-mobile-alt"></i></div>
-            <h3 class="font-transformers">Remote Sync</h3>
-            <p style="color: var(--text-muted); font-size: 0.8rem; line-height: 1.6;">Access SentinelX from your mobile device or external node:</p>
-            <div style="margin-top: 10px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--secondary); padding: 5px; background: rgba(0,0,0,0.3); border-radius: 5px;">http://10.171.167.68:3000</div>
-        </div>
-        <div class="card premium-card" onclick="switchTab('pulse')">
-            <div class="card-glow" style="background: radial-gradient(circle at top right, rgba(0, 255, 163, 0.15), transparent 70%);"></div>
-            <div style="font-size: 2.2rem; color: var(--quantum); margin-bottom: 15px;"><i class="fas fa-satellite-dish"></i></div>
-            <h3 class="font-transformers">Quantum Shield</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">Active interceptor for emerging zero-day threats. Dynamic heuristic-based node isolation.</p>
-        </div>
-    </div>
-
-    <div class="home-stat-banner">
-        <div class="stat-item">
-            <span class="stat-value">99.99<span style="font-size: 0.6em; margin-left:2px;">%</span></span>
-            <span class="stat-label">Uptime Architecture</span>
-        </div>
-        <div class="stat-separator"></div>
-        <div class="stat-item">
-            <span class="stat-value">0.08<span style="font-size: 0.6em; margin-left:2px;">ms</span></span>
-            <span class="stat-label">Response Velocity</span>
-        </div>
-        <div class="stat-separator"></div>
-        <div class="stat-item">
-            <span class="stat-value">1.2<span style="font-size: 0.6em; margin-left:2px;">PB</span></span>
-            <span class="stat-label">Data Synced</span>
-        </div>
-    </div>
-</div>
-`;
+    setTimeout(async () => {
+        try {
+            const res = await fetch(`${API}/api/overview/summary`);
+            if (res.ok) {
+                const data = await res.json();
+                const devEl = document.getElementById('home-stat-devices');
+                const anoEl = document.getElementById('home-stat-anomalies');
+                const logEl = document.getElementById('home-stat-logs');
+                if (devEl) devEl.innerText = data.counts.devices;
+                if (anoEl) anoEl.innerText = data.counts.anomalies;
+                if (logEl) logEl.innerText = data.counts.logs;
+            }
+        } catch (e) {}
+    }, 100);
 }
+
+
 
 
 function updateDashboardMetrics(data) {
@@ -1127,14 +1127,6 @@ function updateDashboardMetrics(data) {
     }
     if (ramVal) ramVal.innerText = data.memoryUsage + '%';
     if (netVal) netVal.innerText = ((data.networkRx + data.networkTx) / 1024).toFixed(1) + ' KB/s';
-
-    // Update Footer Trend
-    const footerNet = document.getElementById('footer-net-speed');
-    if (footerNet) {
-        // Convert to MB/s
-        const mbps = (data.networkRx + data.networkTx) / 1024 / 1024;
-        footerNet.innerText = mbps.toFixed(2);
-    }
 
     // 2. Update Chart
     const chart = Chart.getChart('mainTrendChart');
@@ -1226,7 +1218,7 @@ function renderOverview() {
         if (typeof Chart === 'undefined') return;
         try {
             // Trend Chart
-            const hRes = await fetch(`${API_URL}/api/metrics/history`);
+            const hRes = await fetch(`${API}/api/stats/history`);
             const history = await hRes.json();
             const labels = history.length ? history.map(h => new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })) : ['Now'];
             const cpuData = history.length ? history.map(h => h.cpuLoad) : [0];
@@ -1266,7 +1258,7 @@ function renderOverview() {
             updateOverviewCharts(state.infraData || []);
 
             if (!state.infraData) {
-                const infRes = await fetch(`${API_URL}/api/infrastructure`);
+                const infRes = await fetch(`${API}/api/infrastructure`);
                 if (infRes.ok) {
                     state.infraData = await infRes.json();
                     updateOverviewCharts(state.infraData);
@@ -1277,7 +1269,7 @@ function renderOverview() {
 
         // --- Live Predictive Analysis (Step 10) ---
         try {
-            const predRes = await fetch(`${API_URL}/api/metrics/predict`);
+            const predRes = await fetch(`${API}/api/stats/predict`);
             const predData = await predRes.json();
             const predBox = document.getElementById('ai-prediction-content');
             if (predBox && predData.predictions) {
@@ -1347,7 +1339,7 @@ async function syncAIWeights(btn) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCING...';
 
     try {
-        const res = await fetch(`${API_URL}/api/ai/sync`, { method: 'POST' });
+        const res = await fetch(`${API}/api/ai/sync`, { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
             showToast(`Quantum Weights Synced: ${data.weights_version}`, 'success');
@@ -1370,7 +1362,7 @@ async function retrainAIModel(btn) {
     showToast('Initiating Heuristic Synthesis...', 'info');
 
     try {
-        const res = await fetch(`${API_URL}/api/ai/train`, { method: 'POST' });
+        const res = await fetch(`${API}/api/ai/train`, { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
             showToast(`Retraining Complete. Accuracy: ${data.accuracy}%`, 'success');
@@ -1688,7 +1680,7 @@ async function updateAnalysisTable(manualLogs) {
     // If no manual logs provided, fetch from live history
     if (!logs) {
         try {
-            const res = await fetch(`/api/logs/history?status=${alertTab}`);
+            const res = await fetch(`${API}/api/logs/history?status=${alertTab}`);
             if (!res.ok) throw new Error('Not authorized');
             logs = await res.json();
         } catch (e) {
@@ -1857,7 +1849,7 @@ async function resolveAlert(logId, btn) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     try {
-        const res = await fetch(`/ api / logs / resolve / ${logId}`, { method: 'POST' });
+        const res = await fetch(`${API}/api/logs/resolve/${logId}`, { method: 'POST' });
         const data = await res.json();
         if (res.ok) {
             // Socket will handle UI update via 'log_resolved' event
@@ -1881,7 +1873,7 @@ async function blockIP(ip, btn) {
     btn.disabled = true;
     showToast(`Initiating Protocol: FW - SHIELD on ${cleanIp}...`, 'info');
     try {
-        const res = await fetch(`${API_URL}/api/logs/block-ip`, {
+        const res = await fetch(`${API}/api/logs/block-ip`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ip: cleanIp })
@@ -1905,7 +1897,7 @@ async function suspendUserFromAlert(msg, btn) {
     const email = emailMatch[0];
     btn.disabled = true;
     try {
-        const res = await fetch(`${API_URL}/api/logs/disable-user`, {
+        const res = await fetch(`${API}/api/logs/disable-user`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
@@ -1965,7 +1957,7 @@ async function renderInfrastructure() {
         <div class="card glass-card">
             <div class="results-header" style="padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.05)">
                 <div class="card-title font-transformers"><i class="fas fa-network-wired"></i> Infrastructure Fleet Command</div>
-                <button class="btn-primary" style="padding: 8px 20px; font-size: 0.8rem;" onclick="showToast('Scanning decentralized nodes...', 'info')">Scan Network</button>
+                <button class="btn-primary" style="padding: 8px 20px; font-size: 0.8rem;" onclick="scanNetwork(this)">Scan Network</button>
             </div>
             <div class="table-container" style="overflow-x: auto;">
                 <table class="log-table" style="margin-top: 10px; width: 100%;">
@@ -1995,7 +1987,7 @@ async function renderInfrastructure() {
     }
 
     try {
-        const res = await fetch(`${API_URL}/api/infrastructure`);
+        const res = await fetch(`${API}/api/devices`);
         if (res.ok) {
             const servers = await res.json();
             state.infraData = servers;
@@ -2028,7 +2020,7 @@ async function renderTimeline() {
                     `;
 
     try {
-        const res = await fetch(`${API_URL}/api/logs/timeline`);
+        const res = await fetch(`${API}/api/logs/timeline`);
         const logs = await res.json();
         const narrativeBody = document.getElementById('narrative-content');
 
@@ -2221,7 +2213,7 @@ function renderSettings() {
                                         <h4>Auto-Isolation</h4>
                                         <p>Disconnect suspicious nodes automatically</p>
                                     </div>
-                                    <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+                                    <div class="toggle-switch ${state.autoIsolation ? 'active' : ''}" onclick="toggleIsolation(this)"></div>
                                 </div>
                             </div>
 
@@ -2290,7 +2282,7 @@ async function checkAIStatus() {
     if (!el) return;
 
     try {
-        const res = await fetch(`${API_URL}/api/ai/status`);
+        const res = await fetch(`${API}/api/ai/status`);
         const data = await res.json();
         el.innerText = data.model;
         if (data.gptEnabled) el.style.color = '#00ff88';
@@ -2310,7 +2302,7 @@ async function handleFileUpload(input) {
     formData.append('log', file);
 
     try {
-        const res = await fetch(`${API_URL}/api/analysis/upload`, {
+        const res = await fetch(`${API}/api/analysis/upload`, {
             method: 'POST',
             body: formData
         });
@@ -2376,7 +2368,7 @@ async function handleAnalysisUpload(input) {
     formData.append('log', file);
 
     try {
-        const res = await fetch(`${API_URL}/api/analysis/upload`, {
+        const res = await fetch(`${API}/api/analysis/upload`, {
             method: 'POST',
             body: formData
         });
@@ -2970,7 +2962,7 @@ async function loadVaultData(filter = '') {
     const tbody = document.getElementById('vault-table-body');
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Accessing Neural Archives...</td></tr>';
     try {
-        const res = await fetch(`${API_URL}/api/logs/history?status=RESOLVED`);
+        const res = await fetch(`${API}/api/audit?status=RESOLVED`);
         if (!res.ok) throw new Error('Not authorized');
         const logs = await res.json();
 
@@ -3023,7 +3015,7 @@ window.searchVault = searchVault;
 // --- Enterprise Risk Score Banner (Step 4) ---
 async function refreshRiskScore() {
     try {
-        const res = await fetch(`${API_URL}/api/logs/risk-score`);
+        const res = await fetch(`${API}/api/logs/risk-score`);
         if (!res.ok) return;
         const data = await res.json();
 
@@ -3064,7 +3056,7 @@ async function renderAutomation() {
     // Always re-fetch tools
     let tools = [];
     try {
-        const res = await fetch(`${API_URL}/api/testing/tools`);
+        const res = await fetch(`${API}/api/testing/tools`);
         tools = await res.json();
     } catch (e) { console.error("Failed to load tools", e); }
 
@@ -3176,7 +3168,7 @@ async function executeAutomationTest() {
     showToast(`Executing ${toolId} suite...`, "info");
 
     try {
-        const res = await fetch(`${API_URL}/api/testing/run`, {
+        const res = await fetch(`${API}/api/testing/run`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ toolId })
@@ -3387,7 +3379,7 @@ async function fetchSessions() {
     const list = document.getElementById('active-sessions-list');
     if (!list) return;
     try {
-        const res = await fetch(`${API_URL}/api/auth/sessions`);
+        const res = await fetch(`${API}/api/auth/sessions`);
         const sessions = await res.json();
         list.innerHTML = sessions.map(s => {
             const isCurrent = s.isCurrent ? ' <span style="color: #00ff88; font-weight:bold;">[CURRENT]</span>' : '';
@@ -3415,7 +3407,7 @@ async function terminateSession(id) {
 async function terminateOtherSessions() {
     if(!confirm("Purge all other security tokens?")) return;
     try {
-        const res = await fetch(`${API_URL}/api/auth/sessions`, { method: 'DELETE' });
+        const res = await fetch(`${API}/api/auth/sessions`, { method: 'DELETE' });
         if (res.ok) { showToast("Global session purge successful.", "success"); fetchSessions(); }
     } catch (e) { showToast("Purge failed", "error"); }
 }
@@ -3424,7 +3416,7 @@ async function editProfile() {
     const name = prompt("Enter new Display Name:", state.user.name);
     if (name && name !== state.user.name) {
         try {
-            const res = await fetch(`${API_URL}/api/auth/profile`, {
+            const res = await fetch(`${API}/api/auth/profile`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
@@ -3528,7 +3520,7 @@ function initHeaderActions() {
             showToast("Analyzing system cache...", "info");
 
             try {
-                const res = await fetch(`${API_URL}/api/maintenance/clear-cache`, { method: 'POST' });
+                const res = await fetch(`${API}/api/maintenance/clear-cache`, { method: 'POST' });
                 const data = await res.json();
 
                 if (data.status === 'Success') {
@@ -3697,19 +3689,19 @@ async function generateReport(format) {
         let data, title;
 
         if (targetType === 'availability') {
-            const res = await fetch(`${API_URL}/api/infrastructure`);
+            const res = await fetch(`${API}/api/infrastructure`);
             data = await res.json();
             title = "Weekly Availability Report";
         } else if (targetType === 'security') {
-            const res = await fetch(`${API_URL}/api/logs/history`);
+            const res = await fetch(`${API}/api/logs/history`);
             data = await res.json();
             title = "Security Audit Logs";
         } else if (targetType === 'performance') {
-            const res = await fetch(`${API_URL}/api/metrics/history`);
+            const res = await fetch(`${API}/api/metrics/history`);
             data = await res.json();
             title = "Performance Trends";
         } else if (targetType === 'powerbi') {
-            const res = await fetch(`${API_URL}/api/metrics/history`); // Use metrics for BI demo
+            const res = await fetch(`${API}/api/metrics/history`); // Use metrics for BI demo
             data = await res.json();
             title = "PowerBI Intelligence Dataset";
         }
@@ -3897,7 +3889,7 @@ async function handleForgotPassword() {
 
     // 2. BACKGROUND TRANSMISSION
     try {
-        const res = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        const res = await fetch(`${API}/api/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email })
@@ -3932,7 +3924,7 @@ async function resetPasswordFull() {
     btn.innerText = "Saving...";
 
     try {
-        const res = await fetch(`${API_URL}/api/auth/reset-password`, {
+        const res = await fetch(`${API}/api/auth/reset-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, otp, password })
@@ -4068,7 +4060,7 @@ async function setupMFA() {
            
            // Real API call (Phase 1 logic)
            try {
-               const res = await fetch(`${API_URL}/api/auth/mfa/setup`, { method: 'POST' });
+               const res = await fetch(`${API}/api/auth/mfa/setup`, { method: 'POST' });
                if (res.ok) {
                    modal.remove();
                    showToast("MFA Activated: Neural signature synced.", "success");
@@ -4087,5 +4079,138 @@ async function setupMFA() {
         }
     };
 }
+
+// --- MISSING HANDLERS (Interaction Simulation Recovery) ---
+
+function toggleSystemNotifications(btn) {
+    btn.classList.toggle('active');
+    state.notificationsEnabled = btn.classList.contains('active');
+    localStorage.setItem('notificationsEnabled', state.notificationsEnabled);
+    showToast(state.notificationsEnabled ? "Neural Alerts Enabled" : "Alerts Squelched", "info");
+}
+
+async function handleForgotPassword() {
+    const emailInput = document.querySelector('#forgot-password-form input[type="email"]');
+    if (!emailInput || !emailInput.value) return showToast("Target identifier required.", "error");
+
+    const email = emailInput.value;
+    const btn = document.querySelector('#forgot-password-form button');
+    const originalText = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> SYNCING...';
+
+    try {
+        const res = await fetch(`${API}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        if (res.ok) {
+            showToast("Recovery sequence broadcast. Update credentials.", "success");
+            // Show reset fields
+            document.getElementById('fp-recovery-step').style.display = 'block';
+            document.getElementById('fp-email-step').style.display = 'none';
+            btn.innerHTML = 'UPDATE CREDENTIALS';
+            btn.onclick = resetPasswordFull;
+        } else {
+            const data = await res.json();
+            showToast(data.error || "Handshake rejected.", "error");
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    } catch (e) {
+        showToast("Matrix connection interrupted.", "error");
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function resetPasswordFull() {
+    const email = document.getElementById('fp-email').value;
+    const code = document.getElementById('fp-otp').value;
+    const newPassword = document.getElementById('fp-new-pass').value;
+
+    if (!code || !newPassword) return showToast("Sequence fragments missing.", "error");
+
+    try {
+        const res = await fetch(`${API}/api/auth/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, code, password: newPassword })
+        });
+        if (res.ok) {
+            showToast("Matrix signature updated. Re-login required.", "success");
+            setTimeout(() => window.location.reload(), 2000);
+        } else {
+            const data = await res.json();
+            showToast(data.error || "Sync failed.", "error");
+        }
+    } catch (e) {
+        showToast("Nexus unavailable.", "error");
+    }
+}
+
+async function generateReportDirect(type, format) {
+    showToast(`Synthesizing ${type.toUpperCase()} report [${format.toUpperCase()}]...`, "info");
+    try {
+        const res = await fetch(`${API}/api/reports?type=${type}&format=${format}`);
+        if (res.ok) {
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sentinelx_${type}_archive.${format === 'excel' ? 'csv' : 'pdf'}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            showToast("Synthesis complete. Archive received.", "success");
+        } else {
+            showToast("Archival retrieval failed.", "error");
+        }
+    } catch (e) {
+        showToast("Neural Generator is offline.", "error");
+    }
+}
+
+// Global Exports
+window.toggleSystemNotifications = toggleSystemNotifications;
+window.handleForgotPassword = handleForgotPassword;
+window.resetPasswordFull = resetPasswordFull;
+window.generateReportDirect = generateReportDirect;
+
+function toggleIsolation(btn) {
+    btn.classList.toggle('active');
+    state.autoIsolation = btn.classList.contains('active');
+    localStorage.setItem('autoIsolation', state.autoIsolation);
+    showToast(state.autoIsolation ? "Auto-Isolation Protocol: ENGAGED" : "Isolation Protocol: DISENGAGED", "warning");
+}
+
+async function scanNetwork(btn) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> SCANNING...';
+    showToast("Neural Ping: Probing architecture for ghost nodes...", "info");
+
+    try {
+        // Refresh infrastructure data
+        const res = await fetch(`${API}/api/devices`);
+        if (res.ok) {
+            const servers = await res.json();
+            state.infraData = servers;
+            const view = document.getElementById('infrastructure-view');
+            if (view) renderInfraTable(servers, view);
+            showToast(`Scan Complete: ${servers.length} nodes verified.`, "success");
+        }
+    } catch (e) {
+        showToast("Scan Error: Neural uplink unstable.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+window.toggleIsolation = toggleIsolation;
+window.scanNetwork = scanNetwork;
 
 console.log('Scripts fully loaded!')

@@ -1292,7 +1292,7 @@ LineId,Time,Level,Content,EventId,EventTemplate
 1291,Mon Dec 05 07:47:21 2005,notice,workerEnv.init() ok /etc/httpd/conf/workers2.properties,E2,workerEnv.init() ok <*>
 1292,Mon Dec 05 07:47:21 2005,notice,jk2_init() Found child 5000 in scoreboard slot 7,E1,jk2_init() Found child <*> in scoreboard slot <*>
 1293,Mon Dec 05 07:47:22 2005,error,mod_jk child workerEnv in error state 8,E3,mod_jk child workerEnv in error state <*>
-1294,Mon Dec 05 07:47:21 2005,notice,jk2_init() Found child 5001 in scoreboard slot 9,E1,jk2_init() Found child <*> in scoreboard slot <*>
+1294,Mon Dec 05 07:47:21 2005,notice,jk2_init() Found child 5000 in scoreboard slot 9,E1,jk2_init() Found child <*> in scoreboard slot <*>
 1295,Mon Dec 05 07:47:23 2005,error,mod_jk child workerEnv in error state 6,E3,mod_jk child workerEnv in error state <*>
 1296,Mon Dec 05 07:47:36 2005,notice,workerEnv.init() ok /etc/httpd/conf/workers2.properties,E2,workerEnv.init() ok <*>
 1297,Mon Dec 05 07:47:36 2005,notice,workerEnv.init() ok /etc/httpd/conf/workers2.properties,E2,workerEnv.init() ok <*>

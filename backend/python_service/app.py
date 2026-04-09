@@ -34,6 +34,10 @@ DEEP_LEARNING_AVAILABLE = False # Force Lite mode for instant startup
 
 app = Flask(__name__)
 
+# Initialize WebSocket Neural Hub
+from realtime.socket import setup_socket
+socketio = setup_socket(app)
+
 # --- Model Loading Strategy ---
 # 1. Advanced Brain (Transformer/Deep Learning)
 # 2. Lite Brain (TF-IDF/Naive Bayes)
@@ -227,7 +231,8 @@ def analyze_logs():
 
             # Deep Suggestion Engine & Risk Scoring
             risk_score = 10
-            is_anomaly = False
+            # Use ML features for Advanced Anomaly Detection
+            is_anomaly = detect_anomaly([len(l), sum(1 for w in ['error', 'fail', 'panic'] if w in l)])
 
             if ai_intent == 'security' or "login" in l or "auth" in l or "denied" in l:
                 suggestion = "SECURITY PROTOCOL: Origin IP marked as SUSPICIOUS. Correlation suggests multi-vector probe. Check for credential stuffing."
@@ -259,7 +264,17 @@ def analyze_logs():
                 "suggestion": suggestion,
                 "riskScore": risk_score,
                 "isAnomaly": is_anomaly,
+                "status": "ANOMALY" if is_anomaly else "NORMAL",
                 "timestamp": datetime.now().isoformat()
+            })
+            
+            # Broadcast each processed entry to real-time subscribers
+            send_log_to_clients({
+                "source": device,
+                "severity": sev,
+                "message": line.strip()[:100],
+                "is_anomaly": is_anomaly,
+                "status": "ANOMALY" if is_anomaly else "NORMAL"
             })
             
             if len(issues) > 500: break # Safety cap
@@ -396,7 +411,7 @@ def analyze_single_log():
         "is_anomaly": is_anomaly,
         "risk_score": risk_score,
         "threat_type": threat_type,
-        "status": "anomaly" if is_anomaly else "normal",
+        "status": "ANOMALY" if is_anomaly else "NORMAL",
         "explanation": explanation,
         "recommendations": rec
     }
@@ -409,4 +424,5 @@ def analyze_single_log():
 if __name__ == '__main__':
     PORT = int(os.getenv("PORT", 5000))
     print(f"Starting Python AI Service on port {PORT}...", file=sys.stderr)
-    app.run(host="0.0.0.0", port=PORT)
+    # Use socketio.run instead of app.run to enable WebSocket support
+    socketio.run(app, host="0.0.0.0", port=PORT, debug=True)

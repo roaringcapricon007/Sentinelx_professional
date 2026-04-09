@@ -44,4 +44,12 @@ router.use('/infrastructure', infrastructureRoutes);
 router.use('/analysis', analysisRoutes);
 router.use('/maintenance', maintenanceRoutes);
 
+// --- ALIASES FOR FRONTEND SYNC ---
+router.use('/overview', metricsRoutes); 
+router.use('/devices', infrastructureRoutes);
+router.use('/stats', metricsRoutes);
+router.use('/reports', analysisRoutes);
+router.use('/topology', infrastructureRoutes);
+router.use('/audit', logController.getLogs); 
+
 module.exports = router;

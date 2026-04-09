@@ -139,4 +139,29 @@ router.get('/predict', authorize(['super_admin', 'admin', 'analyst', 'User']), a
     }
 });
 
+
+// Aggregated System Overview
+router.get('/summary', authorize(['super_admin', 'admin', 'analyst', 'User']), async (req, res) => {
+    try {
+        const { LogEntry, Server } = require('../models');
+        const [cpu, mem] = await Promise.all([si.currentLoad(), si.mem()]);
+        
+        const summary = {
+            system: {
+                cpu: Math.round(cpu.currentLoad),
+                mem: Math.round((mem.active / mem.total) * 100),
+                uptime: si.time().uptime
+            },
+            counts: {
+                logs: await LogEntry.count({ where: { UserId: req.user.id } }),
+                devices: await Server.count({ where: { UserId: req.user.id } }),
+                anomalies: await LogEntry.count({ where: { UserId: req.user.id, severity: 'CRITICAL' } })
+            }
+        };
+        res.json(summary);
+    } catch (e) {
+        res.status(500).json({ error: 'Summary aggregation failed' });
+    }
+});
+
 module.exports = router;

@@ -924,7 +924,7 @@ LineId,LogId,Node,Component,State,Time,Flag,Content,EventId,EventTemplate
 923,455088,node-111,node,temperature,1099356810,1,ambient=32,E2,ambient=<*>
 924,455065,node-113,node,temperature,1099355101,1,ambient=30,E2,ambient=<*>
 925,455027,node-93,node,temperature,1099354051,1,ambient=33,E2,ambient=<*>
-926,455001,node-107,node,temperature,1099351950,1,ambient=31,E2,ambient=<*>
+926,455000,node-107,node,temperature,1099351950,1,ambient=31,E2,ambient=<*>
 927,454698,gige5,gige,temperature,1099335170,1,normal,E31,normal
 928,454690,node-153,node,temperature,1099334221,1,ambient=33,E2,ambient=<*>
 929,457137,gige7,gige,temperature,1100184616,1,normal,E31,normal

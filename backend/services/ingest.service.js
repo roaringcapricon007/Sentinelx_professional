@@ -1,6 +1,7 @@
 const parser = require("./parser.service");
 const alert = require("./alert.service"); // Ingest -> Alert (Step 2)
 const { LogEntry } = require("../models");
+const eventBus = require("./event.service");
 
 /**
  * --- NEURAL INGEST SYSTEM (PHASE 2) ---
@@ -8,7 +9,6 @@ const { LogEntry } = require("../models");
  */
 async function ingestLog(rawLog) {
     try {
-        const eventBus = global.eventBus;
 
         // 1. Parse (Like Elastic / Datadog)
         const parsed = parser.parse(rawLog);

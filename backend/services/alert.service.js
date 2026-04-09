@@ -1,4 +1,4 @@
-const eventBus = global.eventBus;
+const eventBus = require("./event.service");
 /**
  * --- NEURAL ALERT SYSTEM (PHASE 2) ---
  * Real-time threat detection and autonomous notification.

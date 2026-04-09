@@ -1,9 +1,13 @@
 flask
+flask-cors
 flask-socketio
 requests
 numpy
 scikit-learn
 pandas
 joblib
+transformers
+torch
 eventlet
 gunicorn
+websockets

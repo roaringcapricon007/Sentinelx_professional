@@ -47,7 +47,7 @@ class LogWorker {
         let riskScore = log.riskScore || 0;
 
         try {
-            const PYTHON_URL = process.env.PYTHON_URL || 'http://127.0.0.1:5001';
+            const PYTHON_URL = process.env.PYTHON_URL || 'http://127.0.0.1:5000';
             const aiRes = await fetch(`${PYTHON_URL}/api/analyze-log`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

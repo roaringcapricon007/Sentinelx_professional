@@ -4,7 +4,7 @@ const { authorize } = require('../middleware/auth.middleware');
 
 // Proxy to Python Service
 // Proxy to Python Service
-const PYTHON_URL = process.env.PYTHON_URL || 'http://127.0.0.1:5001';
+const PYTHON_URL = process.env.PYTHON_URL || 'http://127.0.0.1:5000';
 
 
 router.post('/train', authorize(['super_admin', 'admin']), async (req, res) => {
