@@ -351,27 +351,29 @@ async function handleLogin(formRef, email, password) {
             },
             body: JSON.stringify({ email, password })
         });
-        const data = await res.json();
 
         clearInterval(logInterval);
 
-        if (res.ok) {
-            scannerStep.innerText = "ACCESS GRANTED";
-            scannerStep.style.color = "#00ff88";
-            setTimeout(() => {
-                if (scanner) scanner.style.display = 'none';
-                login(data.user, data.token);
-            }, 800);
-        } else {
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ error: 'Handshake Rejected' }));
             scannerStep.innerText = "ACCESS DENIED";
             scannerStep.style.color = "#ff0055";
             setTimeout(() => {
                 if (scanner) scanner.style.display = 'none';
-                showToast(data.message || data.error || 'Wrong username or password', 'error');
+                showToast(errorData.message || errorData.error || 'Wrong username or password', 'error');
                 btn.disabled = false;
                 btn.innerText = originalText;
             }, 1000);
+            return;
         }
+
+        const data = await res.json();
+        scannerStep.innerText = "ACCESS GRANTED";
+        scannerStep.style.color = "#00ff88";
+        setTimeout(() => {
+            if (scanner) scanner.style.display = 'none';
+            login(data.user, data.token);
+        }, 800);
     } catch (e) {
         clearInterval(logInterval);
         console.error("Login err", e);
@@ -443,52 +445,16 @@ async function handleRegister(formRef, name, email, password) {
         });
         clearTimeout(timeoutId);
 
-        const data = await res.json();
-
-        if (res.ok) {
-            console.log("[AUTH] Handshake SUCCESS:", data);
-            logMsg(`Identity verification successful.`);
-            logMsg(`OTP broadcast sequence initiated.`);
-            regSessionData = { name, email, password };
-
-            // Start transition sequence immediately
-            console.log("[AUTH] Finalizing handshake. Swapping interface...");
-
-            setTimeout(() => {
-                // Ensure scanner is dismissed
-                if (scanner) scanner.style.display = 'none';
-
-                // FORCE INTERFACE SWAP (No nested timeout)
-                const regInputs = document.getElementById('register-inputs');
-                const otpLayer = document.getElementById('otp-verification');
-
-                if (regInputs) regInputs.style.display = 'none';
-                if (otpLayer) {
-                    otpLayer.style.display = 'block';
-                    // Scroll to otp input for better UX
-                    // startOtpTimer logic
-                    startOtpTimer(30);
-
-                    if (otpInput) otpInput.focus();
-                }
-
-                if (data.mode === 'simulation') {
-                    showToast(`[SIMULATION] LOCAL OTP: <strong>${data.otp}</strong>`, "success");
-                    logMsg(`Simulation OTP obtained: ${data.otp}`);
-                } else {
-                    showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
-                }
-            }, 50); 
-        } else {
-            console.warn("[AUTH] Handshake REJECTED:", data);
-            logMsg(`Handshake rejected: ${data.message || data.error}`);
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({ error: 'Sync initialization failed' }));
+            console.warn("[AUTH] Handshake REJECTED:", errorData);
+            logMsg(`Handshake rejected: ${errorData.message || errorData.error}`);
             // Dismiss scanner immediately on error
             if (scanner) scanner.style.display = 'none';
-
-            showToast(data.message || data.error || "Handshake rejected.", "error");
+            showToast(errorData.message || errorData.error || "Handshake rejected.", "error");
 
             // --- REDIRECT LOGIC ---
-            if (data.error === 'ALREADY_REGISTERED') {
+            if (errorData.error === 'ALREADY_REGISTERED') {
                 const loginForm = document.getElementById('login-form');
                 const registerForm = document.getElementById('register-form');
                 const toggleBtn = document.getElementById('toggle-auth');
@@ -503,7 +469,43 @@ async function handleRegister(formRef, name, email, password) {
 
             btn.disabled = false;
             btn.innerText = originalText;
+            return;
         }
+
+        const data = await res.json();
+        console.log("[AUTH] Handshake SUCCESS:", data);
+        logMsg(`Identity verification successful.`);
+        logMsg(`OTP broadcast sequence initiated.`);
+        regSessionData = { name, email, password };
+
+        // Start transition sequence immediately
+        console.log("[AUTH] Finalizing handshake. Swapping interface...");
+
+        setTimeout(() => {
+            // Ensure scanner is dismissed
+            if (scanner) scanner.style.display = 'none';
+
+            // FORCE INTERFACE SWAP (No nested timeout)
+            const regInputs = document.getElementById('register-inputs');
+            const otpLayer = document.getElementById('otp-verification');
+
+            if (regInputs) regInputs.style.display = 'none';
+            if (otpLayer) {
+                otpLayer.style.display = 'block';
+                // Scroll to otp input for better UX
+                // startOtpTimer logic
+                startOtpTimer(30);
+
+                if (otpInput) otpInput.focus();
+            }
+
+            if (data.mode === 'simulation') {
+                showToast(`[SIMULATION] LOCAL OTP: <strong>${data.otp}</strong>`, "success");
+                logMsg(`Simulation OTP obtained: ${data.otp}`);
+            } else {
+                showToast(`Quantum-OTP broadcasted to ${email}.`, "info");
+            }
+        }, 50); 
     } catch (e) {
         console.error("Auth System Error:", e);
         logMsg(`CRITICAL: Uplink terminated unexpectedly.`);
@@ -549,16 +551,16 @@ async function resendOTP() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(regSessionData)
     });
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Broadcast failed" }));
+        throw new Error(errorData.error);
+    }
     const data = await res.json();
-    if (res.ok) {
-        startOtpTimer(30);
-        if (data.mode === 'simulation') {
-            showToast(`[NEW] LOCAL OTP: ${data.otp}`, "success");
-        } else {
-            showToast("New OTP sent to email.", "success");
-        }
+    startOtpTimer(30);
+    if (data.mode === 'simulation') {
+        showToast(`[NEW] LOCAL OTP: ${data.otp}`, "success");
     } else {
-        showToast(data.error || "Broadcast failed", "error");
+        showToast("New OTP sent to email.", "success");
     }
 }
 
@@ -647,21 +649,33 @@ function login(user, token) {
  */
 async function checkSession() {
     try {
-        const res = await fetch(`${API}/api/auth/me`);
+        const token = localStorage.getItem('sentinel_token');
+        const res = await fetch(`${API}/api/auth/me`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        
+        if (!res.ok) {
+            // If the handshake fails at the protocol level, we clear the uplink
+            if (res.status === 401) {
+                console.warn("[SESSION] External token rejected by core. Purging local credentials.");
+                localStorage.removeItem('sentinel_token');
+            }
+            throw new Error("Session handshake failed");
+        }
+        
         const data = await res.json();
-        if (res.ok && data.authenticated) {
-            console.log("[SESSION] Active link detected. Resuming session for:", data.user.email);
+        if (data.authenticated) {
+            console.log("[SESSION] Active link detected. Resuming session for:", data.user ? data.user.email : 'Unknown Identity');
             login(data.user);
         } else {
             console.log("[SESSION] No active link. Awaiting manual handshake.");
-            // Hide intro and show login if checkSession is called later
             const intro = document.getElementById('intro-view');
-            if (intro && intro.style.display === 'none') {
+            if (intro && (intro.style.display === 'none' || intro.classList.contains('slide-up'))) {
                 if (views.login) views.login.style.display = 'flex';
             }
         }
     } catch (e) {
-        console.warn("[SESSION] Persistence check failed - likely offline.");
+        console.warn("[SESSION] Persistence check failed - likely offline or unauthorized.");
     }
 }
 
@@ -675,14 +689,15 @@ function logout(e) {
     if (e) e.stopPropagation();
     console.log("[LOGOUT] Session termination initiated.");
 
-    // Purge local state immediately
+    // Purge local state immediately to keep UI responsive
     state.isLoggedIn = false;
     state.user = null;
+    
+    // Clear all persistence layers
+    localStorage.removeItem('sentinel_token');
     localStorage.removeItem('last_tab');
-    localStorage.removeItem('sentinel_token'); // Changed from 'user_token' to 'sentinel_token'
     sessionStorage.clear();
 
-    // Direct navigation to server logout — server destroys session + cookie, then redirects to /?logout=true
     // Direct navigation to server logout — server destroys session + cookie, then redirects to /?logout=true
     window.location.href = `${API}/api/auth/logout`;
 }
@@ -763,7 +778,10 @@ function switchTab(tab) {
     // Update Nav Links
     document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
     const links = Array.from(document.querySelectorAll('.nav-link'));
-    const activeLink = links.find(l => l.getAttribute('onclick')?.includes(tab));
+    const activeLink = links.find(l => {
+        const onclick = l.getAttribute('onclick');
+        return onclick && onclick.includes(`'${tab}'`);
+    });
     if (activeLink) activeLink.classList.add('active');
 
     // Render View (View Manager handles visibility)
@@ -797,6 +815,21 @@ function switchTab(tab) {
     } else if (tab === 'timeline') {
         if (pageTitle) pageTitle.innerText = 'Security Timeline';
         renderTimeline();
+    } else if (tab === 'automation') {
+        if (pageTitle) pageTitle.innerText = 'Automation Lab';
+        renderAutomation();
+    } else if (tab === 'pulse') {
+        if (pageTitle) pageTitle.innerText = 'Security Pulse';
+        renderPulse();
+    } else if (tab === 'ailab') {
+        if (pageTitle) pageTitle.innerText = 'Neural Nexus AI Lab';
+        renderAILab();
+    } else if (tab === 'powerbi') {
+        if (pageTitle) pageTitle.innerText = 'Business Intelligence';
+        renderPowerBI();
+    } else if (tab === 'botprofile') {
+        if (pageTitle) pageTitle.innerText = 'Agent Profiles';
+        renderBotProfile();
     }
 }
 
@@ -1676,13 +1709,18 @@ async function updateAnalysisTable(manualLogs) {
     if (!tbody || !viewContainer) return;
 
     let logs = manualLogs;
+    if (!Array.isArray(logs)) logs = null; // Reset to null if invalid object passed
 
     // If no manual logs provided, fetch from live history
     if (!logs) {
         try {
-            const res = await fetch(`${API}/api/logs/history?status=${alertTab}`);
+            const token = localStorage.getItem('sentinel_token');
+            const res = await fetch(`${API}/api/logs?status=${alertTab}`, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
             if (!res.ok) throw new Error('Not authorized');
             logs = await res.json();
+            if (!Array.isArray(logs)) logs = [];
         } catch (e) {
             console.error("[SOC] History fetch failed:", e.message);
             return;
@@ -1754,6 +1792,7 @@ async function updateAnalysisTable(manualLogs) {
 let socChartInstance = null;
 function renderSOCPanels(logs, viewContainer) {
     if (!viewContainer) return;
+    if (!Array.isArray(logs)) logs = [];
 
     let highRiskCount = 0;
     let medRiskCount = 0;
@@ -2077,6 +2116,7 @@ async function renderTimeline() {
 }
 
 function renderInfraTable(servers, viewContainer) {
+    if (!Array.isArray(servers)) servers = [];
     if (!viewContainer || typeof viewContainer === 'string') {
         viewContainer = document.getElementById('infrastructure-view');
         if (!viewContainer) return;
@@ -2574,7 +2614,8 @@ function renderAnalysisCharts(issues, summary) {
 
 
 // --- Profile Dropdown Logic ---
-function toggleProfileMenu() {
+function toggleProfileMenu(e) {
+    if (e) e.stopPropagation();
     const dropdown = document.getElementById('profile-dropdown');
     const chevron = document.getElementById('profile-chevron');
     if (dropdown) {
@@ -2584,6 +2625,7 @@ function toggleProfileMenu() {
         }
     }
 }
+window.toggleProfileMenu = toggleProfileMenu;
 
 // Close Dropdown when clicking outside
 document.addEventListener('click', (e) => {
@@ -2618,6 +2660,8 @@ function handleChatKey(e) {
 
 async function sendChat() {
     const input = document.getElementById('chat-input');
+    if (!input) return;
+    
     const msg = input.value.trim();
     if (!msg) return;
 
@@ -2627,6 +2671,8 @@ async function sendChat() {
 
     // Show indicator
     const body = document.getElementById('chat-body');
+    if (!body) return;
+
     const typing = document.createElement('div');
     typing.id = 'typing-indicator';
     typing.className = 'message msg-ai';
@@ -2960,11 +3006,17 @@ async function renderVault() {
 
 async function loadVaultData(filter = '') {
     const tbody = document.getElementById('vault-table-body');
+    if (!tbody) {
+        console.warn("[VAULT] table-body linkage lost.");
+        return;
+    }
+    
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Accessing Neural Archives...</td></tr>';
     try {
         const res = await fetch(`${API}/api/audit?status=RESOLVED`);
         if (!res.ok) throw new Error('Not authorized');
-        const logs = await res.json();
+        let logs = await res.json();
+        if (!Array.isArray(logs)) logs = [];
 
         if (!logs || logs.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);"><i class="fas fa-archive"></i> No resolved incidents found in the Archive.</td></tr>';
@@ -3007,7 +3059,8 @@ async function loadVaultData(filter = '') {
 }
 
 function searchVault() {
-    const term = document.getElementById('vault-search').value;
+    const input = document.getElementById('vault-search');
+    const term = input ? input.value : '';
     loadVaultData(term);
 }
 window.searchVault = searchVault;
@@ -3044,6 +3097,47 @@ async function refreshRiskScore() {
     }
 }
 window.refreshRiskScore = refreshRiskScore;
+
+// --- STUB HANDLERS FOR EXTENDED SECTORS ---
+function renderPulse() {
+    const view = showView('pulse-view');
+    view.innerHTML = `
+        <div style="height:70vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+            <i class="fas fa-heartbeat fa-beat" style="font-size: 5rem; color: #ff0055; margin-bottom: 20px;"></i>
+            <h1 class="font-transformers">Security Pulse</h1>
+            <p style="color:var(--text-muted); max-width:500px;">The real-time global threat landscape is currently synchronizing. Full visual telemetry will be available in the next maintenance cycle.</p>
+        </div>`;
+}
+
+function renderAILab() {
+    const view = showView('ailab-view');
+    view.innerHTML = `
+        <div style="height:70vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+            <i class="fas fa-microchip fa-fade" style="font-size: 5rem; color: var(--primary); margin-bottom: 20px;"></i>
+            <h1 class="font-transformers">Neural Nexus AI Lab</h1>
+            <p style="color:var(--text-muted); max-width:500px;">PRIME_AI training cluster is running at 100% capacity. Neural model fine-tuning is restricted during peak operations.</p>
+        </div>`;
+}
+
+function renderPowerBI() {
+    const view = showView('powerbi-view');
+    view.innerHTML = `
+        <div style="height:70vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+            <i class="fas fa-chart-pie" style="font-size: 5rem; color: #f2c811; margin-bottom: 20px;"></i>
+            <h1 class="font-transformers">Business Intelligence</h1>
+            <p style="color:var(--text-muted); max-width:500px;">External BI bridge requires specialized data warehouse credentials. Please contact the Engineering Lead.</p>
+        </div>`;
+}
+
+function renderBotProfile() {
+    const view = showView('botprofile-view');
+    view.innerHTML = `
+        <div style="height:70vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+            <i class="fas fa-robot" style="font-size: 5rem; color: var(--secondary); margin-bottom: 20px;"></i>
+            <h1 class="font-transformers">Agent Profiles</h1>
+            <p style="color:var(--text-muted); max-width:500px;">Individual Sentinel Agent performance metrics are archived. Authorized personnel only.</p>
+        </div>`;
+}
 
 async function renderAutomation() {
     const view = showView('automation-view');
@@ -3233,7 +3327,7 @@ function renderTestSummary(data) {
 
 window.executeAutomationTest = executeAutomationTest;
 
-window.runAutoTest = runAutoTest;
+window.runAutoTest = executeAutomationTest;
 
 // --- Global Toast System ---
 function showToast(message, type = 'info') {
@@ -3399,7 +3493,7 @@ async function fetchSessions() {
 async function terminateSession(id) {
     if(!confirm("Destroy this access token?")) return;
     try {
-        const res = await fetch(`/api/auth/sessions/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API}/api/auth/sessions/${id}`, { method: 'DELETE' });
         if (res.ok) { showToast("Security token destroyed.", "success"); fetchSessions(); }
     } catch (e) { showToast("Termination failed", "error"); }
 }
@@ -3463,7 +3557,7 @@ function addMessage(text, type) {
 
     if (type === 'ai') {
         const icon = document.createElement('img');
-        icon.src = 'img/autobot_logo.png';
+        icon.src = '/logo/logo.png';
         icon.style.width = '20px';
         icon.style.height = '20px';
         icon.style.marginRight = '8px';
@@ -3499,16 +3593,7 @@ function initHeaderActions() {
         if (icon) icon.className = state.theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
 
         themeBtn.addEventListener('click', () => {
-            state.theme = state.theme === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', state.theme);
-            localStorage.setItem('theme', state.theme);
-
-            if (icon) {
-                icon.className = state.theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
-                icon.style.transform = 'rotate(360deg)';
-                setTimeout(() => icon.style.transform = 'none', 400);
-            }
-            showToast(`Switched to ${state.theme} mode`, "info");
+            toggleTheme();
         });
     }
 
@@ -3521,8 +3606,9 @@ function initHeaderActions() {
 
             try {
                 const res = await fetch(`${API}/api/maintenance/clear-cache`, { method: 'POST' });
+                if (!res.ok) throw new Error("Maintenance Link Failed");
+                
                 const data = await res.json();
-
                 if (data.status === 'Success') {
                     const freed = data.details?.diskSpaceFreed || '0 KB';
                     showToast(`Success! ${freed} of cache cleared.`, "success");
@@ -3641,18 +3727,35 @@ function closeDownloadModal() {
 window.closeDownloadModal = closeDownloadModal;
 window.openDownloadModal = openDownloadModal;
 // --- Profile Menu Logic ---
-function toggleProfileMenu(e) {
-    if (e) e.stopPropagation();
-    const dropdown = document.getElementById('profile-dropdown');
-    const chevron = document.getElementById('profile-chevron');
-
-    if (dropdown) {
-        dropdown.classList.toggle('show');
-        if (chevron) {
-            chevron.style.transform = dropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+// REDUNDANT REMOVED: toggleProfileMenu consolidated above.
+function toggleTheme() {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', state.theme);
+    localStorage.setItem('theme', state.theme);
+    
+    // Update topbar button
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+        const icon = themeBtn.querySelector('i');
+        if (icon) {
+            icon.className = state.theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            icon.style.transform = 'rotate(360deg)';
+            setTimeout(() => icon.style.transform = 'none', 400);
         }
     }
+    
+    // Update settings buttons if current view is settings
+    const currentView = document.getElementById('settings-view');
+    if (currentView && currentView.style.display !== 'none') {
+        const settingsThemeBtn = currentView.querySelector('.setting-item button');
+        if (settingsThemeBtn) {
+            settingsThemeBtn.innerText = state.theme === 'dark' ? 'Light Mode' : 'Dark Mode';
+        }
+    }
+    
+    showToast(`Neural Interface: ${state.theme.toUpperCase()} MODE active`, "info");
 }
+window.toggleTheme = toggleTheme;
 
 // Close dropdown when clicking outside
 document.addEventListener('click', (e) => {
@@ -3690,18 +3793,22 @@ async function generateReport(format) {
 
         if (targetType === 'availability') {
             const res = await fetch(`${API}/api/infrastructure`);
+            if (!res.ok) throw new Error("Infrastructure Link Offline");
             data = await res.json();
             title = "Weekly Availability Report";
         } else if (targetType === 'security') {
             const res = await fetch(`${API}/api/logs/history`);
+            if (!res.ok) throw new Error("Security Logs Unreachable");
             data = await res.json();
             title = "Security Audit Logs";
         } else if (targetType === 'performance') {
             const res = await fetch(`${API}/api/metrics/history`);
+            if (!res.ok) throw new Error("Performance Metrics Offline");
             data = await res.json();
             title = "Performance Trends";
         } else if (targetType === 'powerbi') {
             const res = await fetch(`${API}/api/metrics/history`); // Use metrics for BI demo
+            if (!res.ok) throw new Error("PowerBI Telemetry Offline");
             data = await res.json();
             title = "PowerBI Intelligence Dataset";
         }
@@ -4109,8 +4216,10 @@ async function handleForgotPassword() {
         if (res.ok) {
             showToast("Recovery sequence broadcast. Update credentials.", "success");
             // Show reset fields
-            document.getElementById('fp-recovery-step').style.display = 'block';
-            document.getElementById('fp-email-step').style.display = 'none';
+            const recoveryStep = document.getElementById('fp-recovery-step');
+            const emailStep = document.getElementById('fp-email-step');
+            if (recoveryStep) recoveryStep.style.display = 'block';
+            if (emailStep) emailStep.style.display = 'none';
             btn.innerHTML = 'UPDATE CREDENTIALS';
             btn.onclick = resetPasswordFull;
         } else {
@@ -4127,9 +4236,13 @@ async function handleForgotPassword() {
 }
 
 async function resetPasswordFull() {
-    const email = document.getElementById('fp-email').value;
-    const code = document.getElementById('fp-otp').value;
-    const newPassword = document.getElementById('fp-new-pass').value;
+    const emailEl = document.getElementById('fp-email');
+    const codeEl = document.getElementById('fp-otp');
+    const passEl = document.getElementById('fp-new-pass');
+    
+    const email = emailEl ? emailEl.value : '';
+    const code = codeEl ? codeEl.value : '';
+    const newPassword = passEl ? passEl.value : '';
 
     if (!code || !newPassword) return showToast("Sequence fragments missing.", "error");
 

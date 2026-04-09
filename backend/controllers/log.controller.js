@@ -41,9 +41,9 @@ exports.getLogs = async (req, res) => {
             limit: parseInt(limit), 
             order: [['timestamp', 'DESC']] 
         });
-        res.json({ success: true, data: logs });
+        res.json(logs); // Normalized result for frontend array mapping
     } catch (err) {
-        res.status(500).json({ success: false, error: "Fetch Query Error" });
+        res.status(500).json({ error: "Fetch Query Error" });
     }
 };
 
@@ -58,9 +58,9 @@ exports.searchLogs = async (req, res) => {
             },
             limit: 100
         });
-        res.json({ success: true, count: logs.length, data: logs });
+        res.json(logs); // Normalized result for frontend array mapping
     } catch (err) {
-        res.json({ success: false, error: "Search Execution Rejected" });
+        res.status(500).json({ error: "Search Execution Rejected" });
     }
 };
 

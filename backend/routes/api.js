@@ -52,4 +52,13 @@ router.use('/reports', analysisRoutes);
 router.use('/topology', infrastructureRoutes);
 router.use('/audit', logController.getLogs); 
 
+// Catch-all for undefined /api routes inside this router
+router.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "NOT_FOUND",
+    message: "Requested neural endpoint not mapped."
+  });
+});
+
 module.exports = router;

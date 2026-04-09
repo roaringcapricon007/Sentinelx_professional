@@ -80,6 +80,15 @@ app.use('/api', apiRoutes);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ❌ API 404 HANDLER (Ensures JSON for missing API routes)
+app.use('/api', (req, res) => {
+    res.status(404).json({
+        success: false,
+        error: "API_ROUTE_NOT_FOUND",
+        message: `The requested endpoint [${req.method} ${req.originalUrl}] does not exist on this cluster.`
+    });
+});
+
 // ✅ SPA FALLBACK ROUTING (React Router / Client-Side Routing Support)
 // This ensures that deep links (e.g., /analysis) work on refresh by serving index.html
 app.get("*", (req, res) => {
@@ -91,10 +100,14 @@ app.get("*", (req, res) => {
 // ❌ GLOBAL ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err);
-  res.status(500).json({
-    success: false,
-    message: "Internal Server Error"
-  });
+  if (req.originalUrl.startsWith('/api')) {
+    return res.status(500).json({
+      success: false,
+      error: "INTERNAL_SERVER_ERROR",
+      message: "An unexpected error occurred on the API cluster."
+    });
+  }
+  res.status(500).send("Internal Server Error");
 });
 
 module.exports = app;
