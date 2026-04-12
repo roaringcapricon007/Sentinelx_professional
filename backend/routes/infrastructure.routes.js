@@ -5,7 +5,7 @@ module.exports = function (io) {
     const { authorize } = require('../middleware/auth.middleware');
 
     // GET /api/infrastructure
-    router.get('/', authorize(['super_admin', 'admin', 'analyst']), async (req, res) => {
+    router.get('/', authorize(['super_admin', 'admin', 'analyst', 'user']), async (req, res) => {
         try {
             const servers = await Server.findAll({
                 where: { UserId: req.user.id },

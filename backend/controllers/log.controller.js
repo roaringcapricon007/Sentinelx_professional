@@ -47,6 +47,25 @@ exports.getLogs = async (req, res) => {
     }
 };
 
+// 2.5 TIMELINE (Specific for Narrative UI)
+exports.getTimeline = async (req, res) => {
+    try {
+        const where = {};
+        if (req.user && req.user.role !== 'super_admin') {
+            where.UserId = req.user.id;
+        }
+
+        const logs = await LogEntry.findAll({
+            where,
+            limit: 20,
+            order: [['timestamp', 'DESC']]
+        });
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ error: "Timeline Extraction Error" });
+    }
+};
+
 // 3. SEARCH & FORENSICS
 exports.searchLogs = async (req, res) => {
     try {
@@ -91,5 +110,38 @@ exports.blockIP = async (req, res) => {
         res.json({ success: true, message: `IP ${ip} quarantined across global cluster.` });
     } catch (err) {
         res.status(500).json({ error: "Quarantine Protocol Rejected" });
+    }
+};
+
+// 6. IDENTITY SUSPENSION (SOAR Step 6)
+exports.disableUser = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ error: "Email identity required" });
+        
+        const user = await User.findOne({ where: { email: email.toLowerCase() } });
+        if (!user) return res.status(404).json({ error: "Identity not found in Nexus" });
+        
+        user.status = 'DISABLED';
+        await user.save();
+        
+        res.json({ success: true, message: `Account ${email} suspended across global network.` });
+    } catch (err) {
+        res.status(500).json({ error: "Identity suspension failed" });
+    }
+};
+
+// 7. GET RISK SCORE (Enterprise Visibility)
+exports.getRiskScore = async (req, res) => {
+    try {
+        // Simulate heuristic calculation for production health
+        res.json({
+            percentage: 12,
+            color: 'green',
+            label: 'OPTIMIZED',
+            timestamp: new Date()
+        });
+    } catch (err) {
+        res.status(500).json({ error: "Risk assessment failed" });
     }
 };

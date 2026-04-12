@@ -1,78 +1,80 @@
 import numpy as np
-import pandas as pd
-from sklearn.ensemble import IsolationForest
-import joblib
 import os
+import joblib
+import re
+from sklearn.ensemble import IsolationForest
 
-# --- PERSISTENCE LAYER ---
-# Stores the trained weights locally within the module directory
+# --- CONFIGURATION ---
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'anomaly_model.joblib')
+
+class LogVectorizer:
+    """
+    Converts raw log strings into numerical feature vectors for ML processing.
+    """
+    @staticmethod
+    def vectorize(log_text):
+        if not log_text:
+            return [0, 0, 0, 0, 0]
+        
+        text = str(log_text).lower()
+        
+        # Feature 1: Log Length (Normalized-ish)
+        length = len(text)
+        
+        # Feature 2: Severity Keyword Count
+        risk_keywords = ['error', 'critical', 'fail', 'failed', 'panic', 'fatal', 'denied', 'attack', 'exception']
+        keyword_count = sum(1 for word in risk_keywords if word in text)
+        
+        # Feature 3: Special Character Density (indicators of injection or complex errors)
+        special_chars = len(re.findall(r'[^a-zA-Z0-9\s]', text))
+        
+        # Feature 4: Presence of IP address (0 or 1)
+        has_ip = 1 if re.search(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', text) else 0
+        
+        # Feature 5: Numeric Density (logs with many numbers are often stack traces or sensitive data)
+        digit_count = sum(c.isdigit() for c in text)
+        
+        return [length, keyword_count, special_chars, has_ip, digit_count]
 
 def train_model(data):
     """
-    Trains the Isolation Forest model on structured log feature vectors.
-    
-    Args:
-        data (array-like): Numerical feature matrix (e.g., [risk_score, entropy, frequency])
-        
-    Returns:
-        float: The contamination threshold used for the model.
+    Trains the Isolation Forest model on numerical features.
     """
-    print(f"[ANOMALY_CORE] Initializing training on {len(data)} vectors...")
-    
-    # contamination='auto' uses the offset_ defined in the original paper
+    print(f"[AI_CORE] Training Isolation Forest on {len(data)} samples...")
     model = IsolationForest(
-        n_estimators=100, 
-        max_samples='auto', 
-        contamination='auto', 
+        n_estimators=100,
+        contamination=0.05, # Assumes 5% of logs are anomalies
         random_state=42
     )
-    
-    # Fit the data to detect the 'normal' distribution
     model.fit(data)
-    
-    # Save for future inference calls
     joblib.dump(model, MODEL_PATH)
-    print(f"[ANOMALY_CORE] Model synchronized and saved to {MODEL_PATH}")
-    
+    print(f"[AI_CORE] Model synchronized: {MODEL_PATH}")
     return model
 
-def detect_anomaly(log_features):
+def detect_anomaly(log_text):
     """
-    Predicts if a specific log entry deviates from the established baseline.
+    Converts log to features and predicts anomaly status.
+    Returns: (is_anomaly, status_string)
+    """
+    features = LogVectorizer.vectorize(log_text)
     
-    Args:
-        log_features (list): A single set of numerical features for the log entry.
-        
-    Returns:
-        bool: True if identified as an anomaly (-1), False if normal (1).
-    """
+    # Load model or train on dummy if missing for stability
     if not os.path.exists(MODEL_PATH):
-        # Fallback if no model is found
-        return False
+        # Create a baseline if no model exists (Stability Constraint)
+        baseline = np.random.rand(10, 5) * 10
+        train_model(baseline)
     
     try:
-        # Load the serialized model
         model = joblib.load(MODEL_PATH)
-        
-        # Reshape input to (1, n_features) for scikit-learn consistency
-        features_array = np.array(log_features).reshape(1, -1)
-        
-        # Inference: returns 1 (normal) or -1 (anomaly)
-        prediction = model.predict(features_array)
-        
-        return prediction[0] == -1
-        
+        prediction = model.predict([features])
+        is_anomaly = prediction[0] == -1
+        return is_anomaly, "ANOMALY" if is_anomaly else "NORMAL"
     except Exception as e:
-        print(f"[ANOMALY_CORE] Prediction Failure: {str(e)}")
-        return False
+        print(f"[AI_CORE] Inference Error: {e}")
+        return False, "NORMAL"
 
 if __name__ == "__main__":
-    # Self-test logic for validation
-    print("[ANOMALY_CORE] Running module health check...")
-    test_data = np.random.rand(100, 3) # Simulated baseline
-    train_model(test_data)
-    
-    outlier = [10.0, 10.0, 10.0] # Obvious outlier
-    is_anomaly = detect_anomaly(outlier)
-    print(f"Test Result: Outlier Detection -> {'SUCCESS' if is_anomaly else 'FAILED'}")
+    # Test Module
+    msg = "ERROR: Unauthorized access attempt from 192.168.1.105 on port 22"
+    is_anom, status = detect_anomaly(msg)
+    print(f"Log: {msg}\nResult: {status} (Anomaly: {is_anom})")

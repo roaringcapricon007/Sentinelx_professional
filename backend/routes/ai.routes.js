@@ -43,6 +43,20 @@ router.get('/status', async (req, res) => {
     }
 });
 
+router.post('/chat', async (req, res) => {
+    try {
+        const response = await fetch(`${PYTHON_URL}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (e) {
+        res.status(500).json({ error: "AI Service Unreachable" });
+    }
+});
+
 router.get('/health', async (req, res) => {
     try {
         const response = await fetch(`${PYTHON_URL}/health`);

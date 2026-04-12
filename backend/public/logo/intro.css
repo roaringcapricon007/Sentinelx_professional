@@ -2,7 +2,7 @@
 
 @font-face {
     font-family: 'Transformers';
-    src: url('../fonts/transformers-movie.woff') format('woff');
+    src: url('/logo/transformers-movie.woff') format('woff');
     font-display: swap;
 }
 

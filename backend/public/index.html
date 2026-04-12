@@ -23,7 +23,8 @@
   <link rel="stylesheet" href="css/login.css?v=15">
   <link rel="stylesheet" href="css/dashboard.css?v=15">
   <link rel="stylesheet" href="css/chat.css?v=15">
-  <link rel="stylesheet" href="logo/intro.css?v=15">
+  <link rel="icon" type="image/x-icon" href="/logo/logo.png">
+  <link rel="stylesheet" href="/logo/intro.css?v=15">
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -89,7 +90,7 @@
     </div>
 
     <div class="chat-fab" onclick="toggleChat()" title="PRIME_AI">
-      <img src="/logo/logo.png"
+      <img src="logo/logo.png"
         style="width: 45px; height: 45px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5));">
     </div>
   </div>
@@ -119,7 +120,7 @@
 
     <div class="login-card">
       <div class="logo-area" style="display: flex; flex-direction: column; align-items: center;">
-        <img src="/logo/logo.png" style="width: 80px; height: 80px; margin-bottom: 20px; object-fit: contain;">
+        <img src="logo/logo.png" style="width: 80px; height: 80px; margin-bottom: 20px; object-fit: contain;">
         <h1>Sentinel<span style="color:var(--primary)">X</span></h1>
         <p style="letter-spacing: 2px; text-transform: uppercase; font-size: 0.75rem; color: #888;">Enterprise IT
           Infrastructure Monitoring</p>
@@ -329,16 +330,16 @@
           </div>
         </div>
         <div class="user-actions">
-          <button class="icon-btn" id="theme-toggle-btn" title="Toggle Theme">
-            <i class="fas fa-moon"></i>
-          </button>
-          <button class="icon-btn danger-btn" id="cache-clear-btn" title="Clear System Cache">
-            <i class="fas fa-broom"></i>
-          </button>
-          <button class="icon-btn" id="notif-toggle-btn">
-            <i class="fas fa-bell"></i>
-            <div class="badge" id="notif-badge"></div>
-          </button>
+          <button class="icon-btn" id="theme-toggle-btn" title="Toggle Theme" onclick="toggleTheme()">
+             <i class="fas fa-moon"></i>
+           </button>
+           <button class="icon-btn danger-btn" id="cache-clear-btn" title="Clear System Cache" onclick="purgeCache(this)">
+             <i class="fas fa-broom"></i>
+           </button>
+           <button class="icon-btn" id="notif-toggle-btn" onclick="toggleSystemNotifications(this)">
+             <i class="fas fa-bell"></i>
+             <div class="badge" id="notif-badge"></div>
+           </button>
           <div class="profile-wrapper" style="position: relative;">
             <div class="user-profile" onclick="toggleProfileMenu()">
               <div class="avatar" style="background: transparent; border: 1px solid rgba(var(--primary-rgb), 0.3);">
@@ -370,8 +371,8 @@
                 <a href="#" onclick="switchTab('profile')"><i class="fas fa-user-circle"></i> Profile</a>
                 <a href="#" onclick="switchTab('settings')"><i class="fas fa-cog"></i> Settings</a>
                 <div class="divider"></div>
-                <a class="danger-item" style="cursor: pointer;"
-                  onclick="logout()">
+                <a id="logout-btn" class="danger-item" style="cursor: pointer;"
+                  onclick="logout(event)">
                   <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
               </div>

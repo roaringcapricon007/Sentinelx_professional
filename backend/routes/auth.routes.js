@@ -66,7 +66,7 @@ passport.use(new GoogleStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
     const [user] = await User.findOrCreate({
         where: { providerId: profile.id, provider: 'google' },
-        defaults: { name: profile.displayName, email: profile.emails[0].value, role: 'User' }
+        defaults: { name: profile.displayName, email: profile.emails[0].value, role: 'user' }
     });
     return done(null, user);
 }));
@@ -79,7 +79,7 @@ passport.use(new GitHubStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
     const [user] = await User.findOrCreate({
         where: { providerId: profile.id, provider: 'github' },
-        defaults: { name: profile.username, email: profile.emails[0].value, role: 'User' }
+        defaults: { name: profile.username, email: profile.emails[0].value, role: 'user' }
     });
     return done(null, user);
 }));
@@ -91,10 +91,8 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // Current User Info
-router.get('/me', (req, res) => {
-    if (req.isAuthenticated()) return res.json({ authenticated: true, user: req.user });
-    if (req.session.user) return res.json({ authenticated: true, user: { ...req.session.user, theme: 'dark' } });
-    res.status(401).json({ authenticated: false });
+router.get('/me', authorize(), (req, res) => {
+    res.json({ authenticated: true, user: req.user });
 });
 
 router.get('/logout', (req, res) => {

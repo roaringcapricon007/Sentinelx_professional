@@ -6,7 +6,7 @@ const { authorize } = require('../middleware/auth.middleware');
 
 // GET /api/metrics/realtime
 // Returns live system stats
-router.get('/realtime', authorize(['super_admin', 'admin', 'analyst', 'User']), async (req, res) => {
+router.get('/realtime', authorize(['super_admin', 'admin', 'analyst', 'user']), async (req, res) => {
     try {
         const [cpu, mem, network] = await Promise.all([
             si.currentLoad(),
@@ -40,7 +40,7 @@ router.get('/realtime', authorize(['super_admin', 'admin', 'analyst', 'User']), 
 
 // GET /api/metrics/history
 // Returns last 50 data points for charts (Partitioned by user)
-router.get('/history', authorize(['super_admin', 'admin', 'analyst', 'User']), async (req, res) => {
+router.get('/history', authorize(['super_admin', 'admin', 'analyst', 'user']), async (req, res) => {
     try {
         const history = await SystemMetric.findAll({
             where: { UserId: req.user.id },
@@ -54,7 +54,7 @@ router.get('/history', authorize(['super_admin', 'admin', 'analyst', 'User']), a
 });
 
 // GET /api/metrics/predict (Step 10: Predictive Analysis)
-router.get('/predict', authorize(['super_admin', 'admin', 'analyst', 'User']), async (req, res) => {
+router.get('/predict', authorize(['super_admin', 'admin', 'analyst', 'user']), async (req, res) => {
     try {
         const history = await SystemMetric.findAll({
             where: { UserId: req.user.id },
@@ -141,7 +141,7 @@ router.get('/predict', authorize(['super_admin', 'admin', 'analyst', 'User']), a
 
 
 // Aggregated System Overview
-router.get('/summary', authorize(['super_admin', 'admin', 'analyst', 'User']), async (req, res) => {
+router.get('/summary', authorize(['super_admin', 'admin', 'analyst', 'user']), async (req, res) => {
     try {
         const { LogEntry, Server } = require('../models');
         const [cpu, mem] = await Promise.all([si.currentLoad(), si.mem()]);

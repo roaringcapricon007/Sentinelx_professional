@@ -27,4 +27,32 @@ function checkThreats(log) {
     }
 }
 
-module.exports = { checkThreats };
+function analyzeTelemetry(server) {
+    // 1. Critical Load Detection
+    if (server.cpu > 90) {
+        eventBus.publish("system:alert", {
+            type: "RESOURCE_CRITICAL",
+            severity: "CRITICAL",
+            message: `Node ${server.hostname} is under extreme CPU stress (${server.cpu}%). Automated cooling protocols recommended.`
+        });
+    }
+
+    if (server.ram > 95) {
+        eventBus.publish("system:alert", {
+            type: "MEMORY_EXHAUSTION",
+            severity: "CRITICAL",
+            message: `Node ${server.hostname} memory saturation detected (${server.ram}%). Potential OOM event imminent.`
+        });
+    }
+
+    // 2. Connectivity Watchdog
+    if (server.status === 'offline') {
+        eventBus.publish("system:alert", {
+            type: "NODE_OFFLINE",
+            severity: "CRITICAL",
+            message: `Node ${server.hostname} has lost neural handshake. Investigative triage required.`
+        });
+    }
+}
+
+module.exports = { checkThreats, analyzeTelemetry };

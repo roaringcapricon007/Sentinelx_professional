@@ -6,12 +6,14 @@ const User = sequelize.define('User', {
     name: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: true },
+    providerId: { type: DataTypes.STRING, allowNull: true },
+    avatar: { type: DataTypes.STRING, allowNull: true },
     role: { 
         type: DataTypes.STRING, 
-        defaultValue: 'viewer', // Roles: super_admin, analyst, viewer, machine_agent
+        defaultValue: 'viewer', // Roles: super_admin, admin, analyst, user, viewer, machine_agent
         validate: {
             isIn: {
-                args: [['super_admin', 'analyst', 'viewer', 'machine_agent']],
+                args: [['super_admin', 'admin', 'analyst', 'user', 'viewer', 'machine_agent']],
                 msg: "Unauthorized security clearance level specified."
             }
         }

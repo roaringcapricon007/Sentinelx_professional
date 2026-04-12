@@ -32,7 +32,8 @@ infraWorker.initialize().catch(err => console.error('[WATCHDOG] Init Serialized 
  */
 global.eventBus.on('log:processed', (log) => {
     io.emit('new_log', log);
-    io.emit('live_log', log); // Point 10 — Premium Live Tail
+    io.emit('live_log', log); 
+    io.emit('log_stream', log); // Finalizing Real-time Stream Protocol
 });
 global.eventBus.on('log:repeat', (log) => io.emit('log_repeat', log));
 global.eventBus.on('system:alert', (alert) => io.emit('system:alert', alert));

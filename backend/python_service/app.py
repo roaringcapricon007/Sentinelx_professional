@@ -232,12 +232,13 @@ def analyze_logs():
             # Deep Suggestion Engine & Risk Scoring
             risk_score = 10
             # Use ML features for Advanced Anomaly Detection
-            is_anomaly = detect_anomaly([len(l), sum(1 for w in ['error', 'fail', 'panic'] if w in l)])
+            is_anomaly, status = detect_anomaly(l)
 
             if ai_intent == 'security' or "login" in l or "auth" in l or "denied" in l:
                 suggestion = "SECURITY PROTOCOL: Origin IP marked as SUSPICIOUS. Correlation suggests multi-vector probe. Check for credential stuffing."
                 risk_score = 85
                 is_anomaly = True
+                status = "ANOMALY"
             elif ai_intent == 'status' or "timeout" in l or "down" in l:
                 suggestion = "STABILITY ACTION: Heartbeat failure detected. Attempting automated node reboot. Traffic re-routed to failsafe cluster."
                 risk_score = 65
@@ -264,7 +265,7 @@ def analyze_logs():
                 "suggestion": suggestion,
                 "riskScore": risk_score,
                 "isAnomaly": is_anomaly,
-                "status": "ANOMALY" if is_anomaly else "NORMAL",
+                "status": status,
                 "timestamp": datetime.now().isoformat()
             })
             
@@ -274,7 +275,7 @@ def analyze_logs():
                 "severity": sev,
                 "message": line.strip()[:100],
                 "is_anomaly": is_anomaly,
-                "status": "ANOMALY" if is_anomaly else "NORMAL"
+                "status": status
             })
             
             if len(issues) > 500: break # Safety cap
@@ -356,7 +357,7 @@ def analyze_single_log():
     err_keywords = sum(1 for w in ['fail', 'error'] if w in message.lower())
 
     # 2. Feature Extraction & Prediction (Modular Handover)
-    is_anomaly = detect_anomaly([msg_length, err_keywords])
+    is_anomaly, status = detect_anomaly(message)
     
     # Simple risk scoring logic based on ML prediction and severity
     risk_score = 5
@@ -411,7 +412,7 @@ def analyze_single_log():
         "is_anomaly": is_anomaly,
         "risk_score": risk_score,
         "threat_type": threat_type,
-        "status": "ANOMALY" if is_anomaly else "NORMAL",
+        "status": status,
         "explanation": explanation,
         "recommendations": rec
     }

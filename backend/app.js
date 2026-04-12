@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 
 // ✅ HEALTH CHECK
 app.get("/health", (req, res) => {
-  res.send("OK ✅");
+  res.json({ status: "OK", timestamp: new Date() });
 });
 
 // Session Config with Database Persistence
@@ -70,7 +70,7 @@ app.use("/device", require("./routes/device.routes"));
 
 // ✅ DEBUG TEST ROUTER (STEP 2 MANDATORY)
 app.get("/debug", (req, res) => {
-  res.send("DEBUG WORKING ✅");
+  res.json({ status: "OK", message: "DEBUG WORKING" });
 });
 
 // API Route Orchestrator (Point 10)
@@ -100,14 +100,16 @@ app.get("*", (req, res) => {
 // ❌ GLOBAL ERROR HANDLER
 app.use((err, req, res, next) => {
   console.error("🔥 ERROR:", err);
-  if (req.originalUrl.startsWith('/api')) {
-    return res.status(500).json({
+  const status = err.status || 500;
+  
+  if (req.originalUrl.startsWith('/api') || req.headers.accept?.includes('application/json')) {
+    return res.status(status).json({
       success: false,
-      error: "INTERNAL_SERVER_ERROR",
-      message: "An unexpected error occurred on the API cluster."
+      error: err.name || "INTERNAL_SERVER_ERROR",
+      message: err.message || "An unexpected error occurred on the API cluster."
     });
   }
-  res.status(500).send("Internal Server Error");
+  res.status(status).send(`<html><body><h1>Internal Server Error</h1><p>${err.message}</p></body></html>`);
 });
 
 module.exports = app;

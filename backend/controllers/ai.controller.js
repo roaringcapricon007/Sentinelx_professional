@@ -9,7 +9,8 @@ async function generateResponse(msg) {
 
     // 1. Primary Intelligence: Python PrimeBrain
     try {
-        const pyResponse = await fetch('http://127.0.0.1:5000/chat', {
+        const PYTHON_URL = process.env.PYTHON_URL || 'http://127.0.0.1:5000';
+        const pyResponse = await fetch(`${PYTHON_URL}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: msg })
